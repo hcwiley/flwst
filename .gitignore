@@ -26,3 +26,4 @@ venv/
 
 # node artifacts
 node_modules/
+.pnpm-store/
