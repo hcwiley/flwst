@@ -16,8 +16,11 @@ The initial integration targets:
 - `inbox/`: all your incoming tasks, voice notes, images, etc.
 - `prompts/`: all your the canned prompts for the AI to process the inbox.
 - `config/`: all your the configuration for the AI to use.
-- `commands/`: all your the commands for the AI to execute.
-- `utils/`: all your the utilities for the AI to use.
+  - Note: Not tracked by git (except the `config/examples/` directory).
+- `tmp/`: all your the temporary files for the AI to use.
+  - Note: Not tracked by git.
+- `archive/`: all your the archived files for the AI to use.
+  - Note: Not tracked by git.
 
 ## setup
 
@@ -29,6 +32,8 @@ Install Cursor:
 
 
 ### configs
+
+Copy the `config/examples/` directory to `config/` and edit the files as needed.
 
 - `config/notion.ts`: Update the names of various Notion databases and properties.
 - `config/spelling.ts`: Update the spelling of various words and phrases.
