@@ -8,6 +8,7 @@
     "prepare": "husky",
     "lint": "eslint .",
     "format": "prettier -w .",
+    "test": "echo \"No tests yet\"",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "lint-staged": {
