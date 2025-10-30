@@ -1,0 +1,28 @@
+
+# inbox: all your incoming tasks, voice notes, images, etc.
+inbox/
+
+# tmp files
+tmp/
+
+# archive files
+archive/
+
+# the real configs. we want to keep the ones in config/examples/
+config/*.ts
+
+# misc
+.DS_Store
+.*.swp
+
+# python artifacts
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+venv/
+
+
+# node artifacts
+node_modules/
