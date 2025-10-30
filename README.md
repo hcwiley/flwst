@@ -19,26 +19,24 @@ The initial integration targets:
 - `commands/`: all your the commands for the AI to execute.
 - `utils/`: all your the utilities for the AI to use.
 
-## usage
+## setup
 
-- Install deps:
-  - `pnpm install`
+Install Notion MCP:
+- https://developers.notion.com/docs/get-started-with-mcp
 
-- Run a TypeScript file directly:
-  - `pnpm ts path/to/script.ts`
+Install Cursor:
+- https://www.cursor.com/
 
-- Watch mode (auto-reload on changes):
-  - `pnpm dev path/to/script.ts`
 
-- Type-check/build (no emit):
-  - `pnpm run build`
+### configs
 
-### commands
+- `config/notion.ts`: Update the names of various Notion databases and properties.
+- `config/spelling.ts`: Update the spelling of various words and phrases.
 
-- List entries in the `Daily Notes` database via Notion MCP:
-  - Ensure your Notion MCP server is available; set env var:
-    - `NOTION_MCP_CMD` (e.g., `notion-mcp`)
-    - optionally `NOTION_MCP_ARGS` (space-separated)
-  - Ensure your local `config/notion.ts` contains `notionConfig.databaseNames.dailyNotes`.
-  - Run:
-    - `pnpm run list:daily`
+## Usage
+
+- Use a voice recording tool to record your daily notes.
+- Get a transcript of the recording and drop it in the `inbox/` directory.
+- Run the `/import_daily` command to import the transcript into the Daily Notes database.
+- Run the `/update_tasks` command to update the tasks in the Tasks database from the Daily Notes entry.
+- Run the `/list_daily` command to list all daily notes in the Daily Notes database.
