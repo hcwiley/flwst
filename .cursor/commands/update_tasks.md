@@ -70,6 +70,16 @@ Agent steps:
    - After all tasks are processed (applied or skipped), archive the entire `tmp/tasks/` folder to `archive/YYYY-MM-DD/tasks/` (using the Daily Notes Date).
    - Show a final summary of archived files and Notion updates (created/updated task count with links).
 
+9) Final message:
+   - Present a list of the tasks there:
+     - Create:
+       - [task_name](link to Notion page)
+     - Update:
+       - [task_name](link to Notion page)
+  - Any other relevant info?
+    - Did you encounter any tooling errors?
+      - Help the user resolve them.
+
 Notes and fallbacks:
 - If the Tasks database lacks some properties (Priority/Status/Tags), proceed with available ones; still include full content in the Page body.
 - If tag values are not allowed by the DB schema, omit them or map to the closest valid option; do not attempt to create new options automatically.
