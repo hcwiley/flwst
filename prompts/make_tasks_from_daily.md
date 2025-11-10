@@ -18,6 +18,7 @@ i.e.:
 
 <database_properties>
 - Name: the name of the task
+- Project: the project the task is associated with (optional)
 - Description: short description of the task (1-2 sentences)
 - Status: the status of the task
   - TODO
@@ -37,6 +38,10 @@ i.e.:
 
 <review>
 - Make sure we're not duplicating existing tasks.
+  - Look for fuzzy matches on the `Name` property.
+  - The user might describe the task differently, but the intent is the same.
+  - We would prefer to not have DUPLICATE tasks.
+- Make sure to update the `Project` property, if the user mentioned a project the task is associated with.
 - Make sure to update the `Daily Notes` relation property, not remove existing ones
 - Make sure to update the `Status` property, if the user mentioned they are working on it, it's blocked, etc...
 </review>

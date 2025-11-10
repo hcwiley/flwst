@@ -30,6 +30,30 @@ Install Notion MCP:
 Install Cursor:
 - https://www.cursor.com/
 
+### Notion Databases
+
+Get the database IDs from the Notion database settings and paste them into the `config/notion.ts` file. Optional but highly recommended as it will cut down on the number of API calls and improve performance.
+
+![Copy Notion Database ID](./docs/copy-database-id.gif)
+
+
+#### Daily Notes
+- `Name`: The name of the daily note.
+- `Date`: The date of the daily note.
+- `Summary`: A high level summary of the daily note.
+- `Tags`: A list of tags to group daily notes.
+- `Tasks`: Relation to the Tasks Page that task is from or referenced in (Many to Many relationship)
+
+#### Tasks
+- `Name`: The name of the task.
+- `Project`: The project the task is associated with (optional)
+- `Description`: The description of the task.
+- `Priority`: The priority of the task.
+- `Status`: The status of the task.
+- `Tags`: A list of tags to group tasks (optional)
+- `Due Date`: The due date of the task (optional)
+- `Assignee`: The assignee of the task (optional)
+- `Daily Notes`: Relation to the Daily Notes Page that task is from or referenced in (Many to Many relationship)
 
 ### configs
 

@@ -11,7 +11,7 @@ Inputs:
 - `quit`: do NOT confirm, exit the command and reset the context to start fresh.
 - `{target_date}`: Optional. If omitted, use the most recent Daily Notes entry (by Date).
 
-Goal: Parse the `## TODOs` → `### table` in a Daily Notes page and either create or update tasks in the Notion database specified by `notionConfig.databaseNames.tasks`. Use the detailed Task sections below the table (each `### Task Name`) to build/merge task bodies.
+Goal: Parse the `## TODOs` → `### table` in a Daily Notes page and either create or update tasks in the Notion database specified by `notionConfig.database.tasks`. Use the detailed Task sections below the table (each `### Task Name`) to build/merge task bodies.
 
 Configs:
 - `./config/notion.ts`
@@ -39,7 +39,7 @@ Agent steps:
    - Present a summary list of parsed tasks and hyperlinked paths to the draft files: [{task_name}](tmp/tasks/{task_name}/DRAFT.md). I want to be able to click on the link and open the file in a Markdown preview window.
 
 4) Discover Tasks database
-   - Read `config/notion.ts` and get `notionConfig.databaseNames.tasks`.
+   - Read `config/notion.ts` and get `notionConfig.database.tasks`.
    - Using Notion MCP tools:
      - Search for the Tasks database by title; prefer the one under the `flwst` parent page if multiple.
      - Fetch the database details. Identify its first `collection://...` Data Source URL; this is the `data_source_id`.

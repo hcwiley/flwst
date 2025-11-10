@@ -10,7 +10,7 @@ Inputs:
 - `no`: do NOT confirm, Cursor will prompt for how to handle
 - `quit`: do NOT confirm, exit the command and reset the context to start fresh.
 
-Goal: Process files in `inbox/`, generate a Daily entry from the transcript using `prompts/make_daily_from_transcript.md`, confirm with the user, then create a new Page in the Notion database specified by `notionConfig.databaseNames.dailyNotes`. Finally, archive the processed inbox files under `archive/YYYY-MM-DD/`.
+Goal: Process files in `inbox/`, generate a Daily entry from the transcript using `prompts/make_daily_from_transcript.md`, confirm with the user, then create a new Page in the Notion database specified by `notionConfig.database.dailyNotes`. Finally, archive the processed inbox files under `archive/YYYY-MM-DD/`.
 
 Agent steps:
 1) Discover inbox files
@@ -33,7 +33,7 @@ Agent steps:
    - creation in Notion (reply `yes` to proceed or `no` to cancel).
 
 3) If user confirms Notion creation (`yes`)
-   - Read `config/notion.ts` and get `notionConfig.databaseNames.dailyNotes` for the database title.
+   - Read `config/notion.ts` and get `notionConfig.database.dailyNotes` for the database title.
    - Using Notion MCP tools:
      - Search for the database by title to obtain its database/page ID.
      - Fetch the database details to extract the first `collection://...` Data Source URL (this is the `data_source_id`).

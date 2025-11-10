@@ -9,7 +9,7 @@ Usage: `/list_daily [limit]`
 - Each item shows: Name, Date, Summary, Link to Notion.
 
 Agent steps:
-1) Read `config/notion.ts`, parse `notionConfig.databaseNames.dailyNotes` to get the database title.
+1) Read `config/notion.ts`, parse `notionConfig.database.dailyNotes` to get the database title.
 2) Using the Notion MCP:
    - Search for the database by title and get its database/page ID.
    - Fetch the database details; extract the first `collection://...` data source URL.

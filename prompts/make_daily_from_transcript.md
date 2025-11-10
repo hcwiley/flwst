@@ -21,7 +21,7 @@ breakdown my notes into the following sections:
 ### table
 
 format of the table is:
-| name | description | priority | status | tags |
+| name | project | description | priority | status | tags | Due Date |
 
 Priority options are:
 - `TOP`
@@ -51,10 +51,10 @@ Example:
 
   ### table
 
-  | name | description | priority | status | tags |
+  | name | project | description | priority | status | tags | Due Date |
 
-  | Foo Bar | This is a description | TOP | TODO | tag1, tag2 |
-  | Silly Walk | High knees and loose ankles | Medium | In Progress | style, fun |
+  | Foo Bar |  | This is a description | TOP | TODO | tag1, tag2 |
+  | Silly Walk | Monty Python Society | High knees and loose ankles | Medium | In Progress | style, fun |
 
   ### Foo Bar
 
@@ -80,7 +80,7 @@ Example:
 
   Details about the Foo Bar task and how I thought through it.
 
-  ### Silly Walk
+  ### Silly Walk | Monty Python Society
 
   Summary of the Silly Walk task
 
@@ -143,11 +143,11 @@ Example:
 
 ### table
 
-| name | description | priority | status | tags |
+| name | project | description | priority | status | tags | Due Date |
 
-| Foo Bar | This is a description | TOP | TODO | tag1, tag2 |
-| Silly Walk | High knees and loose ankles | Medium | In Progress | style, fun |
-| Client Work (YYYY-MM-DD) | I need to review the client work for the project and make sure we're on track. | Medium | In Progress | client, work |
+| Foo Bar |  | This is a description | TOP | TODO | tag1, tag2 | |
+| Silly Walk | Monty Python Society | High knees and loose ankles | Medium | In Progress | style, fun | 2025-11-18 |
+| Client Work (YYYY-MM-DD) | Consulting Co. | I need to review the client work for the project and make sure we're on track. | Medium | In Progress | client, work | 2025-11-12 |
 
 ### Foo Bar
 
@@ -173,7 +173,7 @@ Summary of the Foo Bar task
 
 Details about the Foo Bar task and how I thought through it.
 
-### Silly Walk
+### Silly Walk | Monty Python Society
 
 Summary of the Silly Walk task
 
@@ -195,7 +195,7 @@ Summary of the Silly Walk task
 
 Details about the Silly Walk task and how I thought through it.
 
-### Client Work (YYYY-MM-DD)
+### Client Work (YYYY-MM-DD) | Consulting Co.
 
 Summary of the Client Work task
 
