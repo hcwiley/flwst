@@ -45,9 +45,9 @@ properties = {
 
 ```python
 properties = {
-    'date:Date:start': '2025-11-12',           # ISO date string
+    'date:Date:start': '2025-01-15',           # ISO date string
     'date:Date:is_datetime': 0,                 # 0 for date-only, 1 for datetime
-    # Optional: 'date:Date:end': '2025-11-13'  # For date ranges
+    # Optional: 'date:Date:end': '2025-01-16'  # For date ranges
 }
 ```
 
@@ -80,7 +80,7 @@ content = '''## TODOs
 
 | name | project | description | priority | status | tags | Due Date |
 |------|---------|-------------|----------|--------|------|----------|
-| Task Name | Project | Description | TOP | TODO | tag1, tag2 | 2025-11-12 |
+| Task Name | Project | Description | TOP | TODO | tag1, tag2 | 2025-01-15 |
 
 ### Task Name
 

@@ -1,0 +1,38 @@
+# Cursor Rules
+
+## Documentation Sanitization
+
+**CRITICAL: Never use real user data in guides, commands, prompts, or rules.**
+
+When creating or updating documentation files in `.cursor/guides/`, `.cursor/commands/`, `prompts/`, or any rule files:
+
+1. **Use generic placeholders** instead of real project names, company names, or personal identifiers
+2. **Use example data** that is clearly fictional (e.g., "Example Project", "Acme Corp", "Project Alpha")
+3. **Sanitize UUIDs** - Use placeholder UUIDs like `aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee`
+4. **Sanitize dates** - Use generic dates like `2025-01-01` or `YYYY-MM-DD` format
+5. **Sanitize URLs** - Use placeholder URLs like `https://example.com` or `https://notion.so/example`
+6. **Sanitize usernames/emails** - Use `user@example.com`, `example-user`, etc.
+
+### Examples of what NOT to use:
+- ❌ Real project names (e.g., "Sherpa Health", "Smart Take", "flwst", "RIOS", "CWS")
+- ❌ Real person names (e.g., "Tavus", "Matt", "Gibby")
+- ❌ Real company/brand names
+- ❌ Real Notion page IDs or database IDs
+- ❌ Real dates from user's actual work
+
+### Examples of what TO use:
+- ✅ Generic project names (e.g., "Example Project", "Project Alpha", "Acme Corp")
+- ✅ Placeholder names (e.g., "John Doe", "Jane Smith")
+- ✅ Generic placeholders (e.g., "Project A", "Task 1", "Database X")
+- ✅ Placeholder UUIDs (e.g., `aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee`)
+- ✅ Generic dates (e.g., `2025-01-01`, `YYYY-MM-DD`)
+
+### Files to check:
+- `.cursor/guides/*.md` - All guide files
+- `.cursor/commands/*.md` - All command files
+- `prompts/*.md` - All prompt files
+- `.cursorrules` - This file and any other rule files
+
+### When updating existing files:
+If you find real data in documentation files, replace it with generic examples immediately. The documentation should be reusable and shareable without exposing user-specific information.
+

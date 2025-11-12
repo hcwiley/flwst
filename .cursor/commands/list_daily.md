@@ -30,6 +30,6 @@ Agent steps:
    <_tags_>
 
 Notes:
-- If multiple databases match the title, prefer the one under the `flwst` parent page if present.
+- If multiple databases match the title, prefer the one under the `workspaceName` parent page if present.
 - If property names differ, use the first date-like and summary-like properties.
 

@@ -29,26 +29,38 @@ Agent steps:
    - For each row, also find a matching `### {name}` section and capture all subsequent content until the next `###` or section boundary.
    - Apply spelling fixes from `config/spelling.ts` where relevant.
 
-3) Prepare local workspace for review
+3) Discover Tasks database
+   - Read `config/notion.ts` and get `notionConfig.database.tasks`.
+   - Using Notion MCP tools:
+     - Search for the Tasks database by title; prefer the one under the workspace parent page if multiple.
+     - Fetch the database details. Identify its first `collection://...` Data Source URL; this is the `data_source_id`.
+     - Capture task property schema (e.g., `Name` title, `Priority`, `Status`, `Tags`, `Project`, etc.) to use exact property names.
+   - Review `prompts/make_tasks_from_daily.md` for the database properties and review the task schema.
+
+4) Determine existence and fetch existing content (per task)
+   - **CRITICAL: AVOID DUPLICATES** - See `.cursor/guides/avoid_duplicate_tasks.md` for detailed guidance.
+   - **Filter by Project FIRST**: If task has a `project` field, search Tasks database filtered by that Project property first.
+   - Search the Tasks database for existing pages using multiple strategies:
+     - Search with project name: `"{project} {keyword}"` (e.g., "Project Alpha architecture")
+     - Search with task name keywords (extract key nouns, ignore action verbs)
+     - Use fuzzy matching - don't rely on exact name matches
+   - For each potential match, fetch the task and check:
+     - Does it have the same Project? (HIGHEST PRIORITY - likely duplicate)
+     - Do key words overlap? (2+ keywords = likely match)
+     - Is it recent? (tasks updated in last 30 days more likely to be duplicates)
+   - **If ANY potential match found**: Mark task as existing, record its page ID and properties.
+   - **Only mark as new task if 100% certain no similar task exists.**
+   - Track which tasks are existing vs new for next step.
+
+5) Prepare local workspace for review
    - For each task `name`:
      - Create `tmp/tasks/{task_name}/`.
      - If it exists, remove it first, then recreate it.
      - Reference `prompts/make_tasks_from_daily.md` for the content and structure of the task.
      - Pay attention to <content> when making the DRAFT.md file.
      - Write the captured section content to `tmp/tasks/{task_name}/DRAFT.md`.
-   - Present a summary list of parsed tasks and hyperlinked paths to the draft files: [{task_name}](tmp/tasks/{task_name}/DRAFT.md). I want to be able to click on the link and open the file in a Markdown preview window.
-
-4) Discover Tasks database
-   - Read `config/notion.ts` and get `notionConfig.database.tasks`.
-   - Using Notion MCP tools:
-     - Search for the Tasks database by title; prefer the one under the `flwst` parent page if multiple.
-     - Fetch the database details. Identify its first `collection://...` Data Source URL; this is the `data_source_id`.
-     - Capture task property schema (e.g., `Name` title, `Priority`, `Status`, `Tags`, etc.) to use exact property names.
-   - Review `prompts/make_tasks_from_daily.md` for the database properties and review the task schema.
-
-5) Determine existence and fetch existing content (per task)
-   - Search the Tasks database for an existing page with the same `Name`.
-   - If found, fetch its content and save a copy to `tmp/tasks/{task_name}/NOTION.md` to aid manual review/merge.
+     - **If task exists in Notion**: Fetch its content and save to `tmp/tasks/{task_name}/NOTION.md` to aid manual review/merge.
+   - Present a summary list of parsed tasks with their status (existing/new) and hyperlinked paths to the draft files: [{task_name}](tmp/tasks/{task_name}/DRAFT.md). I want to be able to click on the link and open the file in a Markdown preview window.
 
 6) Merge content and prepare REVIEW.md (per task)
    - Merge strategy: favor adding content over removing. Preserve existing Notion content; append or integrate new details from `DRAFT.md`.
@@ -81,6 +93,7 @@ Agent steps:
       - Help the user resolve them.
 
 Notes and fallbacks:
+- **DUPLICATE PREVENTION**: Creating duplicate tasks is a BIG NO NO. Always filter by Project first, then search with fuzzy matching. When in doubt, UPDATE existing task rather than create new one. See `.cursor/guides/avoid_duplicate_tasks.md` for comprehensive guidance.
 - If the Tasks database lacks some properties (Priority/Status/Tags), proceed with available ones; still include full content in the Page body.
 - If tag values are not allowed by the DB schema, omit them or map to the closest valid option; do not attempt to create new options automatically.
 - If no matching `### {name}` section exists, proceed with table data only and note this in `DRAFT.md`.

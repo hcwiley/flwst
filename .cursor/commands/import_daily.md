@@ -61,7 +61,7 @@ Agent steps:
    <_tags_>
 
 Notes and fallbacks:
-- If multiple databases match the title, prefer the one under the `flwst` parent page.
+- If multiple databases match the title, prefer the one under the `workspaceName` parent page.
 - If the database lacks a `Date`, `Notes Summary`, or `Tags` property, proceed with the fields available and still include the full content in the Page body.
 - If no files are found in `inbox/`, inform the user and exit.
 
