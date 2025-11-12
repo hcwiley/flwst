@@ -52,6 +52,7 @@ Example:
   ### table
 
   | name | project | description | priority | status | tags | Due Date |
+  | ------ | ------- | ----------- | -------- | ------ | ---- | -------- |
 
   | Foo Bar |  | This is a description | TOP | TODO | tag1, tag2 |
   | Silly Walk | Monty Python Society | High knees and loose ankles | Medium | In Progress | style, fun |
@@ -144,6 +145,7 @@ Example:
 ### table
 
 | name | project | description | priority | status | tags | Due Date |
+| ------ | ------- | ----------- | -------- | ------ | ---- | -------- |
 
 | Foo Bar |  | This is a description | TOP | TODO | tag1, tag2 | |
 | Silly Walk | Monty Python Society | High knees and loose ankles | Medium | In Progress | style, fun | 2025-11-18 |
