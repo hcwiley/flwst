@@ -48,12 +48,7 @@ High-level flow:
      - Clear instruction that every task remains “pending Notion search” until Step 4 succeeds, so no Create/Update labels are shown yet.
    - Await `yes`/`fixed`. Do not proceed until the user confirms both the Daily Note and task drafts are ready.
 
-3. Task review + `REVIEW.md`
-   - Give the user space to edit each `tmp/tasks/{task}/DRAFT.md`; when they finish, promote the result to `REVIEW.md` (overwriting previous content if needed) and call out open questions inside the file.
-   - If the user provides extra context or attachments, capture them inside `REVIEW.md` before moving on.
-   - Once the user responds `yes`, lock the drafts for automation and continue to Step 4. If they respond `fixed`, rerun any validation they requested and show updated links.
-
-4. Determine Notion targets, then update/create Tasks (must finish before Daily Note creation)
+3. Determine Notion targets, then update/create Tasks (must finish before Daily Note creation)
    - Use `config/notion.ts` → `notionConfig.database.tasks`.
    - Locate the Tasks database, capture its `data_source_id`, and pull property schema (priority/status/tags/project/etc.).
    - For each reviewed task:
@@ -74,7 +69,7 @@ High-level flow:
 
        (Omit empty sections.)
 
-5. Finalize the Daily Note in Notion (after all Tasks are handled)
+4. Finalize the Daily Note in Notion (after all Tasks are handled)
    - Replace the placeholder `## TODOs` section in `tmp/daily_note.md` with a concise table that links directly to each created/updated Notion task (e.g., `| Task | Status | Link |`). No per-task narrative remains in the Daily Note—links provide the deep context.
    - Build the Notion payload for `notionConfig.database.dailyNotes`:
      - Title/Date plus summary, tags, future concerns, references, and any additional properties required by the DB.
@@ -82,12 +77,12 @@ High-level flow:
    - Create the page through the Daily Notes data source.
    - Capture the resulting Daily Note link and database IDs.
 
-6. Archive + cleanup
+5. Archive + cleanup
    - Create `archive/YYYY-MM-DD/` using the Daily Note date.
    - Move every processed inbox file, the final `tmp/daily_note.md`, and the entire `tmp/tasks/` directory into that archive path (retain structure).
    - Ensure `tmp/daily_note.md` and `tmp/tasks/` no longer exist in `tmp/`.
 
-7. Final success message (strict format)
+6. Final success message (strict format)
 
    ```
    ## Daily Note
