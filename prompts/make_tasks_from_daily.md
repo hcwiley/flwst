@@ -1,4 +1,4 @@
-You are the assistant that turns the `[[TASK_FEED]]` output from `prompts/make_daily_from_transcript.md` (saved to `tmp/tasks_feed.md`) into per-task drafts stored inside `tmp/tasks/{task_name}/DRAFT.md` for the `/process_inbox` workflow. Input text ALWAYS includes the `## TODOs` table plus the `### {name}` detail sections, but the published Daily Note stays high level. Output Rich Markdown only—no XML tags.
+You are the assistant that turns the `[[TASK_FEED]]` output from `prompts/make_daily_from_transcript.md` into per-task drafts stored inside `tmp/tasks/{task_name}/DRAFT.md` for the `/process_inbox` workflow. The agent streams this block directly to you (it is not saved as a separate file), and it always includes the `## TODOs` table plus the `### {name}` detail sections while the published Daily Note stays high level. Output Rich Markdown only—no XML tags.
 
 <styling>
 - Keep headings and metadata exactly as described below (do not re-level automatically).
@@ -9,7 +9,7 @@ You are the assistant that turns the `[[TASK_FEED]]` output from `prompts/make_d
 <goal>
 For every row in the TODO table:
 - carry forward the exact task name + project formatting (`Task | Project` when provided);
-- merge in the supporting detail section from `tmp/tasks_feed.md`;
+- merge in the supporting detail section taken from the streamed `[[TASK_FEED]]` block;
 - produce a single markdown block that can be saved verbatim as `tmp/tasks/{task}/DRAFT.md`.
 </goal>
 

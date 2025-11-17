@@ -16,7 +16,6 @@ Goal: Take every transcript or note in `inbox/`, synthesize the day’s Daily No
 Required artifacts:
 
 - `tmp/daily_note.md` – high-level Daily Note draft (overview, general notes, future concerns, references, and an empty/placeholder `## TODOs` section).
-- `tmp/tasks_feed.md` – raw TODO table + per-task detail sections generated from the same prompt (never shipped to Notion; used only for task drafting).
 - `tmp/tasks/{task_name}/DRAFT.md` + `REVIEW.md` (+ optional `NOTION.md`) for every parsed task.
 
 Configs and prompts:
@@ -37,33 +36,34 @@ High-level flow:
    - Load all confirmed inbox files and concatenate transcripts chronologically (oldest → newest) unless the filenames specify ordering.
    - Run `prompts/make_daily_from_transcript.md`; it emits two fenced blocks:
      - `[[DAILY_NOTE]] … [[END_DAILY_NOTE]]` → write ONLY this block to `tmp/daily_note.md`. This block must stay high level (Daily Overview, General Notes, Future Concerns, References) plus a placeholder `## TODOs` note indicating links will be added after Notion updates. No per-task sections live here.
-     - `[[TASK_FEED]] … [[END_TASK_FEED]]` → write this block verbatim to `tmp/tasks_feed.md`. It contains the TODO table + `### {task}` detail sections required for downstream task drafting.
+     - `[[TASK_FEED]] … [[END_TASK_FEED]]` → capture this block in memory (do **not** write a file). It contains the TODO table + `### {task}` detail sections required to create task drafts in the next step.
    - Apply spelling corrections from `config/spelling.ts` across both artifacts.
-   - Remove any pre-existing `tmp/daily_note.md` / `tmp/tasks_feed.md` before writing.
+   - Remove any pre-existing `tmp/daily_note.md` before writing.
    - Ask the user to review the high-level `tmp/daily_note.md` for narrative accuracy (not task detail) and reply `yes` to accept or `fixed` after making manual edits. Do not proceed until the user confirms the draft is ready.
 
-3. Extract candidate tasks from the draft
-   - Parse the `## TODOs` table + detail sections inside `tmp/tasks_feed.md` (NOT `tmp/daily_note.md`).
-   - Feed that content into `prompts/make_tasks_from_daily.md` to structure each task (respect spelling fixes).
-   - For every task:
-     - Create `tmp/tasks/{sanitized_name}/`.
-     - Write `DRAFT.md` (prompt output) and, when applicable, `NOTION.md` containing the latest Notion content for comparison.
-     - Summarize whether the task appears to be new vs. existing (use fuzzy searches per `.cursor/guides/avoid_duplicate_tasks.md`).
-   - Provide the clickable list `[Task](tmp/tasks/{task}/DRAFT.md)` with status (new/existing) and await `yes`/`fixed`.
+3. Materialize candidate tasks
+   - Parse the `[[TASK_FEED]]` block captured in Step 2 (NOT the contents of `tmp/daily_note.md`).
+   - For every TODO row:
+     - Create (or refresh) `tmp/tasks/{sanitized_name}/`.
+     - Write `DRAFT.md` using `prompts/make_tasks_from_daily.md` fed with just that task’s content; include acceptance criteria, notes, and references.
+     - Initialize `REVIEW.md` by copying `DRAFT.md` (or merging with any fetched Notion content later in Step 4).
+   - Present the clickable list `[Task](tmp/tasks/{task}/DRAFT.md)` and clearly state that each task is currently `pending Notion search` until Step 5 completes. Avoid labeling anything as Create/Update yet.
+   - Await `yes`/`fixed`.
 
 4. Task review + `REVIEW.md`
-   - Merge `DRAFT.md` with any `NOTION.md` context.
+   - If Notion content exists for a task (identified in Step 5), merge it with the local draft; otherwise keep the draft as-is.
    - Write the final proposal to `REVIEW.md`; include explicit notes for conflicts or missing info.
    - Once the user responds `yes`, proceed with Notion updates for the approved subset. If they respond `fixed`, wait until they finish editing and rerun validation.
 
-5. Update or create Tasks in Notion (must finish before Daily Note creation)
+5. Determine Notion targets, then update/create Tasks (must finish before Daily Note creation)
    - Use `config/notion.ts` → `notionConfig.database.tasks`.
    - Locate the Tasks database, capture its `data_source_id`, and pull property schema (priority/status/tags/project/etc.).
    - For each reviewed task:
-     - Prefer updating an existing page when any fuzzy match exists; otherwise create a new page under the Tasks data source.
+     - Perform fuzzy searches in Notion using the exact project + name keywords (per `.cursor/guides/avoid_duplicate_tasks.md`).
+     - Only after a positive Notion match should you mark the task as **UPDATE** (store the page ID + URL and pull existing content into `NOTION.md` for context). If no reliable match exists, label the task as **CREATE** and proceed accordingly.
      - Properties: align exactly with the database schema (e.g., `Name`, `Priority`, `Status`, `Tags`, `Project`, `Due`, etc.).
-     - Content: apply the Markdown from `REVIEW.md` as Notion blocks.
-   - Record the resulting page IDs + URLs for later linking.
+     - Content: apply the Markdown from `REVIEW.md` as Notion blocks (merging instead of replacing when updating).
+   - Record the resulting page IDs + URLs and surface a definitive Create vs Update breakdown in the user summary (no guesses from local files).
 
 6. Finalize the Daily Note in Notion (after all Tasks are handled)
    - Replace the placeholder `## TODOs` section in `tmp/daily_note.md` with a concise table that links directly to each created/updated Notion task (e.g., `| Task | Status | Link |`). No per-task narrative remains in the Daily Note—links provide the deep context.
@@ -75,8 +75,8 @@ High-level flow:
 
 7. Archive + cleanup
    - Create `archive/YYYY-MM-DD/` using the Daily Note date.
-   - Move every processed inbox file, the final `tmp/daily_note.md`, `tmp/tasks_feed.md`, and the entire `tmp/tasks/` directory into that archive path (retain structure).
-   - Ensure `tmp/daily_note.md`, `tmp/tasks_feed.md`, and `tmp/tasks/` no longer exist in `tmp/`.
+   - Move every processed inbox file, the final `tmp/daily_note.md`, and the entire `tmp/tasks/` directory into that archive path (retain structure).
+   - Ensure `tmp/daily_note.md` and `tmp/tasks/` no longer exist in `tmp/`.
 
 8. Final success message (strict format)
 

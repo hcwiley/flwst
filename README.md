@@ -71,7 +71,7 @@ Copy the `config/examples/` directory to `config/` and edit the files as needed.
 1. Capture your thoughts (voice memo, typed notes, etc.) and place the transcript inside `inbox/`.
 2. Run the `/process_inbox` command:
    - Confirm each checkpoint with `yes`, pause to make manual edits and reply `fixed`, or abandon with `quit`.
-   - The command generates a high-level `tmp/daily_note.md`, a hidden `tmp/tasks_feed.md` (raw TODO table + detail), and `tmp/tasks/{task}/DRAFT.md`/`REVIEW.md` folders so you can review every artifact before it touches Notion.
+   - The command generates a high-level `tmp/daily_note.md` plus `tmp/tasks/{task}/DRAFT.md`/`REVIEW.md` folders so you can review every artifact before it touches Notion.
    - The Daily Note stays narrative-only; once Tasks are written to Notion, the `## TODOs` section is replaced with a small table that links directly to each Task page (no duplicated acceptance criteria).
    - Tasks are created or updated in Notion **before** the Daily Note so the final note can link to every task using the shared `[[Task Handle]]` placeholders.
    - Expect a final success message summarizing the Daily Note link, created/updated task links, and the archive path (e.g., `archive/2025-01-01/`).
