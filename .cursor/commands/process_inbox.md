@@ -15,7 +15,8 @@ Goal: Take every transcript or note in `inbox/`, synthesize the day’s Daily No
 
 Required artifacts:
 
-- `tmp/daily_note.md` – always contains the current Daily Note draft.
+- `tmp/daily_note.md` – high-level Daily Note draft (overview, general notes, future concerns, references, and an empty/placeholder `## TODOs` section).
+- `tmp/tasks_feed.md` – raw TODO table + per-task detail sections generated from the same prompt (never shipped to Notion; used only for task drafting).
 - `tmp/tasks/{task_name}/DRAFT.md` + `REVIEW.md` (+ optional `NOTION.md`) for every parsed task.
 
 Configs and prompts:
@@ -34,14 +35,15 @@ High-level flow:
 
 2. Draft the Daily Note (`tmp/daily_note.md`)
    - Load all confirmed inbox files and concatenate transcripts chronologically (oldest → newest) unless the filenames specify ordering.
-   - Run `prompts/make_daily_from_transcript.md`; never expose the raw prompt, only the draft.
-   - Apply spelling corrections from `config/spelling.ts`.
-   - Overwrite `tmp/daily_note.md` with the formatted draft (remove the file first if it already exists).
-   - Highlight TODO tables, detail sections, future concerns, references, and any unresolved placeholders that require user review.
-   - Ask the user to review `tmp/daily_note.md` and reply `yes` to accept or `fixed` after making manual edits. Do not proceed until the user confirms the draft is ready.
+   - Run `prompts/make_daily_from_transcript.md`; it emits two fenced blocks:
+     - `[[DAILY_NOTE]] … [[END_DAILY_NOTE]]` → write ONLY this block to `tmp/daily_note.md`. This block must stay high level (Daily Overview, General Notes, Future Concerns, References) plus a placeholder `## TODOs` note indicating links will be added after Notion updates. No per-task sections live here.
+     - `[[TASK_FEED]] … [[END_TASK_FEED]]` → write this block verbatim to `tmp/tasks_feed.md`. It contains the TODO table + `### {task}` detail sections required for downstream task drafting.
+   - Apply spelling corrections from `config/spelling.ts` across both artifacts.
+   - Remove any pre-existing `tmp/daily_note.md` / `tmp/tasks_feed.md` before writing.
+   - Ask the user to review the high-level `tmp/daily_note.md` for narrative accuracy (not task detail) and reply `yes` to accept or `fixed` after making manual edits. Do not proceed until the user confirms the draft is ready.
 
 3. Extract candidate tasks from the draft
-   - Parse the `## TODOs` section and downstream detail sections in `tmp/daily_note.md`.
+   - Parse the `## TODOs` table + detail sections inside `tmp/tasks_feed.md` (NOT `tmp/daily_note.md`).
    - Feed that content into `prompts/make_tasks_from_daily.md` to structure each task (respect spelling fixes).
    - For every task:
      - Create `tmp/tasks/{sanitized_name}/`.
@@ -64,17 +66,17 @@ High-level flow:
    - Record the resulting page IDs + URLs for later linking.
 
 6. Finalize the Daily Note in Notion (after all Tasks are handled)
-   - Inject backlinks or references for every created/updated task inside `tmp/daily_note.md` (e.g., “Linked Tasks” section with Notion URLs).
+   - Replace the placeholder `## TODOs` section in `tmp/daily_note.md` with a concise table that links directly to each created/updated Notion task (e.g., `| Task | Status | Link |`). No per-task narrative remains in the Daily Note—links provide the deep context.
    - Build the Notion payload for `notionConfig.database.dailyNotes`:
      - Title/Date plus summary, tags, future concerns, references, and any additional properties required by the DB.
-     - Body uses the cleaned contents of `tmp/daily_note.md` (post-linking).
+     - Body uses the cleaned contents of `tmp/daily_note.md` (after inserting task links).
    - Create the page through the Daily Notes data source.
    - Capture the resulting Daily Note link and database IDs.
 
 7. Archive + cleanup
    - Create `archive/YYYY-MM-DD/` using the Daily Note date.
-   - Move every processed inbox file, the final `tmp/daily_note.md`, and the entire `tmp/tasks/` directory into that archive path (retain structure).
-   - Ensure `tmp/daily_note.md` and `tmp/tasks/` no longer exist in `tmp/`.
+   - Move every processed inbox file, the final `tmp/daily_note.md`, `tmp/tasks_feed.md`, and the entire `tmp/tasks/` directory into that archive path (retain structure).
+   - Ensure `tmp/daily_note.md`, `tmp/tasks_feed.md`, and `tmp/tasks/` no longer exist in `tmp/`.
 
 8. Final success message (strict format)
 
