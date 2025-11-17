@@ -1,11 +1,13 @@
 # Avoiding Duplicate Tasks in Notion - Critical Guide
 
 ## Overview
+
 This guide documents how to prevent creating duplicate tasks when processing daily notes. **Creating duplicates is a BIG NO NO** and must be avoided at all costs.
 
 ## The Problem
 
 When processing daily notes, tasks may be described differently but refer to the same work:
+
 - Daily note: "Finish Project Alpha architecture overview"
 - Existing task: "Architectural overview doc | Project Alpha"
 - These are the SAME task, just described differently!
@@ -17,6 +19,7 @@ When processing daily notes, tasks may be described differently but refer to the
 **NEVER create a task without first searching for existing tasks.**
 
 Before creating ANY task:
+
 1. Search the Tasks database for similar task names
 2. Use fuzzy matching - don't rely on exact name matches
 3. Check for tasks with the same project/tags
@@ -49,6 +52,7 @@ search_queries = [
 ```
 
 **Why project filtering matters:**
+
 - Reduces search results from hundreds to dozens
 - Same project = higher likelihood of being the same work
 - Prevents false matches from other projects
@@ -57,6 +61,7 @@ search_queries = [
 ### Rule 3: When in Doubt, Update Don't Create
 
 **If you find ANY task that could be the same work:**
+
 - ✅ **UPDATE the existing task** (merge new content)
 - ❌ **DO NOT create a new task**
 
@@ -98,21 +103,21 @@ if project:
     project_queries = [
         f"{project} {keyword}" for keyword in keywords
     ] + [project]  # Also search for project name alone
-    
+
     # Search with project filter
     for query in project_queries:
         results = mcp_Notion_notion_search(
             query=query,
             query_type="internal"
         )
-        
+
         # Filter results to Tasks database only
         task_results = [
-            r for r in results 
-            if r['type'] == 'page' 
+            r for r in results
+            if r['type'] == 'page'
             and 'TODO: Tasks' in r.get('highlight', '')
         ]
-        
+
         # Further filter by checking if result has matching project
         # (You may need to fetch each result to check its Project property)
         for result in task_results:
@@ -130,13 +135,13 @@ for query in queries:
         query=query,
         query_type="internal"
     )
-    
+
     task_results = [
-        r for r in results 
-        if r['type'] == 'page' 
+        r for r in results
+        if r['type'] == 'page'
         and 'TODO: Tasks' in r.get('highlight', '')
     ]
-    
+
     for result in task_results:
         if is_similar_task(result['title'], task_name, project):
             # FOUND EXISTING TASK - UPDATE IT, DON'T CREATE!
@@ -162,7 +167,7 @@ tasks_db = mcp_Notion_notion_fetch(id='tasks-database-id')
 def is_similar_task(existing_title, new_title, project):
     """
     Check if two task names refer to the same work.
-    
+
     Rules:
     1. Same project = higher likelihood
     2. Key words match (architecture, overview, etc.)
@@ -172,23 +177,23 @@ def is_similar_task(existing_title, new_title, project):
     # Normalize: lowercase, remove punctuation
     existing_norm = existing_title.lower().replace('|', '').strip()
     new_norm = new_title.lower()
-    
+
     # Extract key nouns/adjectives (ignore verbs)
     action_words = ['finish', 'complete', 'create', 'build', 'implement', 'add']
     existing_keywords = [w for w in existing_norm.split() if w not in action_words]
     new_keywords = [w for w in new_norm.split() if w not in action_words]
-    
+
     # Check for overlap
     overlap = set(existing_keywords) & set(new_keywords)
-    
+
     # If 2+ keywords match, likely the same task
     if len(overlap) >= 2:
         return True
-    
+
     # Check for substring matches
     if any(kw in existing_norm for kw in new_keywords if len(kw) > 4):
         return True
-    
+
     return False
 ```
 
@@ -206,13 +211,13 @@ if existing_task_found:
             'Description': merge_descriptions(old_desc, new_desc),
         }
     )
-    
+
     # Merge content (append new, preserve old)
     update_task_content(
         page_id=existing_task_id,
         new_content=merge_content(old_content, new_content)
     )
-    
+
     # Add Daily Notes relation (don't remove existing)
     add_daily_notes_relation(
         page_id=existing_task_id,
@@ -226,21 +231,25 @@ else:
 ## Common Patterns to Watch For
 
 ### Pattern 1: Action Word Variations
+
 - Daily: "Finish architecture overview"
 - Existing: "Architectural overview doc"
 - **Match:** Same core work, different action word
 
 ### Pattern 2: Abbreviation vs Full Name
+
 - Daily: "Finish Project Alpha architecture overview"
 - Existing: "Architectural overview doc | Project Alpha"
 - **Match:** "Project Alpha" = "Project Alpha", same work
 
 ### Pattern 3: Different Phrasing, Same Work
+
 - Daily: "Implement LLM server"
 - Existing: "Set up node-llama-cpp server"
 - **Match:** Same technical work, different description
 
 ### Pattern 4: Project Name Variations
+
 - Daily: Project: "Project Beta"
 - Existing: Project: "Project Beta" (or tag: "project-beta")
 - **Match:** Same project, check task name similarity
@@ -312,7 +321,7 @@ broader_results = search_tasks([
 for result in broader_results:
     task_details = mcp_Notion_notion_fetch(id=result['id'])
     result_project = task_details.get('properties', {}).get('Project')
-    
+
     # Prioritize same project matches
     if result_project == new_task['project']:
         if is_similar_task(result['title'], new_task['name'], new_task['project']):
@@ -327,6 +336,7 @@ if not found_match:
 ## Database Schema Considerations
 
 When searching, consider:
+
 - **Project** property: **FILTER BY THIS FIRST** - Most effective way to narrow results
 - **Name** property: Primary search target (after project filtering)
 - **Tags** property: Search tasks with matching tags (secondary filter)
@@ -374,5 +384,4 @@ def prioritize_matches(results, target_project):
 ## Related Guides
 
 - `.cursor/guides/notion_mcp_create_pages.md` - How to create pages correctly
-- `.cursor/commands/update_tasks.md` - Full update_tasks command workflow
-
+- `.cursor/commands/process_inbox.md` - Full `/process_inbox` workflow (Daily Note + Tasks)

@@ -7,6 +7,7 @@ Neat. What does it do?
 `flwst` is grouping of prompts, how-tos, and scripts to go from thinking to process management to execution without you having to do a lot of time consuming PM work (make tickets, update statuses, etc.)
 
 The initial integration targets:
+
 - Input from Voice Notes transcript
 - Processing of raw input via canned prompts
 - Generating and updating of tasks in Notion via MCP
@@ -25,9 +26,11 @@ The initial integration targets:
 ## setup
 
 Install Notion MCP:
+
 - https://developers.notion.com/docs/get-started-with-mcp
 
 Install Cursor:
+
 - https://www.cursor.com/
 
 ### Notion Databases
@@ -36,8 +39,8 @@ Get the database IDs from the Notion database settings and paste them into the `
 
 ![Copy Notion Database ID](./docs/copy-database-id.gif)
 
-
 #### Daily Notes
+
 - `Name`: The name of the daily note.
 - `Date`: The date of the daily note.
 - `Summary`: A high level summary of the daily note.
@@ -45,6 +48,7 @@ Get the database IDs from the Notion database settings and paste them into the `
 - `Tasks`: Relation to the Tasks Page that task is from or referenced in (Many to Many relationship)
 
 #### Tasks
+
 - `Name`: The name of the task.
 - `Project`: The project the task is associated with (optional)
 - `Description`: The description of the task.
@@ -64,8 +68,11 @@ Copy the `config/examples/` directory to `config/` and edit the files as needed.
 
 ## Usage
 
-- Use a voice recording tool to record your daily notes.
-- Get a transcript of the recording and drop it in the `inbox/` directory.
-- Run the `/import_daily` command to import the transcript into the Daily Notes database.
-- Run the `/update_tasks` command to update the tasks in the Tasks database from the Daily Notes entry.
-- Run the `/list_daily` command to list all daily notes in the Daily Notes database.
+1. Capture your thoughts (voice memo, typed notes, etc.) and place the transcript inside `inbox/`.
+2. Run the `/process_inbox` command:
+   - Confirm each checkpoint with `yes`, pause to make manual edits and reply `fixed`, or abandon with `quit`.
+   - The command generates `tmp/daily_note.md` plus `tmp/tasks/{task}/DRAFT.md`/`REVIEW.md` folders so you can review every artifact before it touches Notion.
+   - The Daily Note draft captures a Daily Overview, General Notes, TODOs, Future Concerns, and References so the Notion page stays complete.
+   - Tasks are created or updated in Notion **before** the Daily Note so the final note can link to every task using the shared `[[Task Handle]]` placeholders.
+   - Expect a final success message summarizing the Daily Note link, created/updated task links, and the archive path (e.g., `archive/2025-01-01/`).
+3. (Optional) Run `/list_daily` to spot-check recent Daily Notes or confirm links.
