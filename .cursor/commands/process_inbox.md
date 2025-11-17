@@ -54,7 +54,16 @@ High-level flow:
    - For each reviewed task:
      - Perform fuzzy searches in Notion using the exact project + name keywords (per `.cursor/guides/avoid_duplicate_tasks.md`).
      - Only after a positive Notion match should you mark the task as **UPDATE** (store the page ID + URL and pull existing content into `NOTION.md` for context). If no reliable match exists, label the task as **CREATE** and proceed accordingly.
-     - Properties: align exactly with the database schema (e.g., `Name`, `Priority`, `Status`, `Tags`, `Project`, `Due`, etc.).
+   - Properties: align exactly with the database schema. At a minimum populate:
+      - `Name`: task title (usually `{task} | {project}` from the feed).
+      - `Description`: Markdown summary distilled from `REVIEW.md`.
+      - `Project`: single/multi select mapping from the task table (blank only when truly unknown).
+      - `Priority`: normalized to one of the allowed values (`TOP`, `High`, `Medium`, `Low`, `Back burner`).
+      - `Status`: Notion status (`TODO`, `In Progress`, `BLOCKED`, `Done`, `Cancelled`).
+      - `Tags`: convert comma-separated values into the DB’s multi-select options.
+      - `Due Date`: optional ISO date when present.
+      - `Assignee`: optional person reference; leave empty only when unspecified.
+      - `Daily Notes`: relation back to the new Daily Note once Step 4 completes (update the task afterward if the relation cannot be set during creation).
      - Content: apply the Markdown from `REVIEW.md` as Notion blocks (merging instead of replacing when updating).
      - Record the resulting page IDs + URLs and surface a definitive Create vs Update breakdown in the user summary (no guesses from local files) using the format:
 
@@ -72,10 +81,16 @@ High-level flow:
 4. Finalize the Daily Note in Notion (after all Tasks are handled)
    - Replace the placeholder `## TODOs` section in `tmp/daily_note.md` with a concise table that links directly to each created/updated Notion task (e.g., `| Task | Status | Link |`). No per-task narrative remains in the Daily Note—links provide the deep context.
    - Build the Notion payload for `notionConfig.database.dailyNotes`:
-     - Title/Date plus summary, tags, future concerns, references, and any additional properties required by the DB.
-     - Body uses the cleaned contents of `tmp/daily_note.md` (after inserting task links).
+     - Populate every required property explicitly:
+       - `Name`: human-readable date/title string (e.g., `Nov 17, 2025 Daily Note`).
+       - `Date`: ISO date extracted from the transcript metadata or file name (e.g., `2025-11-17`).
+       - `Notes Summary`: 1–2 sentence recap pulled from the Daily Note draft intro.
+       - `Tags`: comma-separated list of themes surfaced while drafting (convert to the database’s multi-select values).
+     - Include any additional DB properties (future concerns, references, etc.) the schema requires.
+     - Body uses the cleaned contents of `tmp/daily_note.md` (after inserting task links) and must ensure the `## TODOs` section is rendered at the very bottom of the page so readers always find the task table last.
    - Create the page through the Daily Notes data source.
    - Capture the resulting Daily Note link and database IDs.
+   - Update each previously created/updated Task so its `Daily Notes` relation references the newly created Daily Note (if it wasn’t already set during task creation).
 
 5. Archive + cleanup
    - Create `archive/YYYY-MM-DD/` using the Daily Note date.
