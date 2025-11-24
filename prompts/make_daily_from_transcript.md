@@ -70,6 +70,7 @@ Inside `[[TASK_FEED]]` produce the full TODO table + detail sections that downst
 - Status options: `TODO`, `In Progress`, `BLOCKED`, `Done`, `Cancelled`.
 - `due` is optional (YYYY-MM-DD).
 - Use `Task | Project` naming when a client/project is implied to help deduplication.
+- Note: The `project` column is used to scope Notion deduplication and search. When possible include a `project` value — Notion lookups SHOULD only consider candidate pages whose `Project` property equals the provided `project` (case-insensitive exact match). Within that project scope, name-keyword/fuzzy matching may be applied.
 
 For every table row, create a `### {name}` section containing:
 

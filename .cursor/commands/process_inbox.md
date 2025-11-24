@@ -51,15 +51,15 @@ High-level flow:
 3. Determine Notion targets, then update/create Tasks (must finish before Daily Note creation)
    - Use `config/notion.ts` → `notionConfig.database.tasks`.
    - Locate the Tasks database, capture its `data_source_id`, and pull property schema (priority/status/tags/project/etc.).
-   - For each reviewed task:
-     - Perform fuzzy searches in Notion using the exact project + name keywords (per `.cursor/guides/avoid_duplicate_tasks.md`).
-     - Only after a positive Notion match should you mark the task as **UPDATE** (store the page ID + URL and pull existing content into `NOTION.md` for context). If no reliable match exists, label the task as **CREATE** and proceed accordingly.
+  - For each reviewed task:
+    - Perform searches in Notion scoped to the task's `Project` value: require the candidate Notion page to have the same `Project` property (case-insensitive exact match) before considering it a duplicate. Within that project scope, you may apply fuzzy/name-keyword matching per `.cursor/guides/avoid_duplicate_tasks.md` to find likely matches.
+    - Only after a positive match that satisfies the `Project` scope (and a reasonable name-keyword match) should you mark the task as **UPDATE** (store the page ID + URL and pull existing content into `NOTION.md` for context). If no reliable match exists within the same project, label the task as **CREATE** and proceed accordingly.
    - Properties: align exactly with the database schema. At a minimum populate:
       - `Name`: task title (usually `{task} | {project}` from the feed).
       - `Description`: Markdown summary distilled from `REVIEW.md`.
       - `Project`: single/multi select mapping from the task table (blank only when truly unknown).
       - `Priority`: normalized to one of the allowed values (`TOP`, `High`, `Medium`, `Low`, `Back burner`).
-      - `Status`: Notion status (`TODO`, `In Progress`, `BLOCKED`, `Done`, `Cancelled`).
+      - `Status`: Notion status (`TODO`, `On Deck`, `In Progress`, `BLOCKED`, `Done`, `Cancelled`).
       - `Tags`: convert comma-separated values into the DB’s multi-select options.
       - `Due Date`: optional ISO date when present.
       - `Assignee`: optional person reference; leave empty only when unspecified.
@@ -121,5 +121,5 @@ Notes & fallbacks:
 - If no inbox files are found, explain that nothing was processed and exit cleanly.
 - Never leak prompts; only reference their outputs and key requirements.
 - Always respect the `yes/fixed/quit` gating before destructive operations.
-- When fuzzy matching tasks, err on the side of updating instead of duplicating; document reasoning in the final summary.
+- When matching tasks, require the `Project` match first. Within the same `Project`, err on the side of updating instead of duplicating; document the reasoning (why the match was chosen) in the final summary. Do NOT match or merge tasks across different projects.
 - When either Notion database lookup fails, stop, display the encountered error, and do not archive the inbox files.

@@ -25,11 +25,11 @@ Before creating ANY task:
 3. Check for tasks with the same project/tags
 4. Review search results carefully
 
-### Rule 2: Filter by Project FIRST
+### Rule 2: Filter by Project FIRST (REQUIRED)
 
-**ALWAYS filter by project before searching - this dramatically reduces false positives.**
+**REQUIRE the task's `Project` property to scope Notion lookups before applying fuzzy name matching.** This dramatically reduces false positives and prevents merging tasks across unrelated projects.
 
-If the task has a Project property, search within that project first:
+If the task has a `Project` property, search within that project first and only consider candidate pages whose `Project` property equals the task's `project` value (case-insensitive exact match):
 
 ```python
 # Example: Task name from daily notes is "Finish Project Alpha architecture overview"
@@ -55,17 +55,17 @@ search_queries = [
 
 - Reduces search results from hundreds to dozens
 - Same project = higher likelihood of being the same work
-- Prevents false matches from other projects
+- Prevents false matches from other projects (do NOT merge across different projects)
 - Faster and more accurate matching
 
-### Rule 3: When in Doubt, Update Don't Create
+### Rule 3: When in Doubt, Update Don't Create (within same Project)
 
-**If you find ANY task that could be the same work:**
+**Only consider updating an existing task if it is in the SAME `Project`.** If you find ANY task in the same project that could be the same work:
 
-- ✅ **UPDATE the existing task** (merge new content)
+- ✅ **UPDATE the existing task** (merge new content) — only when the existing task's `Project` matches
 - ❌ **DO NOT create a new task**
 
-Only create a new task if you're **100% certain** no similar task exists.
+Only create a new task if you're **100% certain** no similar task exists in the same project.
 
 ## Step-by-Step Process
 
@@ -118,12 +118,14 @@ if project:
             and 'TODO: Tasks' in r.get('highlight', '')
         ]
 
-        # Further filter by checking if result has matching project
+        # Further filter by checking that the result's Project property equals the task's project (case-insensitive)
         # (You may need to fetch each result to check its Project property)
         for result in task_results:
             # Fetch full task details to check Project property
             task_details = mcp_Notion_notion_fetch(id=result['id'])
-            if task_details.get('properties', {}).get('Project') == project:
+            result_project = task_details.get('properties', {}).get('Project')
+            if result_project and result_project.lower().strip() == project.lower().strip():
+                # Only now apply name-keyword/fuzzy similarity checks
                 if is_similar_task(result['title'], task_name, project):
                     # FOUND EXISTING TASK IN SAME PROJECT - UPDATE IT!
                     return update_existing_task(result['id'], new_content)
@@ -143,9 +145,13 @@ for query in queries:
     ]
 
     for result in task_results:
-        if is_similar_task(result['title'], task_name, project):
-            # FOUND EXISTING TASK - UPDATE IT, DON'T CREATE!
-            return update_existing_task(result['id'], new_content)
+        # When considering broader results, only perform an update if the result's Project equals the task's project.
+        task_details = mcp_Notion_notion_fetch(id=result['id'])
+        result_project = task_details.get('properties', {}).get('Project')
+        if result_project and result_project.lower().strip() == project.lower().strip():
+            if is_similar_task(result['title'], task_name, project):
+                # FOUND EXISTING TASK IN SAME PROJECT - UPDATE IT, DON'T CREATE!
+                return update_existing_task(result['id'], new_content)
 ```
 
 **Alternative: Direct Database Query by Project**
@@ -349,7 +355,7 @@ When searching, consider:
 # Priority order for searching:
 # 1. Same Project + Similar Name = HIGHEST PRIORITY (likely duplicate)
 # 2. Same Project + Different Name = MEDIUM PRIORITY (check carefully)
-# 3. Different Project + Similar Name = LOW PRIORITY (probably different work)
+# 3. Different Project + Similar Name = DO NOT MATCH (treat as different work)
 # 4. Different Project + Different Name = IGNORE (definitely different)
 
 def prioritize_matches(results, target_project):
@@ -376,7 +382,7 @@ def prioritize_matches(results, target_project):
 1. **Filter by Project FIRST** - Most effective way to reduce duplicates
 2. **Search first, create second** - Always search before creating
 3. **Fuzzy matching is critical** - Don't rely on exact name matches
-4. **When in doubt, update** - Better to update existing than create duplicate
+4. **When in doubt, update (only within same Project)** - Better to update an existing same-project task than create a duplicate
 5. **Project + keywords** - Use both to find matches (project is primary filter)
 6. **Review carefully** - Don't skip reviewing search results
 7. **Prioritize same-project matches** - Higher likelihood of being duplicate
