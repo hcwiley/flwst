@@ -1,0 +1,13 @@
+node_modules
+dist
+*.min.js
+*.min.css
+pnpm-lock.yaml
+.pnpm-store
+models/**/*
+apps/**/dist
+apps/**/dist-electron
+apps/**/release
+servers/**/dist
+types/**/dist
+.*/

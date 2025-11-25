@@ -1,0 +1,10 @@
+{
+  "$schema": "https://raw.githubusercontent.com/getcursor/config-schema/main/schema.json",
+  "settings": {
+    "formatOnSave": true,
+    "defaultFormatter": "esbenp.prettier-vscode",
+    "eslintIntegration": true,
+    "include": ["src", "scripts"],
+    "ignore": ["dist", "node_modules", "models"]
+  }
+}

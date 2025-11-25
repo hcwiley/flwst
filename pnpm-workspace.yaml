@@ -1,0 +1,14 @@
+packages:
+  - apps/*
+  - servers/*
+  - libs/*
+  - types
+  - utils/*
+  - libs/*
+  - packages/*
+  - tooling/*
+
+onlyBuiltDependencies:
+  - electron
+  - esbuild
+  - node-llama-cpp

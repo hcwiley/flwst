@@ -4,33 +4,33 @@ TypeScript monorepo template for building AI-first local apps: Electron frontend
 
 Goals
 
-	•	Local-first AI: easy to point at local LLM runtimes (Ollama, LM Studio, etc.) or self-hosted APIs.
+    •	Local-first AI: easy to point at local LLM runtimes (Ollama, LM Studio, etc.) or self-hosted APIs.
 
-	•	Full-stack: desktop (Electron), web, and servers in one monorepo.
+    •	Full-stack: desktop (Electron), web, and servers in one monorepo.
 
-	•	Single toolchain: one TypeScript + ESLint + Prettier setup across everything.
+    •	Single toolchain: one TypeScript + ESLint + Prettier setup across everything.
 
-	•	Shared domain model: types and utilities reused across apps and services.
+    •	Shared domain model: types and utilities reused across apps and services.
 
-	•	Minimal but opinionated enough that you can start shipping immediately.
+    •	Minimal but opinionated enough that you can start shipping immediately.
 
 ⸻
 
 Stack
 
-	•	Language: TypeScript
+    •	Language: TypeScript
 
-	•	Package manager: pnpm workspaces
+    •	Package manager: pnpm workspaces
 
-	•	Node: 20+ recommended
+    •	Node: 20+ recommended
 
-	•	Linting: ESLint (TypeScript + import/order + promise rules)
+    •	Linting: ESLint (TypeScript + import/order + promise rules)
 
-	•	Formatting: Prettier
+    •	Formatting: Prettier
 
-	•	Testing: Vitest (unit/integration) – swap if you prefer something else
+    •	Testing: Vitest (unit/integration) – swap if you prefer something else
 
-	•	Monorepo layout: apps/, servers/, libs/, types/
+    •	Monorepo layout: apps/, servers/, libs/, types/
 
 No specific UI or backend framework is enforced; those are stubbed and can be replaced (e.g., React vs. something else, Fastify vs. Express, etc.).
 
@@ -42,35 +42,35 @@ ai-localstack-ts-template/
 
 ├─ apps/
 
-│  ├─ desktop/          # Electron shell for local AI apps
+│ ├─ desktop/ # Electron shell for local AI apps
 
-│  ├─ web/              # Web client (optional, Vite/React stub)
+│ ├─ web/ # Web client (optional, Vite/React stub)
 
-│  └─ cli/              # CLI tools for automation / dev scripts
+│ └─ cli/ # CLI tools for automation / dev scripts
 
 ├─ servers/
 
-│  └─ api/              # HTTP/WS API server for AI + app logic
+│ └─ api/ # HTTP/WS API server for AI + app logic
 
 ├─ libs/
 
-│  ├─ ai/               # Local AI / LLM clients & model utilities
+│ ├─ ai/ # Local AI / LLM clients & model utilities
 
-│  ├─ core/             # Domain logic, pure TS utilities
+│ ├─ core/ # Domain logic, pure TS utilities
 
-│  └─ ui/               # Shared UI components (if using React)
+│ └─ ui/ # Shared UI components (if using React)
 
-├─ types/               # Shared types (DTOs, domain models, contracts)
+├─ types/ # Shared types (DTOs, domain models, contracts)
 
-├─ .eslintrc.cjs        # Shared ESLint config wired to tsconfig paths
+├─ .eslintrc.cjs # Shared ESLint config wired to tsconfig paths
 
-├─ .prettierrc          # Prettier config
+├─ .prettierrc # Prettier config
 
-├─ pnpm-workspace.yaml  # Monorepo workspace definition
+├─ pnpm-workspace.yaml # Monorepo workspace definition
 
-├─ package.json         # Root scripts and devDependencies
+├─ package.json # Root scripts and devDependencies
 
-└─ tsconfig.base.json   # Base TS config extended by all packages
+└─ tsconfig.base.json # Base TS config extended by all packages
 
 Adjust apps/, servers/, and libs/ to match your actual projects; the template is just a starting point.
 
@@ -80,17 +80,17 @@ Local AI focus
 
 This template assumes:
 
-	•	You will run your models locally (e.g., http://localhost:11434 for Ollama, similar for others).
+    •	You will run your models locally (e.g., http://localhost:11434 for Ollama, similar for others).
 
-	•	Your app talks to them through a small client library instead of scattering fetch calls everywhere.
+    •	Your app talks to them through a small client library instead of scattering fetch calls everywhere.
 
 Suggested pattern (implemented in libs/ai):
 
-	•	libs/ai/config.ts – central place for model endpoints / timeouts / headers.
+    •	libs/ai/config.ts – central place for model endpoints / timeouts / headers.
 
-	•	libs/ai/client.ts – generic runModel({ model, prompt, ... }) helper.
+    •	libs/ai/client.ts – generic runModel({ model, prompt, ... }) helper.
 
-	•	libs/ai/pipelines/ – higher-level flows (chat, tools, embeddings, reranking).
+    •	libs/ai/pipelines/ – higher-level flows (chat, tools, embeddings, reranking).
 
 You plug in your actual runtime (Ollama, LM Studio, vLLM, custom Docker stack) without changing app code outside libs/ai.
 
@@ -102,9 +102,9 @@ Getting started
 
 Either:
 
-	•	Use the “Use this template” button on GitHub, or
+    •	Use the “Use this template” button on GitHub, or
 
-	•	Clone and strip the Git history:
+    •	Clone and strip the Git history:
 
 git clone git@github.com:YOUR-ORG/ai-localstack-ts-template.git new-project
 
@@ -124,11 +124,11 @@ If you insist on npm/yarn, you can adapt the workspace config, but pnpm is assum
 
 3. Configure Node and editor
 
-	•	Ensure Node 20+.
+   • Ensure Node 20+.
 
-	•	Point your editor at the root tsconfig.base.json so path aliases and types work everywhere.
+   • Point your editor at the root tsconfig.base.json so path aliases and types work everywhere.
 
-	•	Enable ESLint + Prettier integrations in your editor.
+   • Enable ESLint + Prettier integrations in your editor.
 
 ⸻
 
@@ -138,7 +138,7 @@ Root package.json (typical set):
 
 {
 
-  "scripts": {
+"scripts": {
 
     "dev:desktop": "pnpm --filter apps/desktop dev",
 
@@ -154,7 +154,7 @@ Root package.json (typical set):
 
     "typecheck": "tsc -p tsconfig.base.json --noEmit"
 
-  }
+}
 
 }
 
@@ -178,11 +178,11 @@ Shared types and libraries
 
 All cross-cutting types live under types/. Conventions:
 
-	•	Define DTOs and domain models in types/ only.
+    •	Define DTOs and domain models in types/ only.
 
-	•	Import them via aliased paths (e.g., @types/scene, @types/user).
+    •	Import them via aliased paths (e.g., @types/scene, @types/user).
 
-	•	Do not redefine types inside apps/ or servers/ – depend on types/.
+    •	Do not redefine types inside apps/ or servers/ – depend on types/.
 
 Typical structure:
 
@@ -190,17 +190,17 @@ types/
 
 ├─ ai/
 
-│  ├─ messages.ts      # Chat messages, tool calls, etc.
+│ ├─ messages.ts # Chat messages, tool calls, etc.
 
-│  └─ models.ts        # Model identifiers, capabilities
+│ └─ models.ts # Model identifiers, capabilities
 
 ├─ app/
 
-│  ├─ user.ts          # User, session, auth tokens (no secrets)
+│ ├─ user.ts # User, session, auth tokens (no secrets)
 
-│  └─ config.ts        # Shared config types
+│ └─ config.ts # Shared config types
 
-└─ index.ts            # Barrel exports
+└─ index.ts # Barrel exports
 
 Use libs/core for logic that depends on these types but not on any runtime (no Node/Electron/browser APIs).
 
@@ -210,19 +210,19 @@ ESLint & Prettier
 
 Core rules enforced:
 
-	•	TypeScript recommended rules.
+    •	TypeScript recommended rules.
 
-	•	No unused variables/imports.
+    •	No unused variables/imports.
 
-	•	Consistent import ordering (builtin → external → internal).
+    •	Consistent import ordering (builtin → external → internal).
 
-	•	Prettier formatting as the single source of truth.
+    •	Prettier formatting as the single source of truth.
 
 Typical workflows:
 
-pnpm lint        # CI / local check
+pnpm lint # CI / local check
 
-pnpm lint:fix    # apply fixes
+pnpm lint:fix # apply fixes
 
 Hook this into pre-commit if you want:
 
@@ -236,19 +236,19 @@ How to adapt this template for a new project
 
 Use this as a checklist:
 
-	•	Rename the repo and update this README.md.
+    •	Rename the repo and update this README.md.
 
-	•	Update package.json name, author, and license.
+    •	Update package.json name, author, and license.
 
-	•	Configure libs/ai to point at your local LLM runtime (URLs, auth, default model names).
+    •	Configure libs/ai to point at your local LLM runtime (URLs, auth, default model names).
 
-	•	Add/replace apps/desktop with your actual Electron app shell.
+    •	Add/replace apps/desktop with your actual Electron app shell.
 
-	•	Add/replace servers/api with your preferred HTTP framework.
+    •	Add/replace servers/api with your preferred HTTP framework.
 
-	•	Define your domain types under types/ and wire them into libs/core.
+    •	Define your domain types under types/ and wire them into libs/core.
 
-	•	Set up CI (GitHub Actions, etc.) to run pnpm lint, pnpm test, and pnpm typecheck.
+    •	Set up CI (GitHub Actions, etc.) to run pnpm lint, pnpm test, and pnpm typecheck.
 
 Once this is done, you’ve got a clean TypeScript AI monorepo you can reuse for future projects.
 
