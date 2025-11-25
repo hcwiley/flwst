@@ -3,12 +3,12 @@
 export const spellingConfig = {
   fix: [
     {
-      word: "flow state",
-      replacement: "flwst",
+      word: 'flow state',
+      replacement: 'flwst',
     },
     {
-      word: "todo",
-      replacement: "TODO",
-    }
+      word: 'todo',
+      replacement: 'TODO',
+    },
   ],
 };
