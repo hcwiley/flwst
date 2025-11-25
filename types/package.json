@@ -1,0 +1,24 @@
+{
+  "name": "@flwst/types",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./src/api/reasoning": {
+      "types": "./dist/api/reasoning.d.ts",
+      "default": "./dist/api/reasoning.js"
+    },
+    "./*": "./dist/*.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}
