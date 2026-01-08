@@ -1,0 +1,67 @@
+[
+  {
+    "id": "test-task-1",
+    "url": "https://notion.so/test-task-1",
+    "properties": {
+      "Name": {
+        "title": [
+          {
+            "plain_text": "Sherpa architecture diagrams"
+          }
+        ]
+      },
+      "Project": {
+        "select": {
+          "name": "Sherpa Health"
+        }
+      },
+      "Status": {
+        "status": {
+          "name": "TODO"
+        }
+      },
+      "Priority": {
+        "select": {
+          "name": "High"
+        }
+      },
+      "Description": {
+        "rich_text": [
+          {
+            "plain_text": "Create high-level architecture diagrams for the Sherpa system"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "id": "test-task-2",
+    "url": "https://notion.so/test-task-2",
+    "properties": {
+      "Name": {
+        "title": [
+          {
+            "plain_text": "Flow state demo video"
+          }
+        ]
+      },
+      "Project": {
+        "select": {
+          "name": "Flow State"
+        }
+      },
+      "Status": {
+        "status": {
+          "name": "In Progress"
+        }
+      },
+      "Description": {
+        "rich_text": [
+          {
+            "plain_text": "Create a demo video showing the flow state workflow"
+          }
+        ]
+      }
+    }
+  }
+]

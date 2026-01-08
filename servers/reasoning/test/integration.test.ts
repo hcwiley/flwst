@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { processTranscript } from '../src/llm/model.js';
+import { LlamaLLMClient } from '../src/llm-client.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -16,16 +16,18 @@ describe.skipIf(!isIntegration)('Integration Tests', () => {
 
     console.log('Processing transcript length:', transcript.length);
 
-    const result = await processTranscript(transcript);
+    const llmClient = new LlamaLLMClient();
+    const result = await llmClient.extractHighLevelNotes(transcript);
+    const detailed = await llmClient.generateDetailedStructuredData(transcript, result);
 
-    console.log('Result:', JSON.stringify(result, null, 2));
+    console.log('Result:', JSON.stringify(detailed, null, 2));
 
-    expect(result).toHaveProperty('dailyNoteRichMarkdown');
-    expect(result).toHaveProperty('todos');
-    expect(result.todos.length).toBeGreaterThan(0);
+    expect(detailed).toHaveProperty('dailyNoteRichMarkdown');
+    expect(detailed).toHaveProperty('todos');
+    expect(detailed.todos.length).toBeGreaterThan(0);
 
     // Check for specific content we expect from the transcript
-    const note = result.dailyNoteRichMarkdown.toLowerCase();
+    const note = detailed.dailyNoteRichMarkdown.toLowerCase();
     expect(note).toContain('sherpa');
     expect(note).toContain('flow state');
   }, 120000); // 2 minute timeout

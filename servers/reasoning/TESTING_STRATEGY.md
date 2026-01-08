@@ -102,7 +102,38 @@ Instead of searching all tasks with an empty query, search for each todo individ
 - Use real LLM (or mock if slow)
 - Test with sample transcript
 
-### 4. Test Helpers (`test-helpers.ts`)
+### 4. Orchestrator Integration Test (`orchestrator-integration.test.ts`)
+
+**Purpose**: End-to-end test of the complete orchestrator pipeline using REAL LLM
+
+**Test Cases:**
+
+- Process nov-17 transcript with real LlamaLLMClient
+- Validate todos extraction matches expected content from transcript
+- Validate daily note contains expected themes
+- Validate state machine transitions complete successfully
+- Validate schema compliance at each stage
+
+**Test Data:**
+
+- Uses `data/test/nov-17/transcript.txt` as input
+- Validates against `data/test/nov-17/fixture.json` expectations
+- Uses MockNotionClient (testing LLM, not Notion API)
+
+**Run with:**
+
+```bash
+TEST_TYPE=integration pnpm test orchestrator-integration
+# Or: pnpm test:integration
+```
+
+**Note**: This test is skipped by default (requires `TEST_TYPE=integration`) because it:
+
+- Requires the Llama model to be available
+- Takes 3-5 minutes to run (real LLM inference)
+- Should be run manually or in CI for validation
+
+### 5. Test Helpers (`test-helpers.ts`)
 
 **Purpose**: Reusable utilities for creating mock data
 
@@ -137,6 +168,11 @@ pnpm test matching.test.ts mcp-client.test.ts
 
 # Run integration tests (requires TEST_TYPE=integration)
 TEST_TYPE=integration pnpm test notion-integration.test.ts
+
+# Run orchestrator integration test with real LLM (uses nov-17 test data)
+TEST_TYPE=integration pnpm test orchestrator-integration
+# Or use the npm script:
+pnpm test:integration
 
 # Run with coverage
 pnpm test --coverage

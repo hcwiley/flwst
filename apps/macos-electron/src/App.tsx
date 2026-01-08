@@ -239,7 +239,6 @@ function App() {
       setResult({
         dailyNoteRichMarkdown: phase1Result.dailyNoteRichMarkdown,
         todos: phase1Result.todos,
-        discoveredTodos: phase1Result.discoveredTodos,
       });
 
       // Phase 2: Match with Notion (non-blocking - if it fails, we keep Phase 1 results)
@@ -355,7 +354,7 @@ function App() {
                 </Text>
                 {highLevelNotes.potentialTodos.map((todo, i) => (
                   <Text key={i} fontSize="$2" color="$blue10">
-                    • {todo}
+                    • {todo.text}
                   </Text>
                 ))}
               </YStack>

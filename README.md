@@ -14,6 +14,11 @@ The initial integration targets:
 
 ## structure
 
+- `apps/`: UI applications (e.g., macOS Electron app).
+- `servers/`: Backend services.
+  - `reasoning/`: State-machine driven LLM orchestration engine.
+- `libs/`: Shared logic and utilities.
+- `types/`: Shared TypeScript type definitions.
 - `inbox/`: all your incoming tasks, voice notes, images, etc.
 - `prompts/`: all your the canned prompts for the AI to process the inbox.
 - `config/`: all your the configuration for the AI to use.
@@ -22,6 +27,27 @@ The initial integration targets:
   - Note: Not tracked by git.
 - `archive/`: all your the archived files for the AI to use.
   - Note: Not tracked by git.
+
+## Reasoning Server Architecture
+
+The reasoning server (`servers/reasoning`) uses a linear, enum-driven state machine to orchestrate complex LLM pipelines.
+
+### Execution States
+
+- `INIT`: Server initialization, **transcript pre-processing (spelling & blacklist filtering)**, and Notion context retrieval.
+- `DAILY_NOTES_EXTRACTED`: High-level summary and potential tasks extracted.
+- `TODOS_EXTRACTED`: Detailed structured todos generated and project-mapped.
+- `TODOS_MATCHED`: Todos fuzzy-matched against existing Notion tasks.
+- `TODOS_AUGMENTED`: Matched task bodies updated; unmatched tasks refined with project context.
+- `NOTION_UPDATED`: Tasks created/updated in Notion and linked to Daily Note.
+- `DONE`: Pipeline successfully completed.
+
+### Key Features
+
+- **TDD Driven**: Fully testable via dependency injection (LLM and Notion clients).
+- **Local Inference**: Uses `node-llama-cpp` for local, private LLM execution.
+- **Project Awareness**: Automatically maps tasks to existing Notion projects using fuzzy matching and LLM refinement.
+- **Post-Match Augmentation**: Enriches matched tasks by merging new transcript info with existing Notion content.
 
 ## setup
 
@@ -75,7 +101,8 @@ Get the database IDs from the Notion database settings and paste them into the `
 Copy the `config/examples/` directory to `config/` and edit the files as needed.
 
 - `config/notion.ts`: Update the names of various Notion databases and properties.
-- `config/spelling.ts`: Update the spelling of various words and phrases.
+- `config/spelling.ts`: Map common transcript errors (e.g., "Rio" → "RIOS") to correct values.
+- `config/blacklist.ts`: Define regex patterns for non-work content (e.g., "talking to dog") that should be stripped before LLM analysis.
 
 ## Usage
 

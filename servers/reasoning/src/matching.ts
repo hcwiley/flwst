@@ -23,13 +23,21 @@ function isSimilarTaskName(name1: string, name2: string): boolean {
   const normalized1 = normalizeString(name1);
   const normalized2 = normalizeString(name2);
 
+  console.debug(`[matching] Comparing task names:
+    Original 1: "${name1}"
+    Original 2: "${name2}"
+    Normalized 1: "${normalized1}"
+    Normalized 2: "${normalized2}"`);
+
   // Exact match after normalization
   if (normalized1 === normalized2) {
+    console.debug(`[matching] ✓ Exact match: "${normalized1}" === "${normalized2}"`);
     return true;
   }
 
   // Check if one contains the other (for partial matches)
   if (normalized1.includes(normalized2) || normalized2.includes(normalized1)) {
+    console.debug(`[matching] ✓ Partial inclusion match: "${normalized1}" <-> "${normalized2}"`);
     return true;
   }
 
@@ -38,16 +46,33 @@ function isSimilarTaskName(name1: string, name2: string): boolean {
   const words1 = normalized1.split(' ').filter((w) => w.length >= 3 && !stopWords.has(w));
   const words2 = normalized2.split(' ').filter((w) => w.length >= 3 && !stopWords.has(w));
 
+  console.debug(`[matching] Extracted words:
+    Words from "${name1}": [${words1.join(', ')}] (${words1.length} words)
+    Words from "${name2}": [${words2.join(', ')}] (${words2.length} words)`);
+
   if (words1.length === 0 || words2.length === 0) {
+    console.debug(
+      `[matching] ✗ No words to compare (words1: ${words1.length}, words2: ${words2.length})`,
+    );
     return false;
   }
 
   // Check if significant words overlap
   const commonWords = words1.filter((w) => words2.includes(w));
   const minWords = Math.min(words1.length, words2.length);
+  const threshold = Math.ceil(minWords * 0.4);
+  const score = commonWords.length / minWords;
+  const isMatch = commonWords.length >= threshold;
+
+  console.debug(`[matching] Fuzzy match analysis:
+    Common words: [${commonWords.join(', ')}] (${commonWords.length} matches)
+    Minimum words: ${minWords}
+    Threshold: ${threshold} (40% of ${minWords})
+    Score: ${score.toFixed(2)} (${commonWords.length}/${minWords})
+    Result: ${isMatch ? '✓ MATCH' : '✗ NO MATCH'}`);
 
   // If at least 40% of words match, consider it similar (relaxed from 50%)
-  return commonWords.length >= Math.ceil(minWords * 0.4);
+  return isMatch;
 }
 
 /**
@@ -76,11 +101,23 @@ export type NotionTaskProperties = {
 export function extractNotionTaskProperties(notionPage: any): NotionTaskProperties {
   const props: any = {};
 
+  // DEBUG: Log the raw structure to understand what we're working with (only once per unique structure)
+  const hasProperties = !!notionPage.properties;
+  const propertyKeys = hasProperties ? Object.keys(notionPage.properties) : [];
+  const hasTitle = !!notionPage.title;
+
+  if (!hasProperties && !hasTitle) {
+    console.debug(`[matching] Raw notionPage structure (no properties or title):`, {
+      topLevelKeys: Object.keys(notionPage).slice(0, 10),
+      id: notionPage.id,
+    });
+  }
+
   // Handle different response formats
   if (notionPage.properties) {
     const properties = notionPage.properties;
 
-    // Extract Name (title property)
+    // Extract Name (title property) - try primary pattern first
     if (properties.Name) {
       if (Array.isArray(properties.Name)) {
         props.name = properties.Name.map((p: any) => p.plain_text || p).join('');
@@ -88,6 +125,65 @@ export function extractNotionTaskProperties(notionPage: any): NotionTaskProperti
         props.name = properties.Name.title.map((t: any) => t.plain_text || t).join('');
       } else if (typeof properties.Name === 'string') {
         props.name = properties.Name;
+      }
+    }
+
+    // FALLBACK 1: Try to find the title property by checking common patterns
+    if (!props.name) {
+      // Try the first property (often the title in Notion databases)
+      const firstPropKey = Object.keys(properties)[0];
+      if (firstPropKey && properties[firstPropKey]) {
+        const firstProp = properties[firstPropKey];
+        if (firstProp.title && Array.isArray(firstProp.title)) {
+          props.name = firstProp.title.map((t: any) => t.plain_text || t).join('');
+          console.debug(
+            `[matching] Found name in first property "${firstPropKey}": "${props.name}"`,
+          );
+        } else if (Array.isArray(firstProp) && firstProp.length > 0) {
+          props.name = firstProp.map((p: any) => p.plain_text || p).join('');
+          console.debug(
+            `[matching] Found name in first property array "${firstPropKey}": "${props.name}"`,
+          );
+        }
+      }
+
+      // FALLBACK 2: Try common title property names (case-insensitive)
+      if (!props.name) {
+        const titleKeys = Object.keys(properties).filter(
+          (k) =>
+            k.toLowerCase().includes('title') ||
+            k.toLowerCase().includes('name') ||
+            k.toLowerCase() === 'title',
+        );
+        for (const key of titleKeys) {
+          const prop = properties[key];
+          if (prop && prop.title && Array.isArray(prop.title)) {
+            props.name = prop.title.map((t: any) => t.plain_text || t).join('');
+            console.debug(`[matching] Found name in property "${key}": "${props.name}"`);
+            break;
+          } else if (prop && Array.isArray(prop) && prop.length > 0) {
+            props.name = prop.map((p: any) => p.plain_text || p).join('');
+            console.debug(`[matching] Found name in property array "${key}": "${props.name}"`);
+            break;
+          }
+        }
+      }
+
+      // FALLBACK 3: If still no name, log available properties for debugging
+      if (!props.name && propertyKeys.length > 0) {
+        console.debug(
+          `[matching] Could not extract name. Available properties: ${propertyKeys.join(', ')}`,
+        );
+        // Log structure of first few properties for debugging
+        for (const key of propertyKeys.slice(0, 3)) {
+          const prop = properties[key];
+          console.debug(`[matching] Property "${key}" structure:`, {
+            type: typeof prop,
+            isArray: Array.isArray(prop),
+            hasTitle: prop?.title ? true : false,
+            keys: prop && typeof prop === 'object' ? Object.keys(prop).slice(0, 5) : [],
+          });
+        }
       }
     }
 
@@ -164,6 +260,20 @@ export function extractNotionTaskProperties(notionPage: any): NotionTaskProperti
     }
   }
 
+  // FALLBACK 4: Check for direct title property on the page object
+  if (!props.name && notionPage.title) {
+    if (typeof notionPage.title === 'string') {
+      props.name = notionPage.title;
+      console.debug(`[matching] Found name in notionPage.title (string): "${props.name}"`);
+    } else if (Array.isArray(notionPage.title)) {
+      props.name = notionPage.title.map((t: any) => t.plain_text || t).join('');
+      console.debug(`[matching] Found name in notionPage.title (array): "${props.name}"`);
+    } else if (notionPage.title.plain_text) {
+      props.name = notionPage.title.plain_text;
+      console.debug(`[matching] Found name in notionPage.title.plain_text: "${props.name}"`);
+    }
+  }
+
   // Extract page ID and URL
   if (notionPage.id) {
     props.id = notionPage.id;
@@ -171,6 +281,13 @@ export function extractNotionTaskProperties(notionPage: any): NotionTaskProperti
   if (notionPage.url) {
     props.url = notionPage.url;
   }
+
+  console.debug(`[matching] Extracted properties for "${props.name || 'unnamed'}":`, {
+    id: props.id,
+    project: props.project,
+    status: props.status,
+    priority: props.priority,
+  });
 
   return props;
 }
@@ -186,54 +303,88 @@ export function extractNotionTaskProperties(notionPage: any): NotionTaskProperti
 export async function matchTodosToNotionTasks(todos: Todo[], notionTasks: any[]): Promise<Todo[]> {
   const enrichedTodos: Todo[] = [];
 
+  console.debug(
+    `[matching] Starting matching for ${todos.length} todos against ${notionTasks.length} Notion candidates`,
+  );
+
   for (const todo of todos) {
     let matched = false;
     let bestMatch: any = null;
 
+    console.debug(
+      `[matching] Processing todo: "${todo.text}" (project: ${todo.project || 'none'})`,
+    );
+
     // Filter Notion tasks by project if todo has a project
     let candidateTasks = notionTasks;
     if (todo.project) {
-      // We need to fetch each task to check its Project property
-      // For efficiency, we'll check the ones we have and fetch if needed
       const projectFiltered: any[] = [];
 
       for (const notionTask of notionTasks) {
         const props = extractNotionTaskProperties(notionTask);
         const taskProject = props.project;
 
-        // Case-insensitive project match
-        if (taskProject && normalizeString(taskProject) === normalizeString(todo.project)) {
+        // MATCH if:
+        // - Notion task has NO project (allow fuzzy matching to claim it)
+        // - OR Notion task project matches the todo project
+        const isProjectMatch =
+          !taskProject || normalizeString(taskProject) === normalizeString(todo.project);
+
+        if (isProjectMatch) {
           projectFiltered.push(notionTask);
+        } else {
+          console.debug(
+            `[matching] Skipping candidate "${props.name}" due to project mismatch: Notion="${taskProject}" vs Todo="${todo.project}"`,
+          );
         }
       }
 
       candidateTasks = projectFiltered;
+      console.debug(
+        `[matching] Filtered to ${candidateTasks.length} candidates by project "${todo.project}"`,
+      );
     }
 
     // Try to match by name within the filtered candidates
+    console.debug(
+      `[matching] Evaluating ${candidateTasks.length} candidate tasks for "${todo.text}"`,
+    );
     for (const notionTask of candidateTasks) {
       const props = extractNotionTaskProperties(notionTask);
       const taskName = props.name || '';
 
+      console.debug(
+        `[matching] Evaluating candidate: "${taskName}" (project: ${props.project || 'none'}, id: ${props.id || 'none'})`,
+      );
+
       // Match by task name (fuzzy matching)
       if (taskName && isSimilarTaskName(todo.text, taskName)) {
-        // If both have projects, ensure they match
-        if (todo.project && props.project) {
-          if (normalizeString(todo.project) !== normalizeString(props.project)) {
-            continue; // Skip if projects don't match
-          }
+        // Double check project conflict (both have different projects)
+        if (
+          todo.project &&
+          props.project &&
+          normalizeString(todo.project) !== normalizeString(props.project)
+        ) {
+          console.debug(`[matching] ✗ Names similar but project conflict:
+            Todo project: "${todo.project}"
+            Notion project: "${props.project}"
+            Skipping match.`);
+          continue;
         }
 
         matched = true;
         bestMatch = { task: notionTask, props };
+        console.debug(
+          `[matching] ✓ MATCH FOUND: "${todo.text}" matched with "${taskName}" (${props.id})`,
+        );
         break; // Use first match found
+      } else {
+        console.debug(`[matching] ✗ Name similarity check failed for "${taskName}"`);
       }
     }
 
-    // If no match found but we have a project, try broader search
-    if (!matched && todo.project) {
-      // Could implement broader search here if needed
-      // For now, we'll just mark as unmatched
+    if (!matched) {
+      console.debug(`[matching] NO MATCH found for "${todo.text}"`);
     }
 
     // Create enriched todo

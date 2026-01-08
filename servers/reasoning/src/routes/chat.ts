@@ -1,5 +1,7 @@
 import { Router } from 'express';
-import { processTranscript, extractHighLevelNotes } from '../llm/model.js';
+import { ReasoningOrchestrator, ReasoningState } from '../orchestrator.js';
+import { LlamaLLMClient } from '../llm-client.js';
+import { MCPNotionClient } from '../notion-client.js';
 import {
   ProcessTranscriptRequestSchema,
   ProcessHighLevelRequestSchema,
@@ -22,7 +24,10 @@ chatRouter.post('/process/high-level', async (req, res) => {
     }
 
     const { transcript, notionContext } = parsed.data;
-    const result = await extractHighLevelNotes(transcript, notionContext);
+
+    const llmClient = new LlamaLLMClient();
+    const result = await llmClient.extractHighLevelNotes(transcript, notionContext);
+
     res.json(result);
   } catch (error: any) {
     console.error('Error extracting high-level notes:', error);
@@ -38,14 +43,26 @@ chatRouter.post('/process', async (req, res) => {
       return res.status(400).json({ error: 'Invalid request: transcript is required' });
     }
 
-    const { transcript, notionContext, highLevelNotes } = parsed.data;
+    const { transcript, notionContext } = parsed.data;
 
     console.log(
-      `[process] notionContext projects=${notionContext?.projects?.length ?? 0} sampled=${notionContext?.sampledCount ?? 0} highLevelNotes=${!!highLevelNotes}`,
+      `[process] notionContext projects=${notionContext?.projects?.length ?? 0} sampled=${notionContext?.sampledCount ?? 0}`,
     );
 
-    // Process transcript with LLM only
-    const result = await processTranscript(transcript, notionContext, highLevelNotes);
+    // Use the new Orchestrator for processing
+    const llmClient = new LlamaLLMClient();
+    const notionClient = new MCPNotionClient();
+
+    const orchestrator = new ReasoningOrchestrator(
+      llmClient,
+      notionClient,
+      transcript,
+      notionContext,
+    );
+
+    // Run the pipeline ONLY up to extraction
+    // Matching and syncing are handled by other Phase 2/3 endpoints
+    const result = await orchestrator.run(ReasoningState.TODOS_EXTRACTED);
 
     res.json(result);
   } catch (error: any) {

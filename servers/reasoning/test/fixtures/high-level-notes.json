@@ -1,0 +1,13 @@
+{
+  "dailyNoteRichMarkdown": "## Priority Tasks for Today\n\n### Sherpa Architecture Diagrams\n- Need to create high-level architecture diagrams\n- Acceptance criteria: high level, easy to understand diagrams\n- Use GPT to generate mermaid diagrams\n\n### Flow State Demo Video\n- Create a demo video showing the workflow\n- Use a clean setup to avoid showing sensitive data\n- Outcomes: drive customers to Crescent Ranch consulting page",
+  "potentialTodos": [
+    {
+      "text": "Sherpa architecture diagrams",
+      "context": "Sherpa Architecture Diagrams"
+    },
+    {
+      "text": "Flow state demo video",
+      "context": "Flow State Demo Video"
+    }
+  ]
+}
