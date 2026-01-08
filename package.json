@@ -23,6 +23,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "download": "tsx scripts/download-models.ts",
+    "dev:mac": "pnpm --filter=macos-electron dev",
+    "dev:reasoning": "pnpm --filter=@flwst/reasoning dev",
     "prepare": "husky"
   },
   "devDependencies": {

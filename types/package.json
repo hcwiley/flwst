@@ -4,6 +4,10 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./api/reasoning": {
+      "types": "./dist/api/reasoning.d.ts",
+      "default": "./dist/api/reasoning.js"
+    },
     "./src/api/reasoning": {
       "types": "./dist/api/reasoning.d.ts",
       "default": "./dist/api/reasoning.js"
