@@ -21,7 +21,8 @@ It is **local-first** and uses **local LLM inference** via `node-llama-cpp`.
 
 ## API (high level)
 
-The server runs on `http://localhost:3000` by default.
+The server runs on `http://localhost:3000` by default. Override with
+`REASONING_PORT`.
 
 - **Health**
 
@@ -29,6 +30,7 @@ The server runs on `http://localhost:3000` by default.
 
 - **LLM-only processing**
 
+  - `POST /process` (renderer-facing draft response)
   - `POST /api/process/high-level`
   - `POST /api/process` (runs orchestrator up to `TODOS_EXTRACTED`)
 

@@ -22,3 +22,10 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
   // You can expose other APTs you need here.
   // ...
 });
+
+// --------- Expose safe runtime config ---------
+const reasoningPort = Number(process.env.REASONING_PORT ?? 3000);
+contextBridge.exposeInMainWorld('reasoningConfig', {
+  port: reasoningPort,
+  baseUrl: `http://localhost:${reasoningPort}`,
+});

@@ -1,13 +1,12 @@
 /**
  * Stateless runner tests.
  *
- * Ensures the reasoning runner returns IPC-safe drafts and emits
- * structured error responses on failure.
+ * Ensures the reasoning runner returns draft payloads that conform
+ * to shared Zod schemas for HTTP transport.
  */
 import { describe, expect, it } from 'vitest';
 import { ProcessTranscriptResponseSchema } from '@flwst/types/src/api/reasoning';
 import { runReasoningPipeline } from '../src/runner.js';
-import { buildErrorResponse } from '../src/subprocess-protocol.js';
 import { MockLLMClient, MockNotionClient } from './mocks.js';
 
 describe('runReasoningPipeline', () => {
@@ -28,10 +27,4 @@ describe('runReasoningPipeline', () => {
     expect(response.todoDrafts.length).toBeGreaterThan(0);
   });
 
-  it('builds structured error responses on failure', () => {
-    const error = new Error('Boom');
-    const response = buildErrorResponse('request-1', error);
-    expect(response.status).toBe('error');
-    expect(response.error.message).toBe('Boom');
-  });
 });

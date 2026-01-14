@@ -31,6 +31,7 @@ The initial integration targets:
 ## Reasoning Server Architecture
 
 The reasoning server (`servers/reasoning`) uses a linear, enum-driven state machine to orchestrate complex LLM pipelines.
+The macOS app connects over HTTP (default `REASONING_PORT=3000`) for transcript processing.
 
 ### Execution States
 

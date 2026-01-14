@@ -1,7 +1,7 @@
 /**
  * IPC handler registration for Electron main.
  *
- * Validates payloads with Zod and delegates to Notion gateway and reasoning subprocess.
+ * Validates payloads with Zod and delegates to the Notion gateway.
  */
 import { ipcMain } from 'electron';
 import {
@@ -9,8 +9,6 @@ import {
   BootstrapMirrorResponseSchema,
   NotionConnectResponseSchema,
   NotionStatusResponseSchema,
-  ProcessTranscriptRequestSchema,
-  ProcessTranscriptResponseSchema,
   RefreshKanbanRequestSchema,
   RefreshKanbanResponseSchema,
   SubmitOneRequestSchema,
@@ -19,7 +17,6 @@ import {
   SubmitSessionResponseSchema,
 } from '@flwst/types/src/api/reasoning';
 import { NotionGateway } from './notion-gateway.js';
-import { ReasoningSubprocess } from './reasoning-subprocess.js';
 import { NotionAuth } from './notion-auth.js';
 
 /**
@@ -27,7 +24,6 @@ import { NotionAuth } from './notion-auth.js';
  */
 export function registerIpcHandlers() {
   const gateway = new NotionGateway();
-  const reasoningSubprocess = new ReasoningSubprocess();
   const notionAuth = new NotionAuth();
 
   ipcMain.handle('notion:bootstrapMirror', async (_event, payload) => {
@@ -40,12 +36,6 @@ export function registerIpcHandlers() {
     RefreshKanbanRequestSchema.parse(payload);
     const response = await gateway.refreshKanban();
     return RefreshKanbanResponseSchema.parse(response);
-  });
-
-  ipcMain.handle('reasoning:processTranscript', async (_event, payload) => {
-    const request = ProcessTranscriptRequestSchema.parse(payload);
-    const response = await reasoningSubprocess.processTranscript(request);
-    return ProcessTranscriptResponseSchema.parse(response);
   });
 
   ipcMain.handle('notion:submitSession', async (_event, payload) => {
