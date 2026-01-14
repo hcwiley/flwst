@@ -283,12 +283,12 @@ export function extractNotionTaskProperties(notionPage: any): NotionTaskProperti
     props.url = notionPage.url;
   }
 
-  console.debug(`[matching] Extracted properties for "${props.name || 'unnamed'}":`, {
-    id: props.id,
-    project: props.project,
-    status: props.status,
-    priority: props.priority,
-  });
+  // console.debug(`[matching] Extracted properties for "${props.name || 'unnamed'}":`, {
+  //   id: props.id,
+  //   project: props.project,
+  //   status: props.status,
+  //   priority: props.priority,
+  // });
 
   return props;
 }

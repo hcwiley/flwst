@@ -16,6 +16,9 @@ dotenv.config();
  * Exposes a JSON-lines protocol over stdin/stdout to keep the reasoning
  * pipeline stateless and managed by Electron main.
  */
+console.log = (...args: unknown[]) => console.error(...args);
+console.info = (...args: unknown[]) => console.error(...args);
+console.debug = (...args: unknown[]) => console.error(...args);
 const rl = readline.createInterface({
   input: process.stdin,
   crlfDelay: Infinity,

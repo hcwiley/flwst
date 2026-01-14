@@ -91,7 +91,15 @@ export class ReasoningSubprocess {
     try {
       parsed = JSON.parse(line) as SubprocessResponse;
     } catch (error) {
-      console.error('[reasoning-subprocess] Failed to parse response:', error);
+      console.error(
+        `[reasoning-subprocess] Failed to parse response: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      if (line.length > 200) {
+        console.error(`[reasoning-subprocess] Raw response (first 100 chars): ${line.substring(0, 100)}...`);
+        console.error(`[reasoning-subprocess] Raw response (last 100 chars): ${line.substring(line.length - 100)}...`);
+      } else {
+        console.error(`[reasoning-subprocess] Raw response: ${line}`);
+      }
       return;
     }
 

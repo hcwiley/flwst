@@ -214,7 +214,7 @@ export class ReasoningOrchestrator {
     const stateLabel = state || this._state;
     const logEntry = `[${stateLabel}] ${message}`;
     this.logs.push(logEntry);
-    console.log(logEntry);
+    console.error(logEntry);
   }
 
   /**
