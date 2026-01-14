@@ -1,6 +1,20 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 
+/**
+ * Check if an error is a Notion MCP connection error
+ */
+function isConnectionError(error: any): boolean {
+  if (!error) return false;
+  const errorMessage = error.message || String(error);
+  return (
+    errorMessage.includes('Not connected') ||
+    errorMessage.includes('not connected') ||
+    errorMessage.includes('Connection') ||
+    errorMessage.includes('connection')
+  );
+}
+
 export class NotionMCPClient {
   private client: Client;
   private transport: StdioClientTransport;
@@ -23,25 +37,35 @@ export class NotionMCPClient {
     );
   }
 
-  async connect() {
-    if (this.connected) return;
+  async connect(): Promise<boolean> {
+    if (this.connected) return true;
 
     try {
-      console.log('Connecting to Notion MCP...');
+      console.log('[mcp-client] Connecting to Notion MCP...');
       await this.client.connect(this.transport);
       this.connected = true;
-      console.log('Connected to Notion MCP');
+      console.log('[mcp-client] Connected to Notion MCP');
 
       // List tools to verify connection and see what's available
       const tools = await this.client.listTools();
       console.log(
-        'Available Notion tools:',
+        '[mcp-client] Available Notion tools:',
         tools.tools.map((t) => t.name),
       );
+      return true;
     } catch (error) {
-      console.error('Failed to connect to Notion MCP:', error);
-      throw error;
+      console.error('[mcp-client] Failed to connect to Notion MCP:', error);
+      this.connected = false;
+      return false;
     }
+  }
+
+  /**
+   * Check if the client is connected, attempting reconnection if needed
+   */
+  async ensureConnected(): Promise<boolean> {
+    if (this.connected) return true;
+    return await this.connect();
   }
 
   /**
@@ -51,13 +75,17 @@ export class NotionMCPClient {
    * @throws Error if query is empty (notion-search requires at least 1 character)
    */
   async searchTasks(query: string, project?: string): Promise<any[]> {
-    if (!this.connected) {
-      await this.connect();
-    }
-
     // Validate query - notion-search requires at least 1 character
     if (!query || query.trim().length === 0) {
       throw new Error('Query must contain at least 1 character for notion-search');
+    }
+
+    // Ensure we're connected, with retry on connection errors
+    const isConnected = await this.ensureConnected();
+    if (!isConnected) {
+      const error = new Error('Notion MCP not connected. Please reconnect.');
+      (error as any).isConnectionError = true;
+      throw error;
     }
 
     try {
@@ -123,7 +151,15 @@ export class NotionMCPClient {
 
       return pages;
     } catch (error) {
-      console.error('Error searching Notion tasks:', error);
+      // Check if this is a connection error
+      if (isConnectionError(error)) {
+        console.warn('[mcp-client] Connection error during search, marking as disconnected');
+        this.connected = false;
+        const connectionError = new Error('Notion MCP connection lost. Please reconnect.');
+        (connectionError as any).isConnectionError = true;
+        throw connectionError;
+      }
+      console.error('[mcp-client] Error searching Notion tasks:', error);
       throw error;
     }
   }
@@ -132,8 +168,11 @@ export class NotionMCPClient {
    * Fetch a specific task by page ID using notion-fetch tool.
    */
   async fetchTask(pageId: string): Promise<any> {
-    if (!this.connected) {
-      await this.connect();
+    const isConnected = await this.ensureConnected();
+    if (!isConnected) {
+      const error = new Error('Notion MCP not connected. Please reconnect.');
+      (error as any).isConnectionError = true;
+      throw error;
     }
 
     try {
@@ -177,20 +216,51 @@ export class NotionMCPClient {
 
   // Generic method to call any tool
   async callTool(name: string, args: any) {
-    if (!this.connected) {
-      await this.connect();
+    const isConnected = await this.ensureConnected();
+    if (!isConnected) {
+      const error = new Error('Notion MCP not connected. Please reconnect.');
+      (error as any).isConnectionError = true;
+      throw error;
     }
-    return await this.client.callTool({
-      name,
-      arguments: args,
-    });
+    try {
+      return await this.client.callTool({
+        name,
+        arguments: args,
+      });
+    } catch (error) {
+      // Check if this is a connection error
+      if (isConnectionError(error)) {
+        console.warn('[mcp-client] Connection error during tool call, marking as disconnected');
+        this.connected = false;
+        const connectionError = new Error('Notion MCP connection lost. Please reconnect.');
+        (connectionError as any).isConnectionError = true;
+        throw connectionError;
+      }
+      throw error;
+    }
   }
 
   async getTools() {
-    if (!this.connected) {
-      await this.connect();
+    const isConnected = await this.ensureConnected();
+    if (!isConnected) {
+      throw new Error('Notion MCP not connected. Please reconnect.');
     }
     return await this.client.listTools();
+  }
+
+  /**
+   * Get connection status
+   */
+  isConnected(): boolean {
+    return this.connected;
+  }
+
+  /**
+   * Reset connection state (useful for re-authentication)
+   */
+  resetConnection(): void {
+    this.connected = false;
+    console.log('[mcp-client] Connection state reset');
   }
 }
 

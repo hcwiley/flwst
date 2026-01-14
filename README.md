@@ -49,6 +49,12 @@ The reasoning server (`servers/reasoning`) uses a linear, enum-driven state mach
 - **Project Awareness**: Automatically maps tasks to existing Notion projects using fuzzy matching and LLM refinement.
 - **Post-Match Augmentation**: Enriches matched tasks by merging new transcript info with existing Notion content.
 
+### Docs
+
+- Repo architecture: `ARCH.md`
+- macOS app: `apps/macos-electron/README.md` and `apps/macos-electron/ARCH.md`
+- reasoning server: `servers/reasoning/README.md` and `servers/reasoning/ARCH.md`
+
 ## setup
 
 ### Notion MCP
@@ -102,7 +108,7 @@ Copy the `config/examples/` directory to `config/` and edit the files as needed.
 
 - `config/notion.ts`: Update the names of various Notion databases and properties.
 - `config/spelling.ts`: Map common transcript errors (e.g., "Rio" → "RIOS") to correct values.
-- `config/blacklist.ts`: Define regex patterns for non-work content (e.g., "talking to dog") that should be stripped before LLM analysis.
+- `config/blacklist.ts`: Define plain-text “ignore these” instructions injected into LLM prompts.
 
 ## Usage
 

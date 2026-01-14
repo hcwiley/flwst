@@ -1,5 +1,6 @@
 import { Todo } from '@flwst/types/api/reasoning';
 import { notionClient } from './mcp-client.js';
+import { notionConfig } from '../../../config/notion.js';
 
 /**
  * Normalize a string for comparison:
@@ -359,6 +360,28 @@ export async function matchTodosToNotionTasks(todos: Todo[], notionTasks: any[])
 
       // Match by task name (fuzzy matching)
       if (taskName && isSimilarTaskName(todo.text, taskName)) {
+        // Safety validation: Ensure the matched page is from the Tasks database
+        const tasksDbId = notionConfig?.databases?.tasks?.id;
+        if (tasksDbId) {
+          const normalizeDbId = (id: string) => id.replace(/-/g, '').toLowerCase();
+          const pageParent = notionTask.parent;
+
+          if (!pageParent || pageParent.type !== 'database_id') {
+            console.debug(
+              `[matching] ✗ Safety check failed: "${taskName}" is not from a database (parent type: ${pageParent?.type || 'none'})`,
+            );
+            continue;
+          }
+
+          const pageDbId = pageParent.database_id || '';
+          if (normalizeDbId(pageDbId) !== normalizeDbId(tasksDbId)) {
+            console.debug(
+              `[matching] ✗ Safety check failed: "${taskName}" is from wrong database (parent.database_id="${pageDbId}" vs expected="${tasksDbId}")`,
+            );
+            continue;
+          }
+        }
+
         // Double check project conflict (both have different projects)
         if (
           todo.project &&

@@ -111,6 +111,11 @@ export interface INotionClient {
   updatePageBody(pageId: string, markdown: string): Promise<void>;
 
   /**
+   * Update a todo task in Notion with all properties (status, priority, description, etc.)
+   */
+  updateTodo(todo: Todo): Promise<void>;
+
+  /**
    * Create a new todo task in Notion
    */
   createTodo(todo: Todo, dailyNoteId?: string): Promise<{ id: string; url: string }>;
@@ -409,6 +414,8 @@ export class ReasoningOrchestrator {
       // Search for Notion tasks using keywords from todos
       const allNotionTasks: any[] = [];
       const seenTaskIds = new Set<string>();
+      let connectionErrorCount = 0;
+      const connectionErrorThreshold = 3; // Warn after 3 connection errors
 
       for (const todo of this.todos) {
         // Extract keywords (simplified - could be improved)
@@ -436,12 +443,40 @@ export class ReasoningOrchestrator {
                 console.debug(`[orchestrator] Skipped duplicate task: ${task.id}`);
               }
             }
-          } catch (searchError) {
-            this.warn(`Failed to search Notion for todo "${todo.text}": ${searchError}`);
+          } catch (searchError: any) {
+            // Check if this is a connection error
+            const isConnectionError =
+              searchError?.isConnectionError === true ||
+              searchError?.message?.includes('Not connected') ||
+              searchError?.message?.includes('connection');
+
+            if (isConnectionError) {
+              connectionErrorCount++;
+              if (connectionErrorCount === 1) {
+                this.warn(
+                  `Notion MCP connection error detected. Searches will return empty results. Please reconnect to Notion.`,
+                );
+              }
+              // Don't log every single connection error to avoid spam
+              if (connectionErrorCount <= connectionErrorThreshold) {
+                console.debug(
+                  `[orchestrator] Connection error for todo "${todo.text}" (${connectionErrorCount}/${connectionErrorThreshold})`,
+                );
+              }
+            } else {
+              this.warn(`Failed to search Notion for todo "${todo.text}": ${searchError}`);
+            }
           }
         } else {
           console.debug(`[orchestrator] No keywords extracted for todo: "${todo.text}"`);
         }
+      }
+
+      // Add a summary warning if we had many connection errors
+      if (connectionErrorCount > connectionErrorThreshold) {
+        this.warn(
+          `Notion MCP connection errors occurred for ${connectionErrorCount} searches. Matching will proceed with available results, but some todos may not be matched. Please reconnect to Notion for full matching.`,
+        );
       }
 
       console.debug(

@@ -100,7 +100,21 @@ export class MCPNotionClient implements INotionClient {
   }
 
   /**
+   * Check if an error is a connection error
+   */
+  private isConnectionError(error: any): boolean {
+    if (!error) return false;
+    return (
+      (error as any).isConnectionError === true ||
+      error.message?.includes('Not connected') ||
+      error.message?.includes('not connected') ||
+      error.message?.includes('connection lost')
+    );
+  }
+
+  /**
    * Search for Notion tasks matching keywords
+   * Returns empty array on connection errors instead of throwing
    */
   async searchTasks(query: string, project?: string): Promise<any[]> {
     try {
@@ -127,18 +141,72 @@ export class MCPNotionClient implements INotionClient {
       console.debug(
         `[notion-client] Found ${pages.length} potential search results for "${query}"`,
       );
-      if (pages.length > 0) {
-        const resultNames = pages.map((p) => {
+
+      // Filter to only include pages from the Tasks database
+      const tasksDbId = notionConfig?.databases?.tasks?.id;
+      if (!tasksDbId) {
+        throw new Error('Tasks database ID not found in notionConfig');
+      }
+
+      const tasksDbPages: any[] = [];
+      const filteredOutCount = { noParent: 0, wrongDb: 0, wrongParentType: 0 };
+
+      for (const page of pages) {
+        // Check if page has a parent property
+        if (!page.parent) {
+          filteredOutCount.noParent++;
+          const props = extractNotionTaskProperties(page);
+          console.debug(
+            `[notion-client] ✗ Filtered out "${props.name || 'unnamed'}": no parent property`,
+          );
+          continue;
+        }
+
+        // Check if parent is a database (not a page or workspace)
+        if (page.parent.type !== 'database_id') {
+          filteredOutCount.wrongParentType++;
+          const props = extractNotionTaskProperties(page);
+          console.debug(
+            `[notion-client] ✗ Filtered out "${props.name || 'unnamed'}": parent type is "${page.parent.type}" (not database_id)`,
+          );
+          continue;
+        }
+
+        // Check if parent database matches Tasks database ID
+        // Normalize database IDs by removing hyphens for comparison (Notion uses both formats)
+        const normalizeDbId = (id: string) => id.replace(/-/g, '').toLowerCase();
+        const pageDbId = page.parent.database_id || '';
+        const expectedDbId = tasksDbId;
+
+        if (normalizeDbId(pageDbId) !== normalizeDbId(expectedDbId)) {
+          filteredOutCount.wrongDb++;
+          const props = extractNotionTaskProperties(page);
+          console.debug(
+            `[notion-client] ✗ Filtered out "${props.name || 'unnamed'}": wrong database (parent.database_id="${pageDbId}" vs expected="${expectedDbId}")`,
+          );
+          continue;
+        }
+
+        // Page is from Tasks database - include it
+        tasksDbPages.push(page);
+      }
+
+      console.debug(
+        `[notion-client] Filtered to ${tasksDbPages.length} pages from Tasks database (from ${pages.length} total: ${filteredOutCount.noParent} no parent, ${filteredOutCount.wrongParentType} wrong parent type, ${filteredOutCount.wrongDb} wrong database)`,
+      );
+
+      if (tasksDbPages.length > 0) {
+        const resultNames = tasksDbPages.map((p) => {
           const props = extractNotionTaskProperties(p);
           return `"${props.name || 'unnamed'}" (project: ${props.project || 'none'})`;
         });
-        console.debug(`[notion-client] Raw search results: ${resultNames.join(', ')}`);
+        console.debug(`[notion-client] Tasks database search results: ${resultNames.join(', ')}`);
       }
 
       // Filter by project if specified
-      if (project && pages.length > 0) {
+      if (project && tasksDbPages.length > 0) {
         const filtered: any[] = [];
-        for (const page of pages) {
+        for (const page of tasksDbPages) {
           const props = extractNotionTaskProperties(page);
           // Permissive project filter: match if projects match OR search result has no project
           const isProjectMatch =
@@ -156,13 +224,20 @@ export class MCPNotionClient implements INotionClient {
           }
         }
         console.debug(
-          `[notion-client] Returning ${filtered.length} search results after project filtering (from ${pages.length} total)`,
+          `[notion-client] Returning ${filtered.length} search results after project filtering (from ${tasksDbPages.length} Tasks database pages)`,
         );
         return filtered;
       }
 
-      return pages;
+      return tasksDbPages;
     } catch (error) {
+      // Handle connection errors gracefully - return empty array instead of throwing
+      if (this.isConnectionError(error)) {
+        console.warn(
+          `[notion-client] Notion MCP connection error for query "${query}". Returning empty results. Please reconnect to Notion.`,
+        );
+        return [];
+      }
       console.error('[notion-client] Error searching tasks:', error);
       throw error;
     }
@@ -221,6 +296,86 @@ export class MCPNotionClient implements INotionClient {
       });
     } catch (error) {
       console.error(`[notion-client] Error updating page body for ${pageId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update a todo task in Notion with all properties (status, priority, description, etc.)
+   */
+  async updateTodo(todo: Todo): Promise<void> {
+    try {
+      if (!notionApiClient.hasToken()) {
+        throw new Error('Notion not connected. Please connect via OAuth first.');
+      }
+
+      if (!todo.notionId) {
+        throw new Error('Cannot update todo: notionId is required');
+      }
+
+      const props: any = {};
+
+      // Update Status if provided
+      if (todo.status !== undefined) {
+        props.Status = { status: { name: todo.status } };
+      }
+
+      // Update Priority if provided
+      if (todo.priority !== undefined) {
+        props.Priority = { select: { name: todo.priority } };
+      }
+
+      // Update Project if provided
+      if (todo.project !== undefined) {
+        props.Project = { select: { name: todo.project } };
+      }
+
+      // Update Description if provided
+      if (todo.description !== undefined) {
+        props.Description = {
+          rich_text: [
+            {
+              type: 'text',
+              text: {
+                content: todo.description,
+              },
+            },
+          ],
+        };
+      }
+
+      // Update Due Date if provided
+      if (todo.dueDate !== undefined) {
+        props['Due Date'] = { date: { start: todo.dueDate } };
+      }
+
+      // Update Tags if provided
+      if (todo.tags !== undefined && todo.tags.length > 0) {
+        props.Tags = {
+          multi_select: todo.tags.map((tag) => ({ name: tag })),
+        };
+      }
+
+      // Update Assignee if provided
+      if (todo.assignee !== undefined) {
+        // Note: Assignee requires a person object, this is a simplified version
+        // You may need to fetch the person ID from Notion first
+        props.Assignee = {
+          people: [{ name: todo.assignee }],
+        };
+      }
+
+      // Only update if there are properties to update
+      if (Object.keys(props).length > 0) {
+        await notionApiClient.updatePage(todo.notionId, props);
+        console.debug(
+          `[notion-client] Updated todo ${todo.notionId} with properties: ${Object.keys(props).join(', ')}`,
+        );
+      } else {
+        console.debug(`[notion-client] No properties to update for todo ${todo.notionId}`);
+      }
+    } catch (error) {
+      console.error(`[notion-client] Error updating todo ${todo.notionId}:`, error);
       throw error;
     }
   }

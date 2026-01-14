@@ -214,6 +214,46 @@ function App() {
   };
 
   /**
+   * Handle updating a todo's properties (e.g., status, priority)
+   * Updates local state immediately and syncs to server
+   */
+  const handleTodoUpdate = async (todoId: string, updates: Partial<Todo>) => {
+    // Update local state immediately for responsive UI
+    setResult((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        todos: prev.todos.map((todo) => (todo.id === todoId ? { ...todo, ...updates } : todo)),
+      };
+    });
+
+    // Sync to server in the background
+    try {
+      const response = await fetch('http://localhost:3000/api/notion/todos/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          todoId,
+          updates,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.warn(`Failed to sync todo update to server: ${errorData.error || 'Unknown error'}`);
+        // Don't throw - local state is already updated, server sync is best-effort
+      } else {
+        console.debug(`Successfully synced todo update for ${todoId}`);
+      }
+    } catch (err) {
+      console.warn('Error syncing todo update to server:', err);
+      // Don't throw - local state is already updated, server sync is best-effort
+    }
+  };
+
+  /**
    * Main process handler: runs Phase 1a, Phase 1b, then Phase 2
    */
   const handleProcess = async () => {
@@ -399,7 +439,12 @@ function App() {
                     Todos
                   </Text>
                   {result.todos.map((todo) => (
-                    <TodoCard key={todo.id} todo={todo} isMatching={phase === 'matching'} />
+                    <TodoCard
+                      key={todo.id}
+                      todo={todo}
+                      isMatching={phase === 'matching'}
+                      onUpdate={handleTodoUpdate}
+                    />
                   ))}
                 </YStack>
               </YStack>

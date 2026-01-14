@@ -1,30 +1,50 @@
-# React + TypeScript + Vite
+# macOS Electron App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Overview
 
-Currently, two official plugins are available:
+`apps/macos-electron` is a local macOS UI for:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Pasting a transcript
+- Generating a daily note and todos via the reasoning server
+- Matching todos against Notion
+- Editing todo metadata (e.g., **Status** / **Priority**) before submission
+- Submitting to Notion (create new tasks, update matched tasks)
 
-## Expanding the ESLint configuration
+## Tech
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+- React + Vite
+- Tamagui UI
+- Talks to the reasoning server via HTTP (`http://localhost:3000`)
 
-- Configure the top-level `parserOptions` property like this:
+## Development
 
-```js
-export default {
-  // other rules...
-  parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    project: ['./tsconfig.json', './tsconfig.node.json'],
-    tsconfigRootDir: __dirname,
-  },
-};
+From repo root:
+
+```bash
+pnpm dev:reasoning
+pnpm dev:mac
 ```
 
-- Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
-- Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+Or from this package:
+
+```bash
+pnpm dev
+```
+
+## How it integrates
+
+High level request flow:
+
+- `POST /api/process/high-level` and `POST /api/process` to produce markdown +
+  structured todos.
+- `POST /api/notion/match` to enrich todos with Notion IDs/URLs.
+- `POST /api/notion/todos/update` to sync UI edits to the server (stored
+  in-memory).
+- `POST /api/notion/submit` to write to Notion.
+
+## Notes / constraints
+
+- The app updates todo status/priority locally immediately, then syncs the
+  change to the server in the background.
+- The server’s todo update store is **in-memory**; if the server restarts before
+  submit, pending UI edits are lost.

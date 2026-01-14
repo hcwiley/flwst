@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { extractNotionTaskProperties } from '../matching.js';
 import { notionApiClient } from '../notion-api.js';
 import { MCPNotionClient } from '../notion-client.js';
@@ -7,6 +8,7 @@ import {
   NotionMatchResponseSchema,
   NotionContextResponseSchema,
   SubmitToNotionRequestSchema,
+  Todo,
 } from '@flwst/types/api/reasoning';
 import { notionConfig } from '../../../../config/notion.js';
 
@@ -15,6 +17,13 @@ import { notionConfig } from '../../../../config/notion.js';
  * Returns enriched todos with Notion data (notionUrl, isMatched, etc.)
  */
 export const notionRouter = Router();
+
+/**
+ * In-memory store for todo updates made in the app.
+ * Keyed by todo.id, stores partial Todo updates (status, priority, etc.)
+ * This allows the server to track changes before submission.
+ */
+const todoUpdatesStore = new Map<string, Partial<Todo>>();
 
 /**
  * Notion OAuth Flow
@@ -97,6 +106,8 @@ notionRouter.post('/match', async (req, res) => {
     const allNotionTasks: any[] = [];
     const seenTaskIds = new Set<string>();
 
+    let connectionErrorDetected = false;
+
     for (const todo of todos) {
       // Extract keywords from todo text (using the logic now in orchestrator or client)
       // For now, we'll keep the local keyword extraction or move it to a helper
@@ -113,17 +124,83 @@ notionRouter.post('/match', async (req, res) => {
               allNotionTasks.push(task);
             }
           }
-        } catch (err) {
-          console.warn(`Search failed for ${todo.text}:`, err);
+        } catch (err: any) {
+          // Check if this is a connection error
+          const isConnectionError =
+            err?.isConnectionError === true ||
+            err?.message?.includes('Not connected') ||
+            err?.message?.includes('connection');
+
+          if (isConnectionError) {
+            connectionErrorDetected = true;
+            // Don't log every single error to avoid spam
+            if (!connectionErrorDetected || allNotionTasks.length === 0) {
+              console.warn(
+                `[notion-router] Notion MCP connection error. Searches will return empty results.`,
+              );
+            }
+          } else {
+            console.warn(`Search failed for ${todo.text}:`, err);
+          }
         }
       }
     }
 
     const enrichedTodos = await notionClient.matchTodosToNotionTasks(todos, allNotionTasks);
 
-    res.json({ todos: enrichedTodos });
+    // Include a warning in the response if connection errors were detected
+    const response: any = { todos: enrichedTodos };
+    if (connectionErrorDetected && allNotionTasks.length === 0) {
+      response.warning =
+        'Notion MCP connection error. No tasks were matched. Please reconnect to Notion and try again.';
+    }
+
+    res.json(response);
   } catch (error) {
     console.error('Error matching todos with Notion:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * Update a todo's properties (status, priority, etc.)
+ * Stores updates in memory to be merged during submission
+ */
+const UpdateTodoRequestSchema = z.object({
+  todoId: z.string(),
+  updates: z.object({
+    status: z.enum(['TODO', 'On Deck', 'In Progress', 'BLOCKED', 'Done', 'Cancelled']).optional(),
+    priority: z.enum(['TOP', 'High', 'Medium', 'Low', 'Back burner']).optional(),
+    project: z.string().optional(),
+    description: z.string().optional(),
+    dueDate: z.string().optional(),
+    tags: z.array(z.string()).optional(),
+    assignee: z.string().optional(),
+  }),
+});
+
+notionRouter.post('/todos/update', async (req, res) => {
+  try {
+    const parsed = UpdateTodoRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'Invalid request data', details: parsed.error });
+    }
+
+    const { todoId, updates } = parsed.data;
+
+    // Merge with existing updates for this todo
+    const existingUpdates = todoUpdatesStore.get(todoId) || {};
+    const mergedUpdates = { ...existingUpdates, ...updates };
+    todoUpdatesStore.set(todoId, mergedUpdates);
+
+    console.debug(
+      `[notion-router] Stored updates for todo ${todoId}:`,
+      Object.keys(mergedUpdates).join(', '),
+    );
+
+    res.json({ success: true, todoId, updates: mergedUpdates });
+  } catch (error: any) {
+    console.error('[notion-router] Error updating todo:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -138,8 +215,24 @@ notionRouter.post('/submit', async (req, res) => {
       return res.status(400).json({ error: 'Invalid request data' });
     }
 
-    const { dailyNoteRichMarkdown, todos } = parsed.data;
+    const { dailyNoteRichMarkdown, todos: requestTodos } = parsed.data;
     const notionClient = new MCPNotionClient();
+
+    // Merge server-stored updates with request todos
+    const mergedTodos: Todo[] = requestTodos.map((todo) => {
+      const storedUpdates = todoUpdatesStore.get(todo.id);
+      if (storedUpdates) {
+        // Merge stored updates with the todo from the request
+        // Stored updates take precedence (they're the latest user changes)
+        const merged = { ...todo, ...storedUpdates };
+        console.debug(
+          `[notion-router] Merged stored updates for todo ${todo.id}:`,
+          Object.keys(storedUpdates).join(', '),
+        );
+        return merged;
+      }
+      return todo;
+    });
 
     // 1. Create the Daily Note (using API client directly for now as client doesn't have createDailyNote)
     // TODO: Add createDailyNote to INotionClient
@@ -170,22 +263,35 @@ notionRouter.post('/submit', async (req, res) => {
 
     const dailyNoteId = dailyNotePage.id;
 
-    // 2. Process Todos using the client
+    // 2. Process Todos using the merged data
     const submissionResults = [];
-    for (const todo of todos) {
+    const processedTodoIds = new Set<string>();
+
+    for (const todo of mergedTodos) {
       try {
         let result;
         if (todo.isMatched && todo.notionId) {
-          await notionClient.updatePageBody(todo.notionId, todo.description || '');
+          // Use updateTodo() to update all properties (status, priority, description, etc.)
+          await notionClient.updateTodo(todo);
           result = { id: todo.notionId };
         } else {
+          // Create new todo with all properties including any updates
           result = await notionClient.createTodo(todo, dailyNoteId);
         }
         submissionResults.push({ id: todo.id, notionId: result.id, success: true });
+        processedTodoIds.add(todo.id);
       } catch (err: any) {
         submissionResults.push({ id: todo.id, success: false, error: err.message });
       }
     }
+
+    // Clear stored updates for successfully processed todos
+    for (const todoId of processedTodoIds) {
+      todoUpdatesStore.delete(todoId);
+    }
+    console.debug(
+      `[notion-router] Cleared stored updates for ${processedTodoIds.size} todos after submission`,
+    );
 
     res.json({
       success: true,

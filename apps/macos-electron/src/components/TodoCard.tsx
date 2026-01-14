@@ -1,10 +1,25 @@
+import { useState, useEffect, useRef } from 'react';
 import { Card, YStack, XStack, Text, Button } from 'tamagui';
 import { Todo } from '@flwst/types/api/reasoning';
 
 interface TodoCardProps {
   todo: Todo;
   isMatching?: boolean; // Whether Notion matching is in progress
+  onUpdate?: (todoId: string, updates: Partial<Todo>) => void; // Callback for updating todo
 }
+
+// Valid status values
+const STATUS_OPTIONS: Array<Todo['status']> = [
+  'TODO',
+  'On Deck',
+  'In Progress',
+  'BLOCKED',
+  'Done',
+  'Cancelled',
+];
+
+// Valid priority values
+const PRIORITY_OPTIONS: Array<Todo['priority']> = ['TOP', 'High', 'Medium', 'Low', 'Back burner'];
 
 /**
  * Get color for priority badge
@@ -70,11 +85,53 @@ function formatDate(dateString?: string): string {
  * Rich TodoCard component displaying all task properties
  * Shows visual distinction between new todos (from LLM) and matched todos (from Notion)
  */
-export function TodoCard({ todo, isMatching = false }: TodoCardProps) {
+export function TodoCard({ todo, isMatching = false, onUpdate }: TodoCardProps) {
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
+  const statusRef = useRef<HTMLDivElement>(null);
+  const priorityRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      const clickedOutsideStatus = !statusRef.current || !statusRef.current.contains(target);
+      const clickedOutsidePriority = !priorityRef.current || !priorityRef.current.contains(target);
+
+      if (showStatusDropdown && clickedOutsideStatus) {
+        setShowStatusDropdown(false);
+      }
+      if (showPriorityDropdown && clickedOutsidePriority) {
+        setShowPriorityDropdown(false);
+      }
+    };
+
+    if (showStatusDropdown || showPriorityDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showStatusDropdown, showPriorityDropdown]);
+
   const handleNotionLink = () => {
     if (todo.notionUrl) {
       window.open(todo.notionUrl, '_blank');
     }
+  };
+
+  const handleStatusSelect = (status: Todo['status']) => {
+    if (onUpdate) {
+      onUpdate(todo.id, { status });
+    }
+    setShowStatusDropdown(false);
+  };
+
+  const handlePrioritySelect = (priority: Todo['priority']) => {
+    if (onUpdate) {
+      onUpdate(todo.id, { priority });
+    }
+    setShowPriorityDropdown(false);
   };
 
   // Determine if this is a new todo (from LLM) or matched (from Notion)
@@ -150,28 +207,145 @@ export function TodoCard({ todo, isMatching = false }: TodoCardProps) {
           </Text>
         )}
 
-        {/* Status and Priority badges - always shown */}
-        <XStack gap="$2" flexWrap="wrap">
-          <XStack
-            paddingHorizontal="$2"
-            paddingVertical="$1"
-            borderRadius="$2"
-            backgroundColor={todo.status ? getStatusColor(todo.status) : '$gray5'}
-          >
-            <Text color={todo.status ? 'white' : '$gray11'} fontSize="$2" fontWeight="600">
-              {todo.status || 'Status: Not set'}
-            </Text>
-          </XStack>
-          <XStack
-            paddingHorizontal="$2"
-            paddingVertical="$1"
-            borderRadius="$2"
-            backgroundColor={todo.priority ? getPriorityColor(todo.priority) : '$gray5'}
-          >
-            <Text color={todo.priority ? 'white' : '$gray11'} fontSize="$2" fontWeight="600">
-              {todo.priority || 'Priority: Not set'}
-            </Text>
-          </XStack>
+        {/* Status and Priority badges - always shown, clickable */}
+        <XStack gap="$2" flexWrap="wrap" position="relative">
+          {/* Status dropdown */}
+          <YStack position="relative" ref={statusRef as any}>
+            <XStack
+              paddingHorizontal="$2"
+              paddingVertical="$1"
+              borderRadius="$2"
+              backgroundColor={todo.status ? getStatusColor(todo.status) : '$gray5'}
+              cursor="pointer"
+              onPress={() => setShowStatusDropdown(!showStatusDropdown)}
+              hoverStyle={{ opacity: 0.8 }}
+            >
+              <Text color={todo.status ? 'white' : '$gray11'} fontSize="$2" fontWeight="600">
+                {todo.status || 'Status: Not set'}
+              </Text>
+            </XStack>
+            {showStatusDropdown && (
+              <YStack
+                position="absolute"
+                top="100%"
+                left={0}
+                mt="$1"
+                bg="$background"
+                borderWidth={1}
+                borderColor="$borderColor"
+                borderRadius="$2"
+                padding="$1"
+                zIndex={1000}
+                shadowColor="$shadowColor"
+                shadowOffset={{ width: 0, height: 2 }}
+                shadowOpacity={0.1}
+                shadowRadius={4}
+                minWidth={150}
+              >
+                {STATUS_OPTIONS.map((status) => (
+                  <XStack
+                    key={status}
+                    paddingHorizontal="$2"
+                    paddingVertical="$1.5"
+                    borderRadius="$2"
+                    backgroundColor={status === todo.status ? '$blue5' : 'transparent'}
+                    onPress={() => handleStatusSelect(status)}
+                    hoverStyle={{ backgroundColor: '$gray3' }}
+                    cursor="pointer"
+                  >
+                    <Text
+                      fontSize="$2"
+                      fontWeight={status === todo.status ? '600' : '400'}
+                      color={status === todo.status ? '$blue11' : '$color'}
+                    >
+                      {status}
+                    </Text>
+                  </XStack>
+                ))}
+                <XStack
+                  paddingHorizontal="$2"
+                  paddingVertical="$1.5"
+                  borderRadius="$2"
+                  onPress={() => handleStatusSelect(undefined)}
+                  hoverStyle={{ backgroundColor: '$gray3' }}
+                  cursor="pointer"
+                >
+                  <Text fontSize="$2" color="$gray10" fontStyle="italic">
+                    Clear
+                  </Text>
+                </XStack>
+              </YStack>
+            )}
+          </YStack>
+
+          {/* Priority dropdown */}
+          <YStack position="relative" ref={priorityRef as any}>
+            <XStack
+              paddingHorizontal="$2"
+              paddingVertical="$1"
+              borderRadius="$2"
+              backgroundColor={todo.priority ? getPriorityColor(todo.priority) : '$gray5'}
+              cursor="pointer"
+              onPress={() => setShowPriorityDropdown(!showPriorityDropdown)}
+              hoverStyle={{ opacity: 0.8 }}
+            >
+              <Text color={todo.priority ? 'white' : '$gray11'} fontSize="$2" fontWeight="600">
+                {todo.priority || 'Priority: Not set'}
+              </Text>
+            </XStack>
+            {showPriorityDropdown && (
+              <YStack
+                position="absolute"
+                top="100%"
+                left={0}
+                mt="$1"
+                bg="$background"
+                borderWidth={1}
+                borderColor="$borderColor"
+                borderRadius="$2"
+                padding="$1"
+                zIndex={1000}
+                shadowColor="$shadowColor"
+                shadowOffset={{ width: 0, height: 2 }}
+                shadowOpacity={0.1}
+                shadowRadius={4}
+                minWidth={150}
+              >
+                {PRIORITY_OPTIONS.map((priority) => (
+                  <XStack
+                    key={priority}
+                    paddingHorizontal="$2"
+                    paddingVertical="$1.5"
+                    borderRadius="$2"
+                    backgroundColor={priority === todo.priority ? '$blue5' : 'transparent'}
+                    onPress={() => handlePrioritySelect(priority)}
+                    hoverStyle={{ backgroundColor: '$gray3' }}
+                    cursor="pointer"
+                  >
+                    <Text
+                      fontSize="$2"
+                      fontWeight={priority === todo.priority ? '600' : '400'}
+                      color={priority === todo.priority ? '$blue11' : '$color'}
+                    >
+                      {priority}
+                    </Text>
+                  </XStack>
+                ))}
+                <XStack
+                  paddingHorizontal="$2"
+                  paddingVertical="$1.5"
+                  borderRadius="$2"
+                  onPress={() => handlePrioritySelect(undefined)}
+                  hoverStyle={{ backgroundColor: '$gray3' }}
+                  cursor="pointer"
+                >
+                  <Text fontSize="$2" color="$gray10" fontStyle="italic">
+                    Clear
+                  </Text>
+                </XStack>
+              </YStack>
+            )}
+          </YStack>
         </XStack>
 
         {/* Project, Due Date, Assignee row - always shown */}
