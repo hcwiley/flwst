@@ -11,7 +11,7 @@ import {
   DailyNoteResponse,
   Todo,
   NotionContextResponse,
-} from '@flwst/types/api/reasoning';
+} from '@flwst/types/src/api/reasoning';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';

@@ -1,4 +1,4 @@
-import { Todo } from '@flwst/types/api/reasoning';
+import { Todo } from '@flwst/types/src/api/reasoning';
 import { notionClient } from './mcp-client.js';
 import { notionConfig } from '../../../config/notion.js';
 

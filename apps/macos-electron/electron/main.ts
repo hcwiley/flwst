@@ -2,6 +2,10 @@ import { app, BrowserWindow } from 'electron';
 // import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { registerIpcHandlers } from './ipc-handlers.js';
+import { loadEnv } from './env.js';
+import { KeytarTokenStore } from './notion-token-store.js';
+import { notionApiClient } from '../../../servers/reasoning/src/notion-api.js';
 
 // const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -16,6 +20,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // │ │ └── preload.mjs
 // │
 process.env.APP_ROOT = path.join(__dirname, '..');
+loadEnv();
+notionApiClient.configureTokenStore(new KeytarTokenStore());
+void notionApiClient.loadToken();
 
 // 🚧 Use ['ENV_NAME'] avoid vite:define plugin - Vite@2.x
 export const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'];
@@ -67,4 +74,7 @@ app.on('activate', () => {
   }
 });
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  registerIpcHandlers();
+  createWindow();
+});

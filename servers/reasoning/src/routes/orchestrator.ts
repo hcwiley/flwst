@@ -9,7 +9,7 @@ import { Router } from 'express';
 import { ReasoningOrchestrator } from '../orchestrator.js';
 import { LlamaLLMClient } from '../llm-client.js';
 import { MCPNotionClient } from '../notion-client.js';
-import { DailyNoteSchema } from '@flwst/types/api/reasoning';
+import { DailyNoteSchema } from '@flwst/types/src/api/reasoning';
 import { z } from 'zod';
 
 export const orchestratorRouter = Router();

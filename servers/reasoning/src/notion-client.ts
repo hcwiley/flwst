@@ -9,7 +9,7 @@ import {
   Todo,
   NotionContextResponse,
   NotionContextResponseSchema,
-} from '@flwst/types/api/reasoning';
+} from '@flwst/types/src/api/reasoning';
 import { INotionClient } from './orchestrator.js';
 import { notionClient } from './mcp-client.js';
 import { notionApiClient } from './notion-api.js';

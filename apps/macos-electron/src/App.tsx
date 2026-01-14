@@ -1,326 +1,90 @@
-import { useState, useEffect } from 'react';
-import { YStack, XStack, TextArea, Button, Text, ScrollView, Spinner } from 'tamagui';
-import {
-  DailyNoteResponse,
-  NotionContextResponse,
-  Todo,
-  HighLevelNotes,
-} from '@flwst/types/api/reasoning';
+import { useEffect, useMemo, useState } from 'react';
+import { YStack, XStack, TextArea, Button, Text, ScrollView, Spinner, Input } from 'tamagui';
+import type { NotionTodoCard } from '@flwst/types/src/api/reasoning';
 import { TodoCard } from './components/TodoCard';
-import { ProcessingStatus } from './components/ProcessingStatus.tsx';
+import { ProcessingStatus } from './components/ProcessingStatus';
 import { Markdown } from './components/Markdown';
+import { useAppStore } from './store/appStore';
 
 /**
- * Phase 2 response type: enriched todos with optional warning
+ * Renderer root view for Kanban + session drafts.
  */
-type NotionMatchResponse = {
-  todos: Todo[];
-  warning?: string;
-};
-
-/**
- * Processing phase state machine
- */
-type ProcessingPhase =
-  | 'idle'
-  | 'fetching'
-  | 'analyzing'
-  | 'reasoning'
-  | 'matching'
-  | 'done'
-  | 'submitting'
-  | 'error';
-
 function App() {
   const [transcript, setTranscript] = useState('');
-  const [phase, setPhase] = useState<ProcessingPhase>('idle');
-  const [result, setResult] = useState<DailyNoteResponse | null>(null);
-  const [highLevelNotes, setHighLevelNotes] = useState<HighLevelNotes | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [warning, setWarning] = useState<string | null>(null);
-  const [context, setContext] = useState<NotionContextResponse | null>(null);
-  const [notionConnected, setNotionConnected] = useState(false);
-  const [isFetchingContext, setIsFetchingContext] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [filters, setFilters] = useState({ project: '', status: '', dueStart: '', dueEnd: '' });
+  const [kanbanLayout, setKanbanLayout] = useState<'comfortable' | 'fit'>('comfortable');
+  const ipcAvailable = Boolean(window?.ipcRenderer?.invoke);
 
-  // Check Notion connection status and fetch context if connected
+  const notionMirror = useAppStore((state) => state.notionMirror);
+  const session = useAppStore((state) => state.session);
+  const bootstrap = useAppStore((state) => state.bootstrap);
+  const checkNotionStatus = useAppStore((state) => state.checkNotionStatus);
+  const connectNotion = useAppStore((state) => state.connectNotion);
+  const refreshKanban = useAppStore((state) => state.refreshKanban);
+  const ingestTranscript = useAppStore((state) => state.ingestTranscript);
+  const updateDraftTodo = useAppStore((state) => state.updateDraftTodo);
+  const updateDailyNote = useAppStore((state) => state.updateDailyNote);
+  const submitAll = useAppStore((state) => state.submitAll);
+  const submitOne = useAppStore((state) => state.submitOne);
+  const clearSessionError = useAppStore((state) => state.clearSessionError);
+  const clearSessionWarning = useAppStore((state) => state.clearSessionWarning);
+
   useEffect(() => {
-    const checkStatusAndFetchContext = async () => {
-      try {
-        const statusRes = await fetch('http://localhost:3000/api/notion/status');
-        const statusData = await statusRes.json();
-        setNotionConnected(statusData.connected);
-
-        if (statusData.connected && !context && !isFetchingContext) {
-          setIsFetchingContext(true);
-          try {
-            const contextData = await handleFetchNotionContext();
-            setContext(contextData);
-          } finally {
-            setIsFetchingContext(false);
-          }
+    if (!ipcAvailable) {
+      console.warn('IPC not available; open the app in Electron to use Notion.');
+      return;
+    }
+    checkNotionStatus()
+      .then((connected) => {
+        if (connected) {
+          return bootstrap();
         }
-      } catch (err) {
-        console.error('Failed to check Notion status/context:', err);
-      }
-    };
+        return undefined;
+      })
+      .catch((error) => console.error('Failed to bootstrap Notion mirror:', error));
+  }, [bootstrap, checkNotionStatus, ipcAvailable]);
 
-    checkStatusAndFetchContext();
-    // Re-check when window regains focus
-    window.addEventListener('focus', checkStatusAndFetchContext);
-    return () => window.removeEventListener('focus', checkStatusAndFetchContext);
-  }, [context, isFetchingContext]);
+  const groupedKanban = useMemo(() => {
+    const columns: Record<string, NotionTodoCard[]> = {};
+    const statuses =
+      notionMirror.statuses.length > 0
+        ? notionMirror.statuses.map((status) => status.name)
+        : ['TODO', 'In Progress', 'Done'];
 
-  const handleConnectNotion = () => {
-    window.open('http://localhost:3000/api/notion/oauth/authorize', '_blank');
-  };
-
-  /**
-   * Phase 0: Fetch lightweight Notion context to help the LLM classify todos.
-   */
-  const handleFetchNotionContext = async (): Promise<NotionContextResponse> => {
-    const response = await fetch('http://localhost:3000/api/notion/context?seed=a&limit=50', {
-      method: 'GET',
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Failed to fetch Notion context');
+    for (const status of statuses) {
+      columns[status] = [];
     }
 
-    const data: NotionContextResponse = await response.json();
-    return data;
-  };
-
-  /**
-   * Phase 1a: Extract high-level notes (Topics & Intent)
-   */
-  const handleHighLevel = async (
-    transcriptText: string,
-    context: NotionContextResponse | null,
-  ): Promise<HighLevelNotes> => {
-    setPhase('analyzing');
-    setError(null);
-
-    const response = await fetch('http://localhost:3000/api/process/high-level', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ transcript: transcriptText, notionContext: context ?? undefined }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Failed to analyze transcript');
+    for (const item of notionMirror.kanbanItems) {
+      const status = item.status || 'TODO';
+      if (!columns[status]) columns[status] = [];
+      columns[status].push(item);
     }
 
-    const data: HighLevelNotes = await response.json();
-    return data;
-  };
+    return columns;
+  }, [notionMirror.kanbanItems, notionMirror.statuses]);
 
-  /**
-   * Phase 1b: Process transcript with LLM (uses high-level notes and Notion context)
-   */
-  const handleReasoning = async (
-    transcriptText: string,
-    context: NotionContextResponse | null,
-    highLevelNotes?: HighLevelNotes,
-  ): Promise<DailyNoteResponse> => {
-    setPhase('reasoning');
-    setError(null);
-
-    const response = await fetch('http://localhost:3000/api/process', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        transcript: transcriptText,
-        notionContext: context ?? undefined,
-        highLevelNotes,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Failed to process transcript');
-    }
-
-    const data: DailyNoteResponse = await response.json();
-    return data;
-  };
-
-  /**
-   * Phase 2: Match todos with Notion tasks
-   */
-  const handlePhase2 = async (todos: Todo[]): Promise<NotionMatchResponse> => {
-    setPhase('matching');
-    setWarning(null);
-
-    const response = await fetch('http://localhost:3000/api/notion/match', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ todos }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      // Phase 2 failures are non-blocking - we'll show a warning
-      throw new Error(errorData.error || 'Failed to match todos with Notion');
-    }
-
-    const data: NotionMatchResponse = await response.json();
-    return data;
-  };
-
-  /**
-   * Phase 3: Submit to Notion
-   */
-  const handleSubmitToNotion = async () => {
-    if (!result || phase === 'submitting') return;
-
-    setPhase('submitting');
-    setError(null);
-
-    try {
-      const response = await fetch('http://localhost:3000/api/notion/submit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          dailyNoteRichMarkdown: result.dailyNoteRichMarkdown,
-          todos: result.todos,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to submit to Notion');
-      }
-
-      const data = await response.json();
-      console.log('Submission result:', data);
-      setIsSubmitted(true);
-      setPhase('done');
-    } catch (err: any) {
-      console.error('Submission failed:', err);
-      setError(err.message || 'Failed to submit to Notion');
-      setPhase('error');
-    }
-  };
-
-  /**
-   * Handle updating a todo's properties (e.g., status, priority)
-   * Updates local state immediately and syncs to server
-   */
-  const handleTodoUpdate = async (todoId: string, updates: Partial<Todo>) => {
-    // Update local state immediately for responsive UI
-    setResult((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        todos: prev.todos.map((todo) => (todo.id === todoId ? { ...todo, ...updates } : todo)),
-      };
-    });
-
-    // Sync to server in the background
-    try {
-      const response = await fetch('http://localhost:3000/api/notion/todos/update', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          todoId,
-          updates,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.warn(`Failed to sync todo update to server: ${errorData.error || 'Unknown error'}`);
-        // Don't throw - local state is already updated, server sync is best-effort
-      } else {
-        console.debug(`Successfully synced todo update for ${todoId}`);
-      }
-    } catch (err) {
-      console.warn('Error syncing todo update to server:', err);
-      // Don't throw - local state is already updated, server sync is best-effort
-    }
-  };
-
-  /**
-   * Main process handler: runs Phase 1a, Phase 1b, then Phase 2
-   */
   const handleProcess = async () => {
     if (!transcript.trim()) return;
-
-    try {
-      // Phase 1a UI: show Analyzing
-      setPhase('analyzing');
-      setError(null);
-      setWarning(null);
-      setHighLevelNotes(null); // Clear previous
-      setResult(null); // Clear previous
-      setIsSubmitted(false);
-
-      // Phase 1a: High-level notes
-      const notes = await handleHighLevel(transcript.trim(), context);
-      setHighLevelNotes(notes);
-
-      // Phase 1b: Reasoning (LLM) - uses already fetched context and high-level notes
-      const phase1Result = await handleReasoning(transcript.trim(), context, notes);
-
-      // Update UI with Phase 1 results immediately
-      setResult({
-        dailyNoteRichMarkdown: phase1Result.dailyNoteRichMarkdown,
-        todos: phase1Result.todos,
-      });
-
-      // Phase 2: Match with Notion (non-blocking - if it fails, we keep Phase 1 results)
-      try {
-        const phase2Result = await handlePhase2(phase1Result.todos);
-
-        // Update todos with enriched data
-        setResult((prev) => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            todos: phase2Result.todos,
-          };
-        });
-
-        // Show warning if present
-        if (phase2Result.warning) {
-          setWarning(phase2Result.warning);
-        }
-
-        setPhase('done');
-      } catch (phase2Error) {
-        // Phase 2 failure is non-blocking - show warning but keep Phase 1 results
-        console.warn('Phase 2 (Notion matching) failed:', phase2Error);
-        setWarning(
-          phase2Error instanceof Error
-            ? phase2Error.message
-            : 'Notion matching unavailable; showing LLM results only',
-        );
-        setPhase('done');
-      }
-    } catch (phase1Error) {
-      // Phase 1 failure is blocking - show error and don't render results
-      console.error('Phase 1 (LLM processing) failed:', phase1Error);
-      setError(phase1Error instanceof Error ? phase1Error.message : 'Failed to process transcript');
-      setPhase('error');
-      setResult(null);
-    }
+    await ingestTranscript(transcript.trim());
   };
 
-  const isProcessing =
-    phase !== 'idle' && phase !== 'done' && phase !== 'error' && phase !== 'submitting';
+  const handleApplyFilters = async () => {
+    await refreshKanban({
+      project: filters.project || undefined,
+      status: filters.status || undefined,
+      dueDateRange:
+        filters.dueStart || filters.dueEnd
+          ? { start: filters.dueStart || undefined, end: filters.dueEnd || undefined }
+          : undefined,
+    });
+  };
+
+  const columnCount = Math.max(1, Object.keys(groupedKanban).length);
+  const fitColumnWidth = `${100 / columnCount}%`;
+  const columnWidth = kanbanLayout === 'fit' ? fitColumnWidth : 240;
+  const isFit = kanbanLayout === 'fit';
+  const columnGap = isFit ? 0 : '$3';
 
   return (
     <YStack f={1} bg="$background" p="$4" gap="$4">
@@ -328,192 +92,189 @@ function App() {
         <Text fontSize="$6" fontWeight="bold">
           flwst
         </Text>
-        <Button
-          size="$2"
-          theme={notionConnected ? 'green' : 'blue'}
-          onPress={handleConnectNotion}
-          icon={notionConnected ? undefined : <Spinner size="small" />}
-        >
-          {notionConnected ? 'Notion Connected' : 'Connect Notion'}
-        </Button>
-      </XStack>
-
-      <XStack gap="$4" f={1}>
-        <YStack f={1} gap="$4">
-          <Text fontSize="$4">Input Transcript</Text>
-          <TextArea
-            f={1}
-            value={transcript}
-            onChangeText={setTranscript}
-            placeholder="Paste your transcript here..."
-            bg="$backgroundHover"
-          />
-          <Button
-            onPress={handleProcess}
-            disabled={isProcessing || !transcript.trim()}
-            themeInverse
-          >
-            {isProcessing ? <Spinner /> : 'Process'}
+        <XStack gap="$2">
+          <Button size="$2" onPress={handleApplyFilters} disabled={!ipcAvailable}>
+            Refresh Kanban
           </Button>
-        </YStack>
+          <Button
+            size="$2"
+            theme={notionMirror.connected ? 'green' : 'blue'}
+            onPress={connectNotion}
+            disabled={!ipcAvailable}
+          >
+            {notionMirror.connected ? 'Notion Connected' : 'Connect Notion'}
+          </Button>
+        </XStack>
+      </XStack>
+      {!ipcAvailable && (
+        <Text color="$color.gray10">
+          IPC not available. Open via Electron to use Notion features.
+        </Text>
+      )}
 
-        <YStack f={1} gap="$4" blw={1} blc="$borderColor" pl="$4">
-          <Text fontSize="$4">Result</Text>
+      {/* Session drawer */}
+      <YStack gap="$3" p="$3" borderWidth={1} borderColor="$borderColor" borderRadius="$4">
+        <Text fontSize="$4" fontWeight="bold">
+          Session Drafts
+        </Text>
 
-          {/* Processing status indicator */}
-          {(isProcessing || phase === 'done' || phase === 'error' || warning) && (
-            <ProcessingStatus
-              phase={phase}
-              error={error}
-              warning={warning}
-              onDismissError={() => {
-                setError(null);
-                setPhase('idle');
-              }}
-              onDismissWarning={() => setWarning(null)}
+        <TextArea
+          value={transcript}
+          onChangeText={setTranscript}
+          placeholder="Paste transcript or notes..."
+          bg="$backgroundHover"
+        />
+
+        <Button onPress={handleProcess} disabled={!transcript.trim() || !ipcAvailable} themeInverse>
+          {session.processingPhase === 'reasoning' ? <Spinner /> : 'Ingest Transcript'}
+        </Button>
+
+        {(session.processingPhase !== 'idle' || session.error || session.warning) && (
+          <ProcessingStatus
+            phase={session.processingPhase}
+            error={session.error ?? null}
+            warning={session.warning ?? null}
+            onDismissError={clearSessionError}
+            onDismissWarning={clearSessionWarning}
+          />
+        )}
+
+        {session.draftDailyNote && (
+          <YStack gap="$2" p="$2" borderWidth={1} borderColor="$borderColor" borderRadius="$3">
+            <XStack jc="space-between" ai="center">
+              <Text fontWeight="bold">Daily Note</Text>
+              <Button size="$2" theme="green" onPress={() => submitAll()}>
+                Submit All
+              </Button>
+            </XStack>
+            <TextArea
+              value={session.draftDailyNote.dailyNoteRichMarkdown}
+              onChangeText={(value) => updateDailyNote({ dailyNoteRichMarkdown: value })}
+              minHeight={120}
             />
-          )}
+            <Markdown content={session.draftDailyNote.dailyNoteRichMarkdown} />
+          </YStack>
+        )}
 
-          {/* High-level analysis results (only shown while detailed reasoning is in progress) */}
-          {highLevelNotes && !result && (
-            <YStack
-              gap="$2"
-              padding="$3"
-              backgroundColor="$blue2"
-              borderRadius="$4"
-              borderWidth={1}
-              borderColor="$blue5"
+        <YStack gap="$3">
+          {session.draftTodos.map((todo) => (
+            <TodoCard
+              key={todo.localId}
+              todo={todo}
+              projectOptions={notionMirror.projects}
+              statusOptions={notionMirror.statuses}
+              onUpdate={updateDraftTodo}
+              onSubmitOne={submitOne}
+            />
+          ))}
+        </YStack>
+      </YStack>
+
+      {/* Kanban + filters */}
+      <YStack gap="$3" f={1}>
+        <XStack jc="space-between" ai="center">
+          <Text fontSize="$4" fontWeight="bold">
+            Notion Kanban
+          </Text>
+          <XStack gap="$2">
+            <Button
+              size="$2"
+              variant={kanbanLayout === 'comfortable' ? 'solid' : 'outlined'}
+              onPress={() => setKanbanLayout('comfortable')}
             >
-              <Text fontSize="$4" fontWeight="bold" color="$blue11">
-                Interim Analysis
-              </Text>
-              <Markdown content={highLevelNotes.dailyNoteRichMarkdown} />
-              <YStack gap="$1" mt="$2" bt={1} btc="$blue5" pt="$2">
-                <Text fontSize="$3" fontWeight="bold" color="$blue11">
-                  Potential Tasks Identified:
-                </Text>
-                {highLevelNotes.potentialTodos.map((todo, i) => (
-                  <Text key={i} fontSize="$2" color="$blue10">
-                    • {todo.text}
-                  </Text>
-                ))}
-              </YStack>
-            </YStack>
-          )}
+              Comfortable
+            </Button>
+            <Button
+              size="$2"
+              variant={kanbanLayout === 'fit' ? 'solid' : 'outlined'}
+              onPress={() => setKanbanLayout('fit')}
+            >
+              Fit Columns
+            </Button>
+          </XStack>
+        </XStack>
+        <XStack gap="$2">
+          <Input
+            size="$2"
+            placeholder="Project"
+            value={filters.project}
+            onChangeText={(value) => setFilters((prev) => ({ ...prev, project: value }))}
+          />
+          <Input
+            size="$2"
+            placeholder="Status"
+            value={filters.status}
+            onChangeText={(value) => setFilters((prev) => ({ ...prev, status: value }))}
+          />
+          <Input
+            size="$2"
+            placeholder="Due start"
+            value={filters.dueStart}
+            onChangeText={(value) => setFilters((prev) => ({ ...prev, dueStart: value }))}
+          />
+          <Input
+            size="$2"
+            placeholder="Due end"
+            value={filters.dueEnd}
+            onChangeText={(value) => setFilters((prev) => ({ ...prev, dueEnd: value }))}
+          />
+        </XStack>
 
-          <ScrollView f={1}>
-            {result ? (
-              <YStack gap="$4">
-                <XStack jc="space-between" ai="center">
-                  <Text fontWeight="bold" fontSize="$5">
-                    Results
-                  </Text>
-                  {!isSubmitted ? (
-                    <Button
-                      size="$3"
-                      theme="green"
-                      onPress={handleSubmitToNotion}
-                      disabled={phase === 'submitting'}
-                      icon={phase === 'submitting' ? <Spinner /> : undefined}
-                    >
-                      {phase === 'submitting' ? 'Submitting...' : 'Submit to Notion'}
-                    </Button>
+        <YStack
+          borderWidth={1}
+          borderColor="$borderColor"
+          borderRadius="$3"
+          p="$2"
+          bg="$background"
+        >
+          <ScrollView horizontal={!isFit} showsHorizontalScrollIndicator={!isFit}>
+            <XStack gap={columnGap} ai="flex-start" width="100%" flexWrap="nowrap">
+              {Object.entries(groupedKanban).map(([status, items]) => (
+                <YStack
+                  key={status}
+                  flex={isFit ? 1 : undefined}
+                  flexBasis={isFit ? 0 : undefined}
+                  flexShrink={isFit ? 1 : 0}
+                  minWidth={isFit ? 0 : columnWidth}
+                  maxWidth={isFit ? undefined : columnWidth}
+                  width={isFit ? undefined : columnWidth}
+                  p="$2"
+                  borderWidth={1}
+                  borderColor="$borderColor"
+                  borderRadius="$3"
+                  gap="$2"
+                >
+                  <Text fontWeight="bold">{status}</Text>
+                  {items.length === 0 ? (
+                    <Text fontSize="$2" color="$color.gray10">
+                      No items
+                    </Text>
                   ) : (
-                    <XStack gap="$2" ai="center" bg="$green5" px="$3" py="$1" br="$4">
-                      <Text color="$green11" fontWeight="bold">
-                        Submitted ✓
-                      </Text>
-                    </XStack>
+                    items.map((item) => (
+                      <YStack
+                        key={item.id}
+                        p="$2"
+                        borderWidth={1}
+                        borderColor="$borderColor"
+                        borderRadius="$2"
+                        gap="$1"
+                      >
+                        <Text fontWeight="bold">{item.title}</Text>
+                        {item.project && <Text fontSize="$2">{item.project}</Text>}
+                        {item.dueDate && (
+                          <Text fontSize="$2" color="$color.gray10">
+                            Due {item.dueDate}
+                          </Text>
+                        )}
+                      </YStack>
+                    ))
                   )}
-                </XStack>
-
-                <YStack gap="$2">
-                  <Text fontWeight="bold" fontSize="$4" color="$color.gray11">
-                    Daily Note
-                  </Text>
-                  <Markdown content={result.dailyNoteRichMarkdown} />
                 </YStack>
-
-                <YStack gap="$3">
-                  <Text fontWeight="bold" fontSize="$4" color="$color.gray11">
-                    Todos
-                  </Text>
-                  {result.todos.map((todo) => (
-                    <TodoCard
-                      key={todo.id}
-                      todo={todo}
-                      isMatching={phase === 'matching'}
-                      onUpdate={handleTodoUpdate}
-                    />
-                  ))}
-                </YStack>
-              </YStack>
-            ) : (
-              <Text color="$color.gray10">Processed results will appear here</Text>
-            )}
+              ))}
+            </XStack>
           </ScrollView>
         </YStack>
-      </XStack>
-
-      {/* Notion Status Bar */}
-      <XStack
-        bg="$backgroundHover"
-        p="$2"
-        px="$4"
-        br="$4"
-        gap="$4"
-        ai="center"
-        borderTopWidth={1}
-        borderTopColor="$borderColor"
-      >
-        {isFetchingContext ? (
-          <XStack gap="$2" ai="center">
-            <Spinner size="small" />
-            <Text fontSize="$2">Fetching Notion context...</Text>
-          </XStack>
-        ) : context?.stats ? (
-          <XStack gap="$4" f={1} ai="center">
-            <XStack gap="$2">
-              <Text fontSize="$2" fontWeight="bold">
-                Notion:
-              </Text>
-              <Text fontSize="$2">
-                {context.stats.total} Total | {context.stats.todo} TODO | {context.stats.inProgress}{' '}
-                In Progress | {context.stats.done} Done
-              </Text>
-            </XStack>
-
-            <Text color="$borderColor">|</Text>
-
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} f={1}>
-              <XStack gap="$2">
-                <Text fontSize="$2" fontWeight="bold">
-                  Projects:
-                </Text>
-                {context.projects.map((p) => (
-                  <XStack
-                    key={p}
-                    bg="$blue5"
-                    px="$2"
-                    py="$0.5"
-                    br="$2"
-                    borderWidth={1}
-                    borderColor="$blue8"
-                  >
-                    <Text fontSize="$1" color="$blue11">
-                      {p}
-                    </Text>
-                  </XStack>
-                ))}
-              </XStack>
-            </ScrollView>
-          </XStack>
-        ) : (
-          <Text fontSize="$2" color="$color.gray10">
-            {notionConnected ? 'Notion context not yet loaded' : 'Connect Notion to see stats'}
-          </Text>
-        )}
-      </XStack>
+      </YStack>
     </YStack>
   );
 }

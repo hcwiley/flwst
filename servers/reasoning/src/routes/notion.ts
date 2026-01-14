@@ -9,7 +9,7 @@ import {
   NotionContextResponseSchema,
   SubmitToNotionRequestSchema,
   Todo,
-} from '@flwst/types/api/reasoning';
+} from '@flwst/types/src/api/reasoning';
 import { notionConfig } from '../../../../config/notion.js';
 
 /**

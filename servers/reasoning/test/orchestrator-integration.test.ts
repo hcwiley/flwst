@@ -14,7 +14,7 @@ import { MockNotionClient } from './mocks.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { DailyNoteSchema, TodoSchema } from '@flwst/types/api/reasoning';
+import { DailyNoteSchema, TodoSchema } from '@flwst/types/src/api/reasoning';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

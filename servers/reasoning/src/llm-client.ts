@@ -16,7 +16,7 @@ import {
   NotionContextResponse,
   Todo,
   TodoSchema,
-} from '@flwst/types/api/reasoning';
+} from '@flwst/types/src/api/reasoning';
 import { ILLMClient } from './orchestrator.js';
 import { blacklistConfig } from '../../../config/blacklist.js';
 

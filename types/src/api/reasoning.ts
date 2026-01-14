@@ -1,5 +1,13 @@
 import { z } from 'zod';
 
+/**
+ * Shared Zod schemas for reasoning, Notion, and IPC contracts.
+ *
+ * These schemas are the single source of truth for data shapes across
+ * renderer, Electron main, and the reasoning utility. Extend here first
+ * and validate at every boundary to keep the system type-safe.
+ */
+
 export const TodoSchema = z.object({
   id: z.string(),
   text: z.string(),
@@ -55,6 +63,45 @@ export type NotionContextExample = z.infer<typeof NotionContextExampleSchema>;
 export type NotionContextResponse = z.infer<typeof NotionContextResponseSchema>;
 
 /**
+ * Draft-specific fields for session-managed todos and daily notes.
+ */
+export const MatchStateSchema = z.enum(['new', 'matched', 'ambiguous', 'ignored']);
+export const SubmitStateSchema = z.enum(['idle', 'pending', 'success', 'error']);
+
+export const TodoDraftSchema = TodoSchema.extend({
+  localId: z.string(),
+  sessionId: z.string(),
+  matchState: MatchStateSchema,
+  notionTargetId: z.string().optional(),
+  includeInSubmit: z.boolean().default(true),
+  submitState: SubmitStateSchema.default('idle'),
+  error: z.string().optional(),
+});
+
+export const DailyNoteDraftSchema = z.object({
+  localId: z.string(),
+  sessionId: z.string(),
+  dailyNoteRichMarkdown: z.string(),
+  includeInSubmit: z.boolean().default(true),
+  submitState: SubmitStateSchema.default('idle'),
+  error: z.string().optional(),
+});
+
+export const MatchSuggestionSchema = z.object({
+  localId: z.string(),
+  matchState: MatchStateSchema,
+  notionTargetId: z.string().optional(),
+  confidence: z.number().min(0).max(1),
+  reason: z.string().optional(),
+});
+
+export type MatchState = z.infer<typeof MatchStateSchema>;
+export type SubmitState = z.infer<typeof SubmitStateSchema>;
+export type TodoDraft = z.infer<typeof TodoDraftSchema>;
+export type DailyNoteDraft = z.infer<typeof DailyNoteDraftSchema>;
+export type MatchSuggestion = z.infer<typeof MatchSuggestionSchema>;
+
+/**
  * High-level notes schema
  */
 export const HighLevelNotesSchema = z.object({
@@ -92,14 +139,18 @@ export const ProcessHighLevelRequestSchema = z.object({
  */
 export const ProcessTranscriptRequestSchema = z.object({
   transcript: z.string(),
-  notionContext: NotionContextResponseSchema.optional(),
-  highLevelNotes: HighLevelNotesSchema.optional(),
+  sessionId: z.string(),
+  context: NotionContextResponseSchema.optional(),
 });
 
 /**
  * Response schema for Phase 1: LLM-only results (no Notion matching)
  */
-export const ProcessTranscriptResponseSchema = DailyNoteSchema;
+export const ProcessTranscriptResponseSchema = z.object({
+  dailyNoteDraft: DailyNoteDraftSchema,
+  todoDrafts: z.array(TodoDraftSchema),
+  matchSuggestions: z.array(MatchSuggestionSchema).optional(),
+});
 
 /**
  * Request schema for Phase 2: Match todos with Notion tasks
@@ -116,7 +167,108 @@ export const NotionMatchResponseSchema = z.object({
   warning: z.string().optional(), // Optional warning if matching partially failed
 });
 
+/**
+ * IPC contracts for Electron renderer <-> main.
+ */
+export const NotionSelectOptionSchema = z.object({
+  id: z.string().optional(),
+  name: z.string(),
+  color: z.string().optional(),
+});
+
+export const NotionTodoCardSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  project: z.string().optional(),
+  status: z.string().optional(),
+  dueDate: z.string().optional(),
+  lastEditedTime: z.string().optional(),
+  notionUrl: z.string().optional(),
+});
+
+export const BootstrapMirrorRequestSchema = z.object({}).strict();
+
+export const BootstrapMirrorResponseSchema = z.object({
+  projects: z.array(NotionSelectOptionSchema),
+  statuses: z.array(NotionSelectOptionSchema),
+  kanbanItems: z.array(NotionTodoCardSchema),
+  lastSyncTime: z.string().optional(),
+});
+
+export const KanbanFilterSchema = z.object({
+  project: z.string().optional(),
+  status: z.string().optional(),
+  dueDateRange: z
+    .object({
+      start: z.string().optional(),
+      end: z.string().optional(),
+    })
+    .optional(),
+  lastModifiedAfter: z.string().optional(),
+});
+
+export const RefreshKanbanRequestSchema = z.object({
+  filters: KanbanFilterSchema.optional(),
+});
+
+export const RefreshKanbanResponseSchema = z.object({
+  kanbanItems: z.array(NotionTodoCardSchema),
+  lastSyncTime: z.string().optional(),
+});
+
+export const SubmitResultSchema = z.object({
+  localId: z.string(),
+  status: z.enum(['success', 'error']),
+  notionPageId: z.string().optional(),
+  errorMessage: z.string().optional(),
+});
+
+export const SubmitSessionRequestSchema = z.object({
+  dailyNoteDraft: DailyNoteDraftSchema,
+  todoDrafts: z.array(TodoDraftSchema),
+});
+
+export const SubmitSessionResponseSchema = z.object({
+  dailyNoteResult: SubmitResultSchema,
+  todoResults: z.array(SubmitResultSchema),
+});
+
+export const SubmitOneRequestSchema = z.object({
+  draft: TodoDraftSchema,
+});
+
+export const SubmitOneResponseSchema = z.object({
+  result: SubmitResultSchema,
+});
+
+export const NotionStatusRequestSchema = z.object({}).strict();
+export const NotionStatusResponseSchema = z.object({
+  connected: z.boolean(),
+  error: z.string().optional(),
+});
+
+export const NotionConnectRequestSchema = z.object({}).strict();
+export const NotionConnectResponseSchema = z.object({
+  connected: z.boolean(),
+  error: z.string().optional(),
+});
+
 export type ProcessTranscriptRequest = z.infer<typeof ProcessTranscriptRequestSchema>;
 export type ProcessTranscriptResponse = z.infer<typeof ProcessTranscriptResponseSchema>;
 export type NotionMatchRequest = z.infer<typeof NotionMatchRequestSchema>;
 export type NotionMatchResponse = z.infer<typeof NotionMatchResponseSchema>;
+export type NotionSelectOption = z.infer<typeof NotionSelectOptionSchema>;
+export type NotionTodoCard = z.infer<typeof NotionTodoCardSchema>;
+export type BootstrapMirrorRequest = z.infer<typeof BootstrapMirrorRequestSchema>;
+export type BootstrapMirrorResponse = z.infer<typeof BootstrapMirrorResponseSchema>;
+export type RefreshKanbanRequest = z.infer<typeof RefreshKanbanRequestSchema>;
+export type RefreshKanbanResponse = z.infer<typeof RefreshKanbanResponseSchema>;
+export type SubmitResult = z.infer<typeof SubmitResultSchema>;
+export type SubmitSessionRequest = z.infer<typeof SubmitSessionRequestSchema>;
+export type SubmitSessionResponse = z.infer<typeof SubmitSessionResponseSchema>;
+export type SubmitOneRequest = z.infer<typeof SubmitOneRequestSchema>;
+export type SubmitOneResponse = z.infer<typeof SubmitOneResponseSchema>;
+export type NotionStatusRequest = z.infer<typeof NotionStatusRequestSchema>;
+export type NotionStatusResponse = z.infer<typeof NotionStatusResponseSchema>;
+export type NotionConnectRequest = z.infer<typeof NotionConnectRequestSchema>;
+export type NotionConnectResponse = z.infer<typeof NotionConnectResponseSchema>;

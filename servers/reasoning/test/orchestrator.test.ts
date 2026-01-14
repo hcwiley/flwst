@@ -12,7 +12,7 @@ import { MockNotionClient } from './mocks.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { TodoSchema, DailyNoteSchema } from '@flwst/types/api/reasoning';
+import { TodoSchema, DailyNoteSchema } from '@flwst/types/src/api/reasoning';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -41,7 +41,7 @@ describe('ReasoningOrchestrator', () => {
       expect(orchestrator.getState()).toBe(ReasoningState.INIT);
     });
 
-    it('should transition through all states in order', async () => {
+    it('should transition through matching and complete', async () => {
       const orchestrator = new ReasoningOrchestrator(llmClient, notionClient, transcript);
 
       // Run the complete pipeline
@@ -54,6 +54,10 @@ describe('ReasoningOrchestrator', () => {
       expect(result).toHaveProperty('dailyNoteRichMarkdown');
       expect(result).toHaveProperty('todos');
       expect(Array.isArray(result.todos)).toBe(true);
+
+      // Ensure no Notion writes occurred
+      expect(notionClient.calls.updatePageBody.length).toBe(0);
+      expect(notionClient.calls.createTodo.length).toBe(0);
     });
 
     it('should validate schema at each stage', async () => {
@@ -138,115 +142,6 @@ describe('ReasoningOrchestrator', () => {
           // Unmatched todos should not have notionId
           expect(todo.notionId).toBeUndefined();
         }
-      }
-    });
-  });
-
-  describe('Stage A: Update Matched Todos', () => {
-    it('should update matched todo bodies and transition to TODOS_AUGMENTED', async () => {
-      const orchestrator = new ReasoningOrchestrator(llmClient, notionClient, transcript);
-
-      await orchestrator.run();
-
-      // Verify that fetchPageBody and updatePageBody were called for matched todos
-      expect(notionClient.calls.fetchPageBody.length).toBeGreaterThan(0);
-      expect(notionClient.calls.updatePageBody.length).toBeGreaterThan(0);
-
-      // Verify that todo.description was updated
-      const snapshot = orchestrator.getStateSnapshot();
-      const matchedTodos = snapshot.todos.filter((t) => t.isMatched && t.notionId);
-      for (const todo of matchedTodos) {
-        // Description should be updated (from mock, it adds new context)
-        expect(todo.description).toBeDefined();
-        expect(todo.description?.length).toBeGreaterThan(0);
-      }
-    });
-
-    it('should preserve existing content when updating bodies', async () => {
-      const orchestrator = new ReasoningOrchestrator(llmClient, notionClient, transcript);
-
-      await orchestrator.run();
-
-      // Check that updatePageBody was called with merged content
-      const updateCalls = notionClient.calls.updatePageBody;
-      expect(updateCalls.length).toBeGreaterThan(0);
-
-      // Verify the updated body contains both existing and new content
-      for (const call of updateCalls) {
-        // The mock LLM client appends new context, so the body should contain both
-        expect(call.markdown.length).toBeGreaterThan(0);
-        expect(call.markdown).toContain('Updated with new transcript context');
-        // The existing body should be preserved (from fixture or mock)
-        expect(call.markdown).toMatch(/Create high-level|Existing task description/);
-      }
-    });
-  });
-
-  describe('Stage B: Augment Unmatched Todos', () => {
-    it('should augment unmatched todos with project context', async () => {
-      const orchestrator = new ReasoningOrchestrator(llmClient, notionClient, transcript);
-
-      await orchestrator.run();
-
-      const snapshot = orchestrator.getStateSnapshot();
-      const unmatchedTodos = snapshot.todos.filter((t) => !t.isMatched);
-
-      // If there are unmatched todos, they should be augmented
-      if (unmatchedTodos.length > 0) {
-        for (const todo of unmatchedTodos) {
-          // Description should be enhanced
-          expect(todo.description).toBeDefined();
-          expect(todo.description).toContain('Enhanced with project context');
-        }
-      }
-    });
-
-    it('should retrieve project neighborhood for augmentation', async () => {
-      const orchestrator = new ReasoningOrchestrator(llmClient, notionClient, transcript);
-
-      await orchestrator.run();
-
-      // Verify that searchTasks was called to get project neighborhood
-      expect(notionClient.calls.searchTasks.length).toBeGreaterThan(0);
-    });
-
-    it('should not break schema when augmenting', async () => {
-      const orchestrator = new ReasoningOrchestrator(llmClient, notionClient, transcript);
-
-      await orchestrator.run();
-
-      const snapshot = orchestrator.getStateSnapshot();
-      for (const todo of snapshot.todos) {
-        // All todos should still validate against TodoSchema
-        const validated = TodoSchema.parse(todo);
-        expect(validated).toBeDefined();
-      }
-    });
-  });
-
-  describe('Step 4: Sync to Notion', () => {
-    it('should create new todos in Notion and transition to NOTION_UPDATED', async () => {
-      const orchestrator = new ReasoningOrchestrator(llmClient, notionClient, transcript);
-
-      await orchestrator.run();
-
-      // Verify that createTodo was called for unmatched todos
-      expect(notionClient.calls.createTodo.length).toBeGreaterThan(0);
-
-      // Verify final state
-      expect(orchestrator.getState()).toBe(ReasoningState.DONE);
-    });
-
-    it('should update notionId and notionUrl after creating todos', async () => {
-      const orchestrator = new ReasoningOrchestrator(llmClient, notionClient, transcript);
-
-      await orchestrator.run();
-
-      const snapshot = orchestrator.getStateSnapshot();
-      // All todos should now have notionId (either from matching or creation)
-      for (const todo of snapshot.todos) {
-        expect(todo.notionId).toBeDefined();
-        expect(todo.notionUrl).toBeDefined();
       }
     });
   });

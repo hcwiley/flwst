@@ -1,3 +1,8 @@
+/**
+ * Processing status stepper for the session pipeline.
+ *
+ * Provides consistent UX feedback for multi-stage reasoning and submit flow.
+ */
 import { YStack, XStack, Text, Spinner, Button } from 'tamagui';
 
 /**
@@ -9,6 +14,7 @@ type ProcessingPhase =
   | 'analyzing'
   | 'reasoning'
   | 'matching'
+  | 'submitting'
   | 'done'
   | 'error';
 

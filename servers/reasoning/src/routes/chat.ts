@@ -5,7 +5,7 @@ import { MCPNotionClient } from '../notion-client.js';
 import {
   ProcessTranscriptRequestSchema,
   ProcessHighLevelRequestSchema,
-} from '@flwst/types/api/reasoning';
+} from '@flwst/types/src/api/reasoning';
 
 /**
  * Phase 1: Process transcript with LLM only (no Notion matching)
@@ -43,22 +43,17 @@ chatRouter.post('/process', async (req, res) => {
       return res.status(400).json({ error: 'Invalid request: transcript is required' });
     }
 
-    const { transcript, notionContext } = parsed.data;
+    const { transcript, context } = parsed.data;
 
     console.log(
-      `[process] notionContext projects=${notionContext?.projects?.length ?? 0} sampled=${notionContext?.sampledCount ?? 0}`,
+      `[process] context projects=${context?.projects?.length ?? 0} sampled=${context?.sampledCount ?? 0}`,
     );
 
     // Use the new Orchestrator for processing
     const llmClient = new LlamaLLMClient();
     const notionClient = new MCPNotionClient();
 
-    const orchestrator = new ReasoningOrchestrator(
-      llmClient,
-      notionClient,
-      transcript,
-      notionContext,
-    );
+    const orchestrator = new ReasoningOrchestrator(llmClient, notionClient, transcript, context);
 
     // Run the pipeline ONLY up to extraction
     // Matching and syncing are handled by other Phase 2/3 endpoints

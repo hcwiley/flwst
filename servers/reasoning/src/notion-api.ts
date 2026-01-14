@@ -1,11 +1,48 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { notionConfig } from '../../../config/notion.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const TOKEN_FILE = path.join(__dirname, '../../.notion-token.json');
+
+export interface NotionTokenStore {
+  loadToken(): Promise<string | null>;
+  saveToken(token: string): Promise<void>;
+  clearToken(): Promise<void>;
+}
+
+class FileTokenStore implements NotionTokenStore {
+  async loadToken(): Promise<string | null> {
+    try {
+      if (!fs.existsSync(TOKEN_FILE)) return null;
+      const data = JSON.parse(fs.readFileSync(TOKEN_FILE, 'utf8'));
+      return data.access_token ?? null;
+    } catch (err) {
+      console.error('[notion-api] Failed to load token:', err);
+      return null;
+    }
+  }
+
+  async saveToken(token: string): Promise<void> {
+    try {
+      fs.writeFileSync(TOKEN_FILE, JSON.stringify({ access_token: token }), 'utf8');
+      console.log('[notion-api] Persisted token to', TOKEN_FILE);
+    } catch (err) {
+      console.error('[notion-api] Failed to save token:', err);
+    }
+  }
+
+  async clearToken(): Promise<void> {
+    try {
+      if (fs.existsSync(TOKEN_FILE)) {
+        fs.unlinkSync(TOKEN_FILE);
+      }
+    } catch (err) {
+      console.error('[notion-api] Failed to clear token:', err);
+    }
+  }
+}
 
 export interface NotionTokenResponse {
   access_token: string;
@@ -19,35 +56,33 @@ export interface NotionTokenResponse {
 
 class NotionApiClient {
   private accessToken: string | null = null;
+  private tokenStore: NotionTokenStore;
 
   constructor() {
-    this.loadToken();
+    this.tokenStore = new FileTokenStore();
+    void this.loadToken();
   }
 
-  private loadToken() {
-    try {
-      if (fs.existsSync(TOKEN_FILE)) {
-        const data = JSON.parse(fs.readFileSync(TOKEN_FILE, 'utf8'));
-        this.accessToken = data.access_token;
-        console.log('[notion-api] Loaded persisted token');
-      }
-    } catch (err) {
-      console.error('[notion-api] Failed to load token:', err);
+  configureTokenStore(store: NotionTokenStore) {
+    this.tokenStore = store;
+  }
+
+  async loadToken() {
+    const token = await this.tokenStore.loadToken();
+    if (token) {
+      this.accessToken = token;
+      console.log('[notion-api] Loaded persisted token');
     }
   }
 
-  private saveToken(token: string) {
-    try {
-      fs.writeFileSync(TOKEN_FILE, JSON.stringify({ access_token: token }), 'utf8');
-      console.log('[notion-api] Persisted token to', TOKEN_FILE);
-    } catch (err) {
-      console.error('[notion-api] Failed to save token:', err);
-    }
-  }
-
-  setToken(token: string) {
+  async setToken(token: string) {
     this.accessToken = token;
-    this.saveToken(token);
+    await this.tokenStore.saveToken(token);
+  }
+
+  async clearToken() {
+    this.accessToken = null;
+    await this.tokenStore.clearToken();
   }
 
   hasToken(): boolean {
@@ -82,7 +117,7 @@ class NotionApiClient {
     }
 
     const data = (await response.json()) as NotionTokenResponse;
-    this.setToken(data.access_token);
+    await this.setToken(data.access_token);
     return data;
   }
 

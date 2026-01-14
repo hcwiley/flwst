@@ -1,15 +1,23 @@
+/**
+ * Draft todo card for session editing.
+ *
+ * Renders match state, editable fields, and per-item submit controls for
+ * the session-owned todo drafts in the renderer store.
+ */
 import { useState, useEffect, useRef } from 'react';
-import { Card, YStack, XStack, Text, Button } from 'tamagui';
-import { Todo } from '@flwst/types/api/reasoning';
+import { Card, YStack, XStack, Text, Button, Input } from 'tamagui';
+import type { NotionSelectOption, TodoDraft } from '@flwst/types/src/api/reasoning';
 
 interface TodoCardProps {
-  todo: Todo;
-  isMatching?: boolean; // Whether Notion matching is in progress
-  onUpdate?: (todoId: string, updates: Partial<Todo>) => void; // Callback for updating todo
+  todo: TodoDraft;
+  projectOptions: NotionSelectOption[];
+  statusOptions: NotionSelectOption[];
+  onUpdate?: (localId: string, updates: Partial<TodoDraft>) => void;
+  onSubmitOne?: (localId: string) => void;
 }
 
 // Valid status values
-const STATUS_OPTIONS: Array<Todo['status']> = [
+const DEFAULT_STATUS_OPTIONS: Array<TodoDraft['status']> = [
   'TODO',
   'On Deck',
   'In Progress',
@@ -19,7 +27,13 @@ const STATUS_OPTIONS: Array<Todo['status']> = [
 ];
 
 // Valid priority values
-const PRIORITY_OPTIONS: Array<Todo['priority']> = ['TOP', 'High', 'Medium', 'Low', 'Back burner'];
+const PRIORITY_OPTIONS: Array<TodoDraft['priority']> = [
+  'TOP',
+  'High',
+  'Medium',
+  'Low',
+  'Back burner',
+];
 
 /**
  * Get color for priority badge
@@ -64,32 +78,22 @@ function getStatusColor(status?: string): string {
 }
 
 /**
- * Format date string for display
- */
-function formatDate(dateString?: string): string {
-  if (!dateString) return '';
-
-  try {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  } catch {
-    return dateString;
-  }
-}
-
-/**
  * Rich TodoCard component displaying all task properties
  * Shows visual distinction between new todos (from LLM) and matched todos (from Notion)
  */
-export function TodoCard({ todo, isMatching = false, onUpdate }: TodoCardProps) {
+export function TodoCard({
+  todo,
+  projectOptions,
+  statusOptions,
+  onUpdate,
+  onSubmitOne,
+}: TodoCardProps) {
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
+  const [showProjectDropdown, setShowProjectDropdown] = useState(false);
   const statusRef = useRef<HTMLDivElement>(null);
   const priorityRef = useRef<HTMLDivElement>(null);
+  const projectRef = useRef<HTMLDivElement>(null);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -97,22 +101,20 @@ export function TodoCard({ todo, isMatching = false, onUpdate }: TodoCardProps) 
       const target = event.target as Node;
       const clickedOutsideStatus = !statusRef.current || !statusRef.current.contains(target);
       const clickedOutsidePriority = !priorityRef.current || !priorityRef.current.contains(target);
+      const clickedOutsideProject = !projectRef.current || !projectRef.current.contains(target);
 
-      if (showStatusDropdown && clickedOutsideStatus) {
-        setShowStatusDropdown(false);
-      }
-      if (showPriorityDropdown && clickedOutsidePriority) {
-        setShowPriorityDropdown(false);
-      }
+      if (showStatusDropdown && clickedOutsideStatus) setShowStatusDropdown(false);
+      if (showPriorityDropdown && clickedOutsidePriority) setShowPriorityDropdown(false);
+      if (showProjectDropdown && clickedOutsideProject) setShowProjectDropdown(false);
     };
 
-    if (showStatusDropdown || showPriorityDropdown) {
+    if (showStatusDropdown || showPriorityDropdown || showProjectDropdown) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => {
         document.removeEventListener('mousedown', handleClickOutside);
       };
     }
-  }, [showStatusDropdown, showPriorityDropdown]);
+  }, [showStatusDropdown, showPriorityDropdown, showProjectDropdown]);
 
   const handleNotionLink = () => {
     if (todo.notionUrl) {
@@ -120,23 +122,32 @@ export function TodoCard({ todo, isMatching = false, onUpdate }: TodoCardProps) 
     }
   };
 
-  const handleStatusSelect = (status: Todo['status']) => {
+  const handleStatusSelect = (status: TodoDraft['status']) => {
     if (onUpdate) {
-      onUpdate(todo.id, { status });
+      onUpdate(todo.localId, { status });
     }
     setShowStatusDropdown(false);
   };
 
-  const handlePrioritySelect = (priority: Todo['priority']) => {
+  const handlePrioritySelect = (priority: TodoDraft['priority']) => {
     if (onUpdate) {
-      onUpdate(todo.id, { priority });
+      onUpdate(todo.localId, { priority });
     }
     setShowPriorityDropdown(false);
   };
 
   // Determine if this is a new todo (from LLM) or matched (from Notion)
-  const isNewTodo = !todo.isMatched && !todo.notionUrl;
-  const isMatchedTodo = todo.isMatched && todo.notionUrl;
+  const isNewTodo = todo.matchState === 'new';
+  const isMatchedTodo = todo.matchState === 'matched';
+  const isAmbiguousTodo = todo.matchState === 'ambiguous';
+  const isIgnoredTodo = todo.matchState === 'ignored';
+
+  const statusChoices =
+    statusOptions.length > 0
+      ? statusOptions.map((option) => option.name as TodoDraft['status'])
+      : DEFAULT_STATUS_OPTIONS;
+
+  const projectChoices = projectOptions.map((option) => option.name);
 
   // Border color based on todo type
   const borderColor = isMatchedTodo
@@ -159,7 +170,7 @@ export function TodoCard({ todo, isMatching = false, onUpdate }: TodoCardProps) 
         <XStack ai="center" jc="space-between" gap="$2">
           <XStack ai="center" gap="$2" flex={1}>
             <Text fontSize="$2" color="$color.gray10" fontWeight="bold">
-              #{todo.id}
+              #{todo.localId}
             </Text>
             <Text fontSize="$5" fontWeight="bold" flex={1}>
               {todo.text}
@@ -189,13 +200,32 @@ export function TodoCard({ todo, isMatching = false, onUpdate }: TodoCardProps) 
                 </Text>
               </XStack>
             )}
+            {isAmbiguousTodo && (
+              <XStack
+                paddingHorizontal="$2"
+                paddingVertical="$1"
+                borderRadius="$2"
+                backgroundColor="$yellow5"
+              >
+                <Text fontSize="$1" color="$yellow11" fontWeight="600">
+                  Ambiguous
+                </Text>
+              </XStack>
+            )}
+            {isIgnoredTodo && (
+              <XStack
+                paddingHorizontal="$2"
+                paddingVertical="$1"
+                borderRadius="$2"
+                backgroundColor="$gray5"
+              >
+                <Text fontSize="$1" color="$gray11" fontWeight="600">
+                  Ignored
+                </Text>
+              </XStack>
+            )}
           </XStack>
           <XStack ai="center" gap="$2">
-            {isMatching && !todo.isMatched && (
-              <Text fontSize="$2" color="$color.gray10" fontStyle="italic">
-                Matching...
-              </Text>
-            )}
             {todo.completed && <Text fontSize="$4">✅</Text>}
           </XStack>
         </XStack>
@@ -242,7 +272,7 @@ export function TodoCard({ todo, isMatching = false, onUpdate }: TodoCardProps) 
                 shadowRadius={4}
                 minWidth={150}
               >
-                {STATUS_OPTIONS.map((status) => (
+                {statusChoices.map((status) => (
                   <XStack
                     key={status}
                     paddingHorizontal="$2"
@@ -350,41 +380,85 @@ export function TodoCard({ todo, isMatching = false, onUpdate }: TodoCardProps) 
 
         {/* Project, Due Date, Assignee row - always shown */}
         <XStack gap="$3" flexWrap="wrap" ai="center">
-          <XStack ai="center" gap="$1">
-            <Text fontSize="$2" color="$color.gray11">
-              Project:
-            </Text>
-            {todo.project ? (
-              <XStack
-                paddingHorizontal="$1.5"
-                paddingVertical="$0.5"
-                borderRadius="$2"
-                backgroundColor="$blue5"
-              >
-                <Text fontSize="$1" color="$blue11" fontWeight="500">
-                  {todo.project}
-                </Text>
-              </XStack>
-            ) : (
-              <Text fontSize="$2" color="$color.gray8" fontStyle="italic">
-                Not set
+          <YStack position="relative" ref={projectRef as any}>
+            <XStack ai="center" gap="$1">
+              <Text fontSize="$2" color="$color.gray11">
+                Project:
               </Text>
+              <Button
+                size="$2"
+                variant="outlined"
+                onPress={() => setShowProjectDropdown(!showProjectDropdown)}
+              >
+                {todo.project || 'Not set'}
+              </Button>
+            </XStack>
+            {showProjectDropdown && projectChoices.length > 0 && (
+              <YStack
+                position="absolute"
+                top="100%"
+                left={0}
+                mt="$1"
+                bg="$background"
+                borderWidth={1}
+                borderColor="$borderColor"
+                borderRadius="$2"
+                padding="$1"
+                zIndex={1000}
+                minWidth={180}
+              >
+                {projectChoices.map((project) => (
+                  <XStack
+                    key={project}
+                    paddingHorizontal="$2"
+                    paddingVertical="$1.5"
+                    borderRadius="$2"
+                    backgroundColor={project === todo.project ? '$blue5' : 'transparent'}
+                    onPress={() => {
+                      if (onUpdate) onUpdate(todo.localId, { project });
+                      setShowProjectDropdown(false);
+                    }}
+                    hoverStyle={{ backgroundColor: '$gray3' }}
+                    cursor="pointer"
+                  >
+                    <Text
+                      fontSize="$2"
+                      fontWeight={project === todo.project ? '600' : '400'}
+                      color={project === todo.project ? '$blue11' : '$color'}
+                    >
+                      {project}
+                    </Text>
+                  </XStack>
+                ))}
+                <XStack
+                  paddingHorizontal="$2"
+                  paddingVertical="$1.5"
+                  borderRadius="$2"
+                  onPress={() => {
+                    if (onUpdate) onUpdate(todo.localId, { project: undefined });
+                    setShowProjectDropdown(false);
+                  }}
+                  hoverStyle={{ backgroundColor: '$gray3' }}
+                  cursor="pointer"
+                >
+                  <Text fontSize="$2" color="$gray10" fontStyle="italic">
+                    Clear
+                  </Text>
+                </XStack>
+              </YStack>
             )}
-          </XStack>
+          </YStack>
 
           <XStack ai="center" gap="$1">
             <Text fontSize="$2" color="$color.gray11">
               📅
             </Text>
-            {todo.dueDate ? (
-              <Text fontSize="$2" color="$color.gray11">
-                {formatDate(todo.dueDate)}
-              </Text>
-            ) : (
-              <Text fontSize="$2" color="$color.gray8" fontStyle="italic">
-                Not set
-              </Text>
-            )}
+            <Input
+              size="$2"
+              value={todo.dueDate || ''}
+              placeholder="YYYY-MM-DD"
+              onChangeText={(value) => onUpdate?.(todo.localId, { dueDate: value || undefined })}
+            />
           </XStack>
 
           {todo.assignee && (
@@ -432,6 +506,42 @@ export function TodoCard({ todo, isMatching = false, onUpdate }: TodoCardProps) 
             </Button>
           </XStack>
         )}
+
+        {/* Submit + include controls */}
+        <XStack ai="center" jc="space-between" gap="$2">
+          <Button
+            size="$2"
+            variant="outlined"
+            onPress={() => onUpdate?.(todo.localId, { includeInSubmit: !todo.includeInSubmit })}
+          >
+            {todo.includeInSubmit ? 'Included' : 'Excluded'}
+          </Button>
+          <XStack ai="center" gap="$2">
+            {todo.submitState === 'pending' && (
+              <Text fontSize="$2" color="$color.gray10">
+                Syncing...
+              </Text>
+            )}
+            {todo.submitState === 'success' && (
+              <Text fontSize="$2" color="$green11">
+                Synced
+              </Text>
+            )}
+            {todo.submitState === 'error' && (
+              <Text fontSize="$2" color="$red10">
+                Error
+              </Text>
+            )}
+            <Button
+              size="$2"
+              theme="green"
+              onPress={() => onSubmitOne?.(todo.localId)}
+              disabled={todo.submitState === 'pending'}
+            >
+              Sync
+            </Button>
+          </XStack>
+        </XStack>
       </YStack>
     </Card>
   );

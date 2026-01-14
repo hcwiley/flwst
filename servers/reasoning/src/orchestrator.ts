@@ -1,9 +1,8 @@
 /**
  * Reasoning Orchestrator
  *
- * Implements a linear, debuggable state machine for orchestrating the LLM and Notion pipeline.
- * Manages state transitions from INIT -> DONE, with explicit stages for extraction, matching,
- * augmentation, and Notion synchronization.
+ * Implements a linear, debuggable state machine for orchestrating the LLM pipeline.
+ * Manages state transitions from INIT -> TODOS_MATCHED, without performing Notion writes.
  */
 
 import {
@@ -14,7 +13,7 @@ import {
   DailyNoteResponse,
   DailyNoteSchema,
   NotionContextResponse,
-} from '@flwst/types/api/reasoning';
+} from '@flwst/types/src/api/reasoning';
 import { TranscriptProcessor } from './utils/transcript-processor.js';
 import { extractNotionTaskProperties } from './matching.js';
 
@@ -148,7 +147,7 @@ export interface OrchestratorState {
 /**
  * Reasoning Orchestrator
  *
- * Manages the complete pipeline from transcript to Notion sync using a state machine.
+ * Manages the pipeline from transcript to Notion matching using a state machine.
  * All external dependencies (LLM, Notion, filesystem) are injected via interfaces.
  */
 export class ReasoningOrchestrator {
@@ -239,7 +238,9 @@ export class ReasoningOrchestrator {
   /**
    * Run the orchestration pipeline up to a target state (default: DONE)
    */
-  async run(targetState: ReasoningState = ReasoningState.DONE): Promise<DailyNoteResponse> {
+  async run(
+    targetState: ReasoningState = ReasoningState.TODOS_MATCHED,
+  ): Promise<DailyNoteResponse> {
     try {
       // Step 0: Ensure Notion context is available
       if (!this.notionContext) {
@@ -269,22 +270,6 @@ export class ReasoningOrchestrator {
         await this.matchTodos();
       }
       if (targetState === ReasoningState.TODOS_MATCHED) return this.asResponse();
-
-      // Stage A: Update matched Notion task bodies
-      if (this.isStateBefore(ReasoningState.TODOS_AUGMENTED, targetState)) {
-        await this.updateMatchedTodos();
-      }
-      // Note: Stage B (augmentation) also results in TODOS_AUGMENTED
-      if (this.isStateBefore(ReasoningState.TODOS_AUGMENTED, targetState)) {
-        await this.augmentUnmatchedTodos();
-      }
-      if (targetState === ReasoningState.TODOS_AUGMENTED) return this.asResponse();
-
-      // Step 4: Sync to Notion
-      if (this.isStateBefore(ReasoningState.NOTION_UPDATED, targetState)) {
-        await this.syncToNotion();
-      }
-      if (targetState === ReasoningState.NOTION_UPDATED) return this.asResponse();
 
       this.transitionTo(ReasoningState.DONE);
       this.log('Orchestration complete');

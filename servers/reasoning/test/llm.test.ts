@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { DailyNoteSchema } from '@flwst/types/api/reasoning';
+import { DailyNoteSchema } from '@flwst/types/src/api/reasoning';
 
 describe('LLM Model Tests', () => {
   it('should validate daily note schema', () => {

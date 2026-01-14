@@ -1,17 +1,43 @@
 import dotenv from 'dotenv';
+import readline from 'node:readline';
+import { runReasoningPipeline } from './runner.js';
+import {
+  SubprocessRequestSchema,
+  buildErrorResponse,
+  buildSuccessResponse,
+} from './subprocess-protocol.js';
+
 // Load environment variables immediately
 dotenv.config();
 
-import { app } from './app.js';
-import { notionClient } from './mcp-client.js';
-
-const port = process.env.PORT || 3000;
-
-// Initialize Notion Client (MCP)
-notionClient.connect().catch((err) => {
-  console.error('Failed to connect to Notion MCP on startup:', err);
+/**
+ * Reasoning subprocess entrypoint.
+ *
+ * Exposes a JSON-lines protocol over stdin/stdout to keep the reasoning
+ * pipeline stateless and managed by Electron main.
+ */
+const rl = readline.createInterface({
+  input: process.stdin,
+  crlfDelay: Infinity,
 });
 
-app.listen(port, () => {
-  console.log(`Reasoning server running at http://localhost:${port}`);
+rl.on('line', async (line) => {
+  const trimmed = line.trim();
+  if (!trimmed) return;
+
+  let requestId = 'unknown';
+  try {
+    const parsed = SubprocessRequestSchema.parse(JSON.parse(trimmed));
+    requestId = parsed.id;
+    const payload = await runReasoningPipeline(parsed.payload);
+    const response = buildSuccessResponse(parsed.id, payload);
+    process.stdout.write(`${JSON.stringify(response)}\n`);
+  } catch (error) {
+    const response = buildErrorResponse(requestId, error);
+    process.stdout.write(`${JSON.stringify(response)}\n`);
+  }
+});
+
+rl.on('close', () => {
+  process.exit(0);
 });
