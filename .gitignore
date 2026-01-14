@@ -37,6 +37,7 @@ tmp/
 # builds
 builds/
 dist/
+dist-*/
 release/
 
 # ml models
