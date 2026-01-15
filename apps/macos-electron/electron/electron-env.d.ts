@@ -28,4 +28,7 @@ interface Window {
     port: number;
     baseUrl: string;
   };
+  shell?: {
+    openExternal: (url: string) => Promise<void>;
+  };
 }

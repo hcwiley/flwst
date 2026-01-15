@@ -118,7 +118,11 @@ export function TodoCard({
 
   const handleNotionLink = () => {
     if (todo.notionUrl) {
-      window.open(todo.notionUrl, '_blank');
+      if (window.shell?.openExternal) {
+        void window.shell.openExternal(todo.notionUrl);
+      } else {
+        window.open(todo.notionUrl, '_blank');
+      }
     }
   };
 
