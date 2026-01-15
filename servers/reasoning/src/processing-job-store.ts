@@ -8,28 +8,40 @@ import { randomUUID } from 'node:crypto';
 import type {
   ProcessTranscriptJobPhase,
   ProcessTranscriptJobResponse,
-  ProcessTranscriptJobStatus,
   ProcessTranscriptRequest,
   ProcessTranscriptResponse,
 } from '@flwst/types/src/api/reasoning';
-import { runReasoningPipeline } from './runner.js';
+import { LlamaLLMClient } from './llm-client.js';
+import { MCPNotionClient } from './notion-client.js';
+import { ReasoningOrchestrator, ReasoningState } from './orchestrator.js';
+import { buildDraftResponse } from './runner.js';
 
 const DEFAULT_JOB_TTL_MS = 60 * 60 * 1000;
 
 type ProcessingJobRecord = ProcessTranscriptJobResponse;
 
+type JobProgressUpdate = {
+  phase: ProcessTranscriptJobPhase;
+  result?: ProcessTranscriptResponse;
+};
+
+type RunStages = (
+  payload: ProcessTranscriptRequest,
+  onUpdate: (update: JobProgressUpdate) => void,
+) => Promise<ProcessTranscriptResponse>;
+
 type ProcessingJobStoreOptions = {
-  runPipeline?: (payload: ProcessTranscriptRequest) => Promise<ProcessTranscriptResponse>;
+  runStages?: RunStages;
   maxAgeMs?: number;
 };
 
 export class ProcessingJobStore {
   private jobs = new Map<string, ProcessingJobRecord>();
-  private runPipeline: (payload: ProcessTranscriptRequest) => Promise<ProcessTranscriptResponse>;
+  private runStages: RunStages;
   private maxAgeMs: number;
 
   constructor(options: ProcessingJobStoreOptions = {}) {
-    this.runPipeline = options.runPipeline ?? runReasoningPipeline;
+    this.runStages = options.runStages ?? runTranscriptStages;
     this.maxAgeMs = options.maxAgeMs ?? DEFAULT_JOB_TTL_MS;
   }
 
@@ -67,11 +79,16 @@ export class ProcessingJobStore {
   private async runJob(jobId: string, payload: ProcessTranscriptRequest): Promise<void> {
     this.updateJob(jobId, {
       status: 'running',
-      phase: 'reasoning',
+      phase: 'fetching',
     });
 
     try {
-      const result = await this.runPipeline(payload);
+      const result = await this.runStages(payload, (update) => {
+        this.updateJob(jobId, {
+          phase: update.phase,
+          result: update.result,
+        });
+      });
       this.updateJob(jobId, {
         status: 'succeeded',
         phase: 'done',
@@ -98,4 +115,36 @@ export class ProcessingJobStore {
   }
 }
 
-export type { ProcessingJobRecord, ProcessingJobStoreOptions };
+async function runTranscriptStages(
+  payload: ProcessTranscriptRequest,
+  onUpdate: (update: JobProgressUpdate) => void,
+): Promise<ProcessTranscriptResponse> {
+  // Run the orchestrator incrementally so clients can poll for partial results.
+  const { transcript, context, sessionId } = payload;
+  const llmClient = new LlamaLLMClient();
+  const notionClient = new MCPNotionClient();
+  const orchestrator = new ReasoningOrchestrator(llmClient, notionClient, transcript, context);
+
+  onUpdate({ phase: 'analyzing' });
+  const highLevel = await orchestrator.run(ReasoningState.DAILY_NOTES_EXTRACTED);
+  onUpdate({
+    phase: 'reasoning',
+    result: buildDraftResponse(sessionId, highLevel),
+  });
+
+  const detailed = await orchestrator.run(ReasoningState.TODOS_EXTRACTED);
+  onUpdate({
+    phase: 'matching',
+    result: buildDraftResponse(sessionId, detailed),
+  });
+
+  const matched = await orchestrator.run(ReasoningState.TODOS_MATCHED);
+  return buildDraftResponse(sessionId, matched);
+}
+
+export type {
+  JobProgressUpdate,
+  ProcessingJobRecord,
+  ProcessingJobStoreOptions,
+  RunStages,
+};

@@ -13,6 +13,7 @@ import {
   ProcessTranscriptResponse,
   ProcessTranscriptResponseSchema,
   TodoDraftSchema,
+  type DailyNoteResponse,
 } from '@flwst/types/src/api/reasoning';
 import { LlamaLLMClient } from './llm-client.js';
 import { MCPNotionClient } from './notion-client.js';
@@ -45,6 +46,13 @@ export async function runReasoningPipeline(
   const orchestrator = new ReasoningOrchestrator(llmClient, notionClient, transcript, context);
   const result = await orchestrator.run(ReasoningState.TODOS_MATCHED);
 
+  return buildDraftResponse(sessionId, result);
+}
+
+export function buildDraftResponse(
+  sessionId: string,
+  result: DailyNoteResponse,
+): ProcessTranscriptResponse {
   const dailyNoteLocalId = buildDailyNoteLocalId(sessionId);
   const dailyNoteDraft = DailyNoteDraftSchema.parse({
     localId: dailyNoteLocalId,

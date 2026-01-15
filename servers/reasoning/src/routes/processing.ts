@@ -10,19 +10,17 @@ import {
   ProcessTranscriptJobStartResponseSchema,
   ProcessTranscriptRequestSchema,
   type ProcessTranscriptJobStartResponse,
-  type ProcessTranscriptRequest,
-  type ProcessTranscriptResponse,
 } from '@flwst/types/src/api/reasoning';
-import { ProcessingJobStore } from '../processing-job-store.js';
+import { ProcessingJobStore, type RunStages } from '../processing-job-store.js';
 
 type ProcessingRouterDeps = {
   jobStore?: ProcessingJobStore;
-  runPipeline?: (payload: ProcessTranscriptRequest) => Promise<ProcessTranscriptResponse>;
+  runStages?: RunStages;
 };
 
 export function createProcessingRouter(deps: ProcessingRouterDeps = {}): Router {
   const router = Router();
-  const jobStore = deps.jobStore ?? new ProcessingJobStore({ runPipeline: deps.runPipeline });
+  const jobStore = deps.jobStore ?? new ProcessingJobStore({ runStages: deps.runStages });
 
   router.post('/process', async (req, res) => {
     try {

@@ -42,8 +42,11 @@ describe('processing routes', () => {
       ],
     });
 
-    const runPipeline = vi.fn().mockResolvedValue(responsePayload);
-    const jobStore = new ProcessingJobStore({ runPipeline });
+    const runStages = vi.fn().mockImplementation(async (_payload, onUpdate) => {
+      onUpdate({ phase: 'reasoning', result: responsePayload });
+      return responsePayload;
+    });
+    const jobStore = new ProcessingJobStore({ runStages });
     const app = express();
     app.use(express.json());
     app.use(createProcessingRouter({ jobStore }));
@@ -61,12 +64,12 @@ describe('processing routes', () => {
     const statusResponse = await request(app).get(`/process/${response.body.jobId}`);
     expect(statusResponse.status).toBe(200);
     expect(() => ProcessTranscriptJobResponseSchema.parse(statusResponse.body)).not.toThrow();
-    expect(runPipeline).toHaveBeenCalledTimes(1);
+    expect(runStages).toHaveBeenCalledTimes(1);
   });
 
   it('rejects invalid /process payloads', async () => {
-    const runPipeline = vi.fn();
-    const jobStore = new ProcessingJobStore({ runPipeline });
+    const runStages = vi.fn();
+    const jobStore = new ProcessingJobStore({ runStages });
     const app = express();
     app.use(express.json());
     app.use(createProcessingRouter({ jobStore }));
@@ -74,6 +77,6 @@ describe('processing routes', () => {
     const response = await request(app).post('/process').send({ transcript: 'missing session' });
 
     expect(response.status).toBe(400);
-    expect(runPipeline).not.toHaveBeenCalled();
+    expect(runStages).not.toHaveBeenCalled();
   });
 });

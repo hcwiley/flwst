@@ -133,10 +133,19 @@ export const createAppStore = (api: AppApi = appApi) =>
           },
           {
             onProgress: (progress) => {
+              const normalized = progress.result ? applyMatchDefaults(progress.result) : undefined;
               set((state) => ({
                 session: {
                   ...state.session,
                   processingPhase: mapJobProgressToPhase(progress),
+                  draftDailyNote:
+                    normalized && !state.session.draftDailyNote
+                      ? normalized.dailyNoteDraft
+                      : state.session.draftDailyNote,
+                  draftTodos:
+                    normalized && normalized.todoDrafts.length > 0
+                      ? mergeDraftTodos(state.session.draftTodos, normalized.todoDrafts)
+                      : state.session.draftTodos,
                 },
               }));
             },
@@ -147,8 +156,8 @@ export const createAppStore = (api: AppApi = appApi) =>
         set((state) => ({
           session: {
             ...state.session,
-            draftDailyNote: normalized.dailyNoteDraft,
-            draftTodos: normalized.todoDrafts,
+            draftDailyNote: state.session.draftDailyNote ?? normalized.dailyNoteDraft,
+            draftTodos: mergeDraftTodos(state.session.draftTodos, normalized.todoDrafts),
             processingPhase: 'done',
           },
         }));
@@ -316,6 +325,44 @@ type JobProgress = {
   status: ProcessTranscriptJobStatus;
   phase?: ProcessTranscriptJobPhase;
 };
+
+function mergeDraftTodos(existing: TodoDraft[], incoming: TodoDraft[]): TodoDraft[] {
+  // Merge server progress with any local edits already applied.
+  const existingById = new Map(existing.map((todo) => [todo.localId, todo]));
+
+  return incoming.map((todo) => {
+    const current = existingById.get(todo.localId);
+    if (!current) return todo;
+
+    return {
+      ...todo,
+      text: preferExisting(current.text, todo.text),
+      completed: preferExisting(current.completed, todo.completed),
+      priority: preferExisting(current.priority, todo.priority),
+      status: preferExisting(current.status, todo.status),
+      project: preferExisting(current.project, todo.project),
+      description: preferExisting(current.description, todo.description),
+      dueDate: preferExisting(current.dueDate, todo.dueDate),
+      tags: preferExisting(current.tags, todo.tags),
+      assignee: preferExisting(current.assignee, todo.assignee),
+      source: preferExisting(current.source, todo.source),
+      includeInSubmit: preferExisting(current.includeInSubmit, todo.includeInSubmit),
+      submitState: preferExisting(current.submitState, todo.submitState),
+      error: preferExisting(current.error, todo.error),
+      // Always trust matching updates from the server.
+      isMatched: todo.isMatched,
+      matchState: todo.matchState,
+      notionTargetId: todo.notionTargetId,
+      notionId: todo.notionId,
+      notionUrl: todo.notionUrl,
+    };
+  });
+}
+
+// Prefer user edits when available, fall back to server values.
+function preferExisting<T>(current: T | undefined, incoming: T): T {
+  return current ?? incoming;
+}
 
 function mapJobProgressToPhase(progress: JobProgress): AppState['session']['processingPhase'] {
   if (progress.phase) {

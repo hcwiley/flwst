@@ -242,6 +242,10 @@ export class ReasoningOrchestrator {
     targetState: ReasoningState = ReasoningState.TODOS_MATCHED,
   ): Promise<DailyNoteResponse> {
     try {
+      if (this._state === ReasoningState.ERROR) {
+        throw new Error('Cannot resume orchestrator after ERROR state');
+      }
+
       // Step 0: Ensure Notion context is available
       if (!this.notionContext) {
         try {
@@ -254,19 +258,19 @@ export class ReasoningOrchestrator {
       }
 
       // Step 1: Extract high-level notes
-      if (this.isStateBefore(ReasoningState.DAILY_NOTES_EXTRACTED, targetState)) {
+      if (this.shouldRunStep(ReasoningState.DAILY_NOTES_EXTRACTED, targetState)) {
         await this.extractHighLevelNotes();
       }
       if (targetState === ReasoningState.DAILY_NOTES_EXTRACTED) return this.asResponse();
 
       // Step 2: Generate detailed structured data
-      if (this.isStateBefore(ReasoningState.TODOS_EXTRACTED, targetState)) {
+      if (this.shouldRunStep(ReasoningState.TODOS_EXTRACTED, targetState)) {
         await this.extractTodos();
       }
       if (targetState === ReasoningState.TODOS_EXTRACTED) return this.asResponse();
 
       // Step 3: Match todos to Notion tasks
-      if (this.isStateBefore(ReasoningState.TODOS_MATCHED, targetState)) {
+      if (this.shouldRunStep(ReasoningState.TODOS_MATCHED, targetState)) {
         await this.matchTodos();
       }
       if (targetState === ReasoningState.TODOS_MATCHED) return this.asResponse();
@@ -287,6 +291,24 @@ export class ReasoningOrchestrator {
   private isStateBefore(state: ReasoningState, target: ReasoningState): boolean {
     const states = Object.values(ReasoningState);
     return states.indexOf(state) <= states.indexOf(target);
+  }
+
+  /**
+   * Check if a state is strictly before another (non-equal).
+   */
+  private isStateStrictlyBefore(state: ReasoningState, target: ReasoningState): boolean {
+    const states = Object.values(ReasoningState);
+    return states.indexOf(state) < states.indexOf(target);
+  }
+
+  /**
+   * Determine whether a step should run given current and target state.
+   */
+  private shouldRunStep(stepState: ReasoningState, targetState: ReasoningState): boolean {
+    return (
+      this.isStateBefore(stepState, targetState) &&
+      this.isStateStrictlyBefore(this._state, stepState)
+    );
   }
 
   /**
