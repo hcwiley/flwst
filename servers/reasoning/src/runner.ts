@@ -62,11 +62,15 @@ export function buildDraftResponse(
 
   const todoDrafts = result.todos.map((todo) => {
     const localId = todo.id?.trim() ? todo.id : randomUUID();
+    const normalizedStatus = normalizeTodoStatus(todo.status);
+    const normalizedPriority = normalizeTodoPriority(todo.priority);
     return TodoDraftSchema.parse({
       ...todo,
       id: localId,
       localId,
       sessionId,
+      status: normalizedStatus ?? undefined,
+      priority: normalizedPriority ?? undefined,
       matchState: todo.isMatched ? 'matched' : 'new',
       notionTargetId: todo.notionId,
     });
@@ -91,4 +95,31 @@ export function buildDraftResponse(
 
 function buildDailyNoteLocalId(sessionId: string): string {
   return `daily-${sessionId}`;
+}
+
+function normalizeTodoStatus(status?: string): string | undefined {
+  if (!status) return undefined;
+  const normalized = status.trim().toLowerCase();
+  const mapping: Record<string, string> = {
+    todo: 'TODO',
+    'on deck': 'On Deck',
+    'in progress': 'In Progress',
+    blocked: 'BLOCKED',
+    done: 'Done',
+    cancelled: 'Cancelled',
+  };
+  return mapping[normalized];
+}
+
+function normalizeTodoPriority(priority?: string): string | undefined {
+  if (!priority) return undefined;
+  const normalized = priority.trim().toLowerCase();
+  const mapping: Record<string, string> = {
+    top: 'TOP',
+    high: 'High',
+    medium: 'Medium',
+    low: 'Low',
+    'back burner': 'Back burner',
+  };
+  return mapping[normalized];
 }
