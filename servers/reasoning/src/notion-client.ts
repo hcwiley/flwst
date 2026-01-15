@@ -396,11 +396,16 @@ export class MCPNotionClient implements INotionClient {
 
       // Update Assignee if provided
       if (todo.assignee !== undefined) {
-        // Note: Assignee requires a person object, this is a simplified version
-        // You may need to fetch the person ID from Notion first
-        props.Assignee = {
-          people: [{ name: todo.assignee }],
-        };
+        const assigneeId = normalizeNotionUserId(todo.assignee);
+        if (assigneeId) {
+          props.Assignee = {
+            people: [{ id: assigneeId }],
+          };
+        } else {
+          console.debug(
+            `[notion-client] Skipping assignee update for ${todo.notionId}: missing user id`,
+          );
+        }
       }
 
       // Only update if there are properties to update
@@ -551,4 +556,21 @@ export class MCPNotionClient implements INotionClient {
       console.warn('[notion-client] Failed to refresh Tasks database cache:', error);
     }
   }
+}
+
+function normalizeNotionUserId(input?: string): string | undefined {
+  if (!input) return undefined;
+  const normalized = input.trim();
+  if (!normalized) return undefined;
+
+  const hex = normalized.replace(/-/g, '');
+  if (!/^[0-9a-fA-F]{32}$/.test(hex)) return undefined;
+
+  return [
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    hex.slice(12, 16),
+    hex.slice(16, 20),
+    hex.slice(20),
+  ].join('-');
 }
