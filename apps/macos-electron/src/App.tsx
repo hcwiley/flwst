@@ -23,6 +23,7 @@ function App() {
   const [transcript, setTranscript] = useState('');
   const [filters, setFilters] = useState({ project: '', status: '', dueStart: '', dueEnd: '' });
   const [kanbanLayout, setKanbanLayout] = useState<'comfortable' | 'fit'>('comfortable');
+  const [isRefreshingKanban, setIsRefreshingKanban] = useState(false);
   // Default to preview so the Daily Note reads cleanly.
   const [dailyNoteView, setDailyNoteView] = useState<'preview' | 'raw'>('preview');
   const ipcAvailable = Boolean(window?.ipcRenderer?.invoke);
@@ -97,14 +98,19 @@ function App() {
   };
 
   const handleApplyFilters = async () => {
-    await refreshKanban({
-      project: filters.project || undefined,
-      status: filters.status || undefined,
-      dueDateRange:
-        filters.dueStart || filters.dueEnd
-          ? { start: filters.dueStart || undefined, end: filters.dueEnd || undefined }
-          : undefined,
-    });
+    setIsRefreshingKanban(true);
+    try {
+      await refreshKanban({
+        project: filters.project || undefined,
+        status: filters.status || undefined,
+        dueDateRange:
+          filters.dueStart || filters.dueEnd
+            ? { start: filters.dueStart || undefined, end: filters.dueEnd || undefined }
+            : undefined,
+      });
+    } finally {
+      setIsRefreshingKanban(false);
+    }
   };
 
   const columnCount = Math.max(1, Object.keys(groupedKanban).length);
@@ -120,7 +126,7 @@ function App() {
           flwst
         </Text>
         <XStack gap="$2">
-          <Button size="$2" onPress={handleApplyFilters} disabled={!ipcAvailable}>
+          <Button size="$2" onPress={handleApplyFilters} disabled={!ipcAvailable || isRefreshingKanban}>
             Refresh Kanban
           </Button>
           <Button
@@ -268,66 +274,93 @@ function App() {
           />
         </XStack>
 
-        <YStack
-          borderWidth={1}
-          borderColor="$borderColor"
-          borderRadius="$3"
-          p="$2"
-          bg="$background"
-        >
-          <ScrollView horizontal={!isFit} showsHorizontalScrollIndicator={!isFit}>
-            <XStack gap={columnGap} ai="flex-start" width="100%" flexWrap="nowrap">
-              {Object.entries(groupedKanban).map(([status, items]) => (
-                <YStack
-                  key={status}
-                  flex={isFit ? 1 : undefined}
-                  flexBasis={isFit ? 0 : undefined}
-                  flexShrink={isFit ? 1 : 0}
-                  minWidth={isFit ? 0 : columnWidth}
-                  maxWidth={isFit ? undefined : columnWidth}
-                  width={isFit ? undefined : columnWidth}
-                  p="$2"
-                  borderWidth={1}
-                  borderColor="$borderColor"
-                  borderRadius="$3"
-                  gap="$2"
-                >
-                  <Text fontWeight="bold">{status}</Text>
-                  {items.length === 0 ? (
-                    <Text fontSize="$2" color="$color.gray10">
-                      No items
-                    </Text>
-                  ) : (
-                    items.map((item) => (
-                      <YStack
-                        key={item.id}
-                        p="$2"
-                        borderWidth={1}
-                        borderColor="$borderColor"
-                        borderRadius="$2"
-                        gap="$1"
-                      >
-                        <XStack jc="space-between" ai="center" gap="$2">
-                          <Text fontWeight="bold">{item.title}</Text>
-                          {item.notionUrl && (
-                            <Button size="$1" variant="outlined" onPress={() => openExternal(item.notionUrl)}>
-                              View
-                            </Button>
+        <YStack position="relative">
+          <YStack
+            borderWidth={1}
+            borderColor="$borderColor"
+            borderRadius="$3"
+            p="$2"
+            bg="$background"
+            opacity={isRefreshingKanban ? 0.4 : 1}
+            pointerEvents={isRefreshingKanban ? 'none' : 'auto'}
+          >
+            <ScrollView horizontal={!isFit} showsHorizontalScrollIndicator={!isFit}>
+              <XStack gap={columnGap} ai="flex-start" width="100%" flexWrap="nowrap">
+                {Object.entries(groupedKanban).map(([status, items]) => (
+                  <YStack
+                    key={status}
+                    flex={isFit ? 1 : undefined}
+                    flexBasis={isFit ? 0 : undefined}
+                    flexShrink={isFit ? 1 : 0}
+                    minWidth={isFit ? 0 : columnWidth}
+                    maxWidth={isFit ? undefined : columnWidth}
+                    width={isFit ? undefined : columnWidth}
+                    p="$2"
+                    borderWidth={1}
+                    borderColor="$borderColor"
+                    borderRadius="$3"
+                    gap="$2"
+                  >
+                    <Text fontWeight="bold">{status}</Text>
+                    {items.length === 0 ? (
+                      <Text fontSize="$2" color="$color.gray10">
+                        No items
+                      </Text>
+                    ) : (
+                      items.map((item) => (
+                        <YStack
+                          key={item.id}
+                          p="$2"
+                          borderWidth={1}
+                          borderColor="$borderColor"
+                          borderRadius="$2"
+                          gap="$1"
+                        >
+                          <XStack jc="space-between" ai="center" gap="$2">
+                            <Text fontWeight="bold">{item.title}</Text>
+                            {item.notionUrl && (
+                              <Button
+                                size="$1"
+                                variant="outlined"
+                                onPress={() => openExternal(item.notionUrl)}
+                              >
+                                View
+                              </Button>
+                            )}
+                          </XStack>
+                          {item.project && <Text fontSize="$2">{item.project}</Text>}
+                          {item.dueDate && (
+                            <Text fontSize="$2" color="$color.gray10">
+                              Due {item.dueDate}
+                            </Text>
                           )}
-                        </XStack>
-                        {item.project && <Text fontSize="$2">{item.project}</Text>}
-                        {item.dueDate && (
-                          <Text fontSize="$2" color="$color.gray10">
-                            Due {item.dueDate}
-                          </Text>
-                        )}
-                      </YStack>
-                    ))
-                  )}
-                </YStack>
-              ))}
-            </XStack>
-          </ScrollView>
+                        </YStack>
+                      ))
+                    )}
+                  </YStack>
+                ))}
+              </XStack>
+            </ScrollView>
+          </YStack>
+          {isRefreshingKanban && (
+            <YStack
+              position="absolute"
+              top={0}
+              left={0}
+              right={0}
+              bottom={0}
+              ai="center"
+              jc="center"
+              bg="$background"
+              opacity={0.7}
+              borderRadius="$3"
+            >
+              <Spinner />
+              <Text fontSize="$2" color="$color.gray11">
+                Refreshing Kanban...
+              </Text>
+            </YStack>
+          )}
         </YStack>
       </YStack>
     </YStack>
