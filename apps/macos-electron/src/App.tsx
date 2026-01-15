@@ -28,13 +28,17 @@ function App() {
   const ipcAvailable = Boolean(window?.ipcRenderer?.invoke);
   const openExternal = (url?: string) => {
     if (!url) return;
-    const externalShell = typeof window !== 'undefined' ? window.shell : undefined;
-    if (externalShell && typeof externalShell.openExternal === 'function') {
-      void externalShell.openExternal(url);
-      return;
+    try {
+      const openFn = globalThis?.shell?.openExternal;
+      if (typeof openFn === 'function') {
+        void openFn(url);
+        return;
+      }
+    } catch (error) {
+      console.warn('Failed to open external link:', error);
     }
-    if (typeof window !== 'undefined') {
-      window.open(url, '_blank', 'noopener,noreferrer');
+    if (typeof globalThis?.open === 'function') {
+      globalThis.open(url, '_blank', 'noopener,noreferrer');
     }
   };
 
