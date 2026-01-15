@@ -28,11 +28,14 @@ function App() {
   const ipcAvailable = Boolean(window?.ipcRenderer?.invoke);
   const openExternal = (url?: string) => {
     if (!url) return;
-    if (window.shell?.openExternal) {
-      void window.shell.openExternal(url);
+    const externalShell = typeof window !== 'undefined' ? window.shell : undefined;
+    if (externalShell && typeof externalShell.openExternal === 'function') {
+      void externalShell.openExternal(url);
       return;
     }
-    window.open(url, '_blank');
+    if (typeof window !== 'undefined') {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
   };
 
   const notionMirror = useAppStore((state) => state.notionMirror);
