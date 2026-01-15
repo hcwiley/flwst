@@ -176,7 +176,8 @@ RULES:
 1. List EVERY actionable task mentioned in the transcript.
 2. CRITICAL: Provide detailed, descriptive text for each task. Do NOT just use the project name.
 3. CRITICAL: Do not combine different tasks. If the transcript mentions "task A" and "task B", create TWO separate items.
-4. For each task, set "context" to the name of the section header it was found under (e.g., "Flow State Overhaul").
+4. CRITICAL: If a task is described as already completed, extract the underlying task itself (what was done) rather than meta status phrases like "call that to-do done".
+5. For each task, set "context" to the name of the section header it was found under (e.g., "Flow State Overhaul").
 ${blacklistInstructions}
 ${projectsList}
 
@@ -342,6 +343,11 @@ Respond with ONLY the markdown content. No JSON wrapper, no code blocks, no prea
 TASKS TO CONVERT:
 ${highLevelNotes.potentialTodos.map((t, i) => `${i + 1}. "${t.text}" (Context: ${t.context})`).join('\n')}
 
+TRANSCRIPT (use for completion status):
+"""
+${transcript}
+"""
+
 ${projectsContext}
 
 JSON SCHEMA:
@@ -364,7 +370,7 @@ RULES:
 3. Use the EXACT text provided in TASKS TO CONVERT for the "text" field.
 4. Assign each task a unique "id".
 5. Match the "project" field to VALID NOTION PROJECTS.
-6. Set "completed" to false.
+6. Set "completed" to true ONLY when the transcript explicitly indicates the task is already done; otherwise set it to false.
 7. DO NOT RETURN NULL OR EMPTY STRINGS: Omit any fields that are unknown. Do not set fields to "" or null.
 
 Respond with ONLY the JSON object.`;

@@ -190,7 +190,9 @@ const pollProcessingJob = async (
 
   while (true) {
     const job = await fetchProcessingJob(baseUrl, jobId);
-    const partialResult = job.result ? ProcessTranscriptResponseSchema.parse(job.result) : undefined;
+    const partialResult = job.result
+      ? ProcessTranscriptResponseSchema.parse(job.result)
+      : undefined;
     options?.onProgress?.({
       status: ProcessTranscriptJobStatusSchema.parse(job.status),
       phase: job.phase,

@@ -171,7 +171,11 @@ function App() {
           flwst
         </Text>
         <XStack gap="$2">
-          <Button size="$2" onPress={handleApplyFilters} disabled={!ipcAvailable || isRefreshingKanban}>
+          <Button
+            size="$2"
+            onPress={handleApplyFilters}
+            disabled={!ipcAvailable || isRefreshingKanban}
+          >
             Refresh Kanban
           </Button>
           <Button
@@ -402,15 +406,15 @@ function App() {
                           borderRadius="$2"
                           gap="$1"
                         >
-                        <XStack jc="space-between" ai="center" gap="$2" flexWrap="wrap">
-                          <Text fontWeight="bold" flexShrink={1} minWidth={0}>
-                            {item.title}
-                          </Text>
+                          <XStack jc="space-between" ai="center" gap="$2" flexWrap="wrap">
+                            <Text fontWeight="bold" flexShrink={1} minWidth={0}>
+                              {item.title}
+                            </Text>
                             {item.notionUrl && (
                               <Button
                                 size="$1"
                                 variant="outlined"
-                              flexShrink={0}
+                                flexShrink={0}
                                 onPress={() => openExternal(item.notionUrl)}
                               >
                                 View

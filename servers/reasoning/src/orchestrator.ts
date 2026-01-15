@@ -737,16 +737,12 @@ export class ReasoningOrchestrator {
     ]);
 
     const rawTokens = text.split(/[\s/]+/);
-    const normalizeToken = (token: string): string =>
-      token.toLowerCase().replace(/[^\w]/g, '');
-    const isCandidate = (token: string): boolean =>
-      token.length >= 3 && !stopWords.has(token);
+    const normalizeToken = (token: string): string => token.toLowerCase().replace(/[^\w]/g, '');
+    const isCandidate = (token: string): boolean => token.length >= 3 && !stopWords.has(token);
     const isProperNoun = (token: string): boolean =>
       /^[A-Z][a-z]/.test(token) || /^[A-Z]{2,}/.test(token);
 
-    const candidates = rawTokens
-      .map(normalizeToken)
-      .filter((token) => isCandidate(token));
+    const candidates = rawTokens.map(normalizeToken).filter((token) => isCandidate(token));
 
     const properNouns = rawTokens
       .map((token) => ({

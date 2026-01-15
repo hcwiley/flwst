@@ -542,8 +542,7 @@ export class MCPNotionClient implements INotionClient {
     if (!notionApiClient.hasToken()) return;
 
     const cacheIsFresh =
-      this.tasksDbCacheLoadedAt &&
-      Date.now() - this.tasksDbCacheLoadedAt < this.tasksDbCacheTtlMs;
+      this.tasksDbCacheLoadedAt && Date.now() - this.tasksDbCacheLoadedAt < this.tasksDbCacheTtlMs;
 
     if (this.tasksDbCacheIsFull && cacheIsFresh) {
       return;

@@ -292,7 +292,9 @@ export type ProcessTranscriptRequest = z.infer<typeof ProcessTranscriptRequestSc
 export type ProcessTranscriptResponse = z.infer<typeof ProcessTranscriptResponseSchema>;
 export type ProcessTranscriptJobStatus = z.infer<typeof ProcessTranscriptJobStatusSchema>;
 export type ProcessTranscriptJobPhase = z.infer<typeof ProcessTranscriptJobPhaseSchema>;
-export type ProcessTranscriptJobStartResponse = z.infer<typeof ProcessTranscriptJobStartResponseSchema>;
+export type ProcessTranscriptJobStartResponse = z.infer<
+  typeof ProcessTranscriptJobStartResponseSchema
+>;
 export type ProcessTranscriptJobResponse = z.infer<typeof ProcessTranscriptJobResponseSchema>;
 export type NotionMatchRequest = z.infer<typeof NotionMatchRequestSchema>;
 export type NotionMatchResponse = z.infer<typeof NotionMatchResponseSchema>;

@@ -142,9 +142,4 @@ async function runTranscriptStages(
   return buildDraftResponse(sessionId, matched);
 }
 
-export type {
-  JobProgressUpdate,
-  ProcessingJobRecord,
-  ProcessingJobStoreOptions,
-  RunStages,
-};
+export type { JobProgressUpdate, ProcessingJobRecord, ProcessingJobStoreOptions, RunStages };
