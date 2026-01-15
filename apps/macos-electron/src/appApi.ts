@@ -104,9 +104,7 @@ const ensureReasoningReady = async (baseUrl: string): Promise<void> => {
       }
     } catch (error) {
       healthCheckPromise = null;
-      throw new Error(
-        'Reasoning server unavailable. Please wait for it to start and try again.',
-      );
+      throw new Error('Reasoning server unavailable. Please wait for it to start and try again.');
     }
   })();
 
@@ -163,7 +161,12 @@ export const appApi: AppApi = {
       payload,
     ),
   processTranscript: async (payload) =>
-    postReasoning('/process', ProcessTranscriptRequestSchema, ProcessTranscriptResponseSchema, payload),
+    postReasoning(
+      '/process',
+      ProcessTranscriptRequestSchema,
+      ProcessTranscriptResponseSchema,
+      payload,
+    ),
   submitSession: async (payload) =>
     invoke(
       'notion:submitSession',

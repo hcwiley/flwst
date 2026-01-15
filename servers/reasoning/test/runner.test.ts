@@ -26,5 +26,4 @@ describe('runReasoningPipeline', () => {
     expect(response.dailyNoteDraft.sessionId).toBe('session-123');
     expect(response.todoDrafts.length).toBeGreaterThan(0);
   });
-
 });
