@@ -1,5 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
-import { YStack, XStack, TextArea, Button, Text, ScrollView, Spinner, Input } from 'tamagui';
+import {
+  YStack,
+  XStack,
+  TextArea,
+  Button,
+  Text,
+  ScrollView,
+  Spinner,
+  Input,
+  Switch,
+} from 'tamagui';
 import type { NotionTodoCard } from '@flwst/types/src/api/reasoning';
 import { TodoCard } from './components/TodoCard';
 import { ProcessingStatus } from './components/ProcessingStatus';
@@ -13,6 +23,8 @@ function App() {
   const [transcript, setTranscript] = useState('');
   const [filters, setFilters] = useState({ project: '', status: '', dueStart: '', dueEnd: '' });
   const [kanbanLayout, setKanbanLayout] = useState<'comfortable' | 'fit'>('comfortable');
+  // Default to preview so the Daily Note reads cleanly.
+  const [dailyNoteView, setDailyNoteView] = useState<'preview' | 'raw'>('preview');
   const ipcAvailable = Boolean(window?.ipcRenderer?.invoke);
 
   const notionMirror = useAppStore((state) => state.notionMirror);
@@ -143,16 +155,37 @@ function App() {
           <YStack gap="$2" p="$2" borderWidth={1} borderColor="$borderColor" borderRadius="$3">
             <XStack jc="space-between" ai="center">
               <Text fontWeight="bold">Daily Note</Text>
-              <Button size="$2" theme="green" onPress={() => submitAll()}>
-                Submit All
-              </Button>
+              <XStack ai="center" gap="$3">
+                <XStack ai="center" gap="$2">
+                  <Text
+                    fontSize="$2"
+                    color={dailyNoteView === 'preview' ? '$color' : '$color.gray10'}
+                  >
+                    Preview
+                  </Text>
+                  <Switch
+                    size="$2"
+                    checked={dailyNoteView === 'raw'}
+                    onCheckedChange={(value) => setDailyNoteView(value ? 'raw' : 'preview')}
+                  />
+                  <Text fontSize="$2" color={dailyNoteView === 'raw' ? '$color' : '$color.gray10'}>
+                    Raw
+                  </Text>
+                </XStack>
+                <Button size="$2" theme="green" onPress={() => submitAll()}>
+                  Submit All
+                </Button>
+              </XStack>
             </XStack>
-            <TextArea
-              value={session.draftDailyNote.dailyNoteRichMarkdown}
-              onChangeText={(value) => updateDailyNote({ dailyNoteRichMarkdown: value })}
-              minHeight={120}
-            />
-            <Markdown content={session.draftDailyNote.dailyNoteRichMarkdown} />
+            {dailyNoteView === 'raw' ? (
+              <TextArea
+                value={session.draftDailyNote.dailyNoteRichMarkdown}
+                onChangeText={(value) => updateDailyNote({ dailyNoteRichMarkdown: value })}
+                minHeight={120}
+              />
+            ) : (
+              <Markdown content={session.draftDailyNote.dailyNoteRichMarkdown} />
+            )}
           </YStack>
         )}
 
