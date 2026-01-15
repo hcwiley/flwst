@@ -76,6 +76,11 @@ function isSimilarTaskName(name1: string, name2: string): boolean {
   return isMatch;
 }
 
+// Keep transcript-derived values when provided.
+function preferExisting<T>(current: T | undefined, incoming: T | undefined): T | undefined {
+  return current ?? incoming;
+}
+
 /**
  * Extract properties from a Notion task page.
  * Handles different response formats from Notion MCP.
@@ -417,29 +422,29 @@ export async function matchTodosToNotionTasks(todos: Todo[], notionTasks: any[])
     };
 
     if (matched && bestMatch) {
-      // Merge Notion properties into todo
+      // Merge Notion properties into todo, but keep transcript-driven updates.
       const { props } = bestMatch;
 
       if (props.priority) {
-        enrichedTodo.priority = props.priority as any;
+        enrichedTodo.priority = preferExisting(enrichedTodo.priority, props.priority as any);
       }
       if (props.status) {
-        enrichedTodo.status = props.status as any;
+        enrichedTodo.status = preferExisting(enrichedTodo.status, props.status as any);
       }
       if (props.project) {
-        enrichedTodo.project = props.project;
+        enrichedTodo.project = preferExisting(enrichedTodo.project, props.project);
       }
       if (props.description) {
-        enrichedTodo.description = props.description;
+        enrichedTodo.description = preferExisting(enrichedTodo.description, props.description);
       }
       if (props.dueDate) {
-        enrichedTodo.dueDate = props.dueDate;
+        enrichedTodo.dueDate = preferExisting(enrichedTodo.dueDate, props.dueDate);
       }
       if (props.tags) {
-        enrichedTodo.tags = props.tags;
+        enrichedTodo.tags = preferExisting(enrichedTodo.tags, props.tags);
       }
       if (props.assignee) {
-        enrichedTodo.assignee = props.assignee;
+        enrichedTodo.assignee = preferExisting(enrichedTodo.assignee, props.assignee);
       }
       if (props.id) {
         enrichedTodo.notionId = props.id;
