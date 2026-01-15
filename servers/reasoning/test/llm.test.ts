@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { DailyNoteSchema } from '@flwst/types/src/api/reasoning';
+import { applyContextStatusHints, inferStatusFromContext } from '../src/llm-client.js';
 
 describe('LLM Model Tests', () => {
   it('should validate daily note schema', () => {
@@ -21,5 +22,22 @@ describe('LLM Model Tests', () => {
 
     const result = DailyNoteSchema.safeParse(invalidData);
     expect(result.success).toBe(false);
+  });
+
+  it('infers Done status from context', () => {
+    expect(inferStatusFromContext('Done')).toBe('Done');
+    expect(inferStatusFromContext('Completed')).toBe('Done');
+  });
+
+  it('applies status hints when missing', () => {
+    const updated = applyContextStatusHints(
+      [{ text: 'Run flwst locally with a Llama3 backend' }],
+      {
+        dailyNoteRichMarkdown: '# Daily',
+        potentialTodos: [{ text: 'Run flwst locally with a Llama3 backend', context: 'Done' }],
+      },
+    );
+
+    expect(updated[0]?.status).toBe('Done');
   });
 });

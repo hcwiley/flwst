@@ -359,6 +359,66 @@ JSON SCHEMA:
   ]
 }
 
+type ExtractedTodo = {
+  text?: string;
+  status?: string;
+} & Record<string, unknown>;
+
+// Apply status inference from high-level context when LLM omits status.
+export function applyContextStatusHints(
+  todos: ExtractedTodo[],
+  highLevelNotes: HighLevelNotes,
+): ExtractedTodo[] {
+  const contextByText = new Map<string, string>();
+  for (const item of highLevelNotes.potentialTodos) {
+    contextByText.set(normalizeTodoText(item.text), item.context ?? '');
+  }
+
+  return todos.map((todo) => {
+    if (todo.status !== undefined) return todo;
+    const textKey = normalizeTodoText(todo.text ?? '');
+    if (!textKey) return todo;
+    const context = contextByText.get(textKey);
+    const inferredStatus = context ? inferStatusFromContext(context) : undefined;
+    if (!inferredStatus) return todo;
+    return { ...todo, status: inferredStatus };
+  });
+}
+
+// Infer status from section headers like "Done" or "In Progress".
+export function inferStatusFromContext(context: string): Todo['status'] | undefined {
+  const normalized = context.toLowerCase();
+
+  if (matchesAny(normalized, ['cancelled', 'canceled', 'won\'t do', 'wont do', 'dropped'])) {
+    return 'Cancelled';
+  }
+  if (matchesAny(normalized, ['blocked', 'stuck', 'waiting', 'paused'])) {
+    return 'BLOCKED';
+  }
+  if (matchesAny(normalized, ['done', 'complete', 'completed', 'finished', 'shipped'])) {
+    return 'Done';
+  }
+  if (matchesAny(normalized, ['in progress', 'in-progress', 'doing', 'working on'])) {
+    return 'In Progress';
+  }
+  if (matchesAny(normalized, ['on deck', 'next up', 'next'])) {
+    return 'On Deck';
+  }
+  if (matchesAny(normalized, ['todo', 'to-do', 'to do', 'backlog'])) {
+    return 'TODO';
+  }
+
+  return undefined;
+}
+
+function matchesAny(text: string, phrases: string[]): boolean {
+  return phrases.some((phrase) => text.includes(phrase));
+}
+
+function normalizeTodoText(text: string): string {
+  return text.toLowerCase().replace(/[^\w\s]/g, ' ').trim().replace(/\s+/g, ' ');
+}
+
 RULES:
 1. Extract EVERY task listed above into the "todos" array.
 2. DO NOT DUPLICATE TASKS.
@@ -402,11 +462,13 @@ Respond with ONLY the JSON object.`;
         return cleaned;
       });
 
+      const todosWithStatus = applyContextStatusHints(extractedTodos, highLevelNotes);
+
       console.log('[llm-client] Step 2 extracted todos count:', extractedTodos.length);
 
       const result = {
         dailyNoteRichMarkdown: highLevelNotes.dailyNoteRichMarkdown,
-        todos: extractedTodos,
+        todos: todosWithStatus,
       };
 
       const validated = DailyNoteSchema.parse(result);
