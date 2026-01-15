@@ -10,6 +10,9 @@ import {
   NotionConnectResponseSchema,
   NotionStatusRequestSchema,
   NotionStatusResponseSchema,
+  ProcessTranscriptJobResponseSchema,
+  ProcessTranscriptJobStartResponseSchema,
+  ProcessTranscriptJobStatusSchema,
   ProcessTranscriptRequestSchema,
   ProcessTranscriptResponseSchema,
   RefreshKanbanRequestSchema,
@@ -21,6 +24,10 @@ import {
   type BootstrapMirrorResponse,
   type NotionConnectResponse,
   type NotionStatusResponse,
+  type ProcessTranscriptJobPhase,
+  type ProcessTranscriptJobResponse,
+  type ProcessTranscriptJobStatus,
+  type ProcessTranscriptJobStartResponse,
   type ProcessTranscriptRequest,
   type ProcessTranscriptResponse,
   type RefreshKanbanRequest,
@@ -31,19 +38,34 @@ import {
   type SubmitSessionResponse,
 } from '@flwst/types/src/api/reasoning';
 
+export type ProcessTranscriptProgress = {
+  status: ProcessTranscriptJobStatus;
+  phase?: ProcessTranscriptJobPhase;
+};
+
+export type ProcessTranscriptOptions = {
+  onProgress?: (progress: ProcessTranscriptProgress) => void;
+};
+
 export type AppApi = {
   bootstrapMirror: () => Promise<BootstrapMirrorResponse>;
   notionStatus: () => Promise<NotionStatusResponse>;
   notionConnect: () => Promise<NotionConnectResponse>;
   refreshKanban: (payload: RefreshKanbanRequest) => Promise<RefreshKanbanResponse>;
-  processTranscript: (payload: ProcessTranscriptRequest) => Promise<ProcessTranscriptResponse>;
+  processTranscript: (
+    payload: ProcessTranscriptRequest,
+    options?: ProcessTranscriptOptions,
+  ) => Promise<ProcessTranscriptResponse>;
   submitSession: (payload: SubmitSessionRequest) => Promise<SubmitSessionResponse>;
   submitOne: (payload: SubmitOneRequest) => Promise<SubmitOneResponse>;
 };
 
 const DEFAULT_REASONING_PORT = 3000;
 const HEALTH_CHECK_TIMEOUT_MS = 3000;
-const REQUEST_TIMEOUT_MS = 120000;
+const JOB_START_TIMEOUT_MS = 10000;
+const JOB_STATUS_TIMEOUT_MS = 5000;
+const JOB_POLL_INTERVAL_MS = 1500;
+const JOB_MAX_DURATION_MS = 20 * 60 * 1000;
 
 let healthCheckPromise: Promise<void> | null = null;
 
@@ -111,25 +133,22 @@ const ensureReasoningReady = async (baseUrl: string): Promise<void> => {
   return healthCheckPromise;
 };
 
-const postReasoning = async <TReq, TRes>(
-  path: string,
-  requestSchema: { parse: (value: TReq) => TReq },
-  responseSchema: { parse: (value: TRes) => TRes },
-  payload: TReq,
-): Promise<TRes> => {
+const startProcessingJob = async (
+  payload: ProcessTranscriptRequest,
+): Promise<ProcessTranscriptJobStartResponse> => {
   const baseUrl = getReasoningBaseUrl();
-  const validatedRequest = requestSchema.parse(payload);
+  const validatedRequest = ProcessTranscriptRequestSchema.parse(payload);
   await ensureReasoningReady(baseUrl);
 
   const response = await fetchWithTimeout(
-    `${baseUrl}${path}`,
+    `${baseUrl}/process`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(validatedRequest),
     },
-    REQUEST_TIMEOUT_MS,
-    'Reasoning request',
+    JOB_START_TIMEOUT_MS,
+    'Reasoning job start',
   );
 
   const responseBody = await response.json().catch(() => ({}));
@@ -138,7 +157,60 @@ const postReasoning = async <TReq, TRes>(
     throw new Error(message);
   }
 
-  return responseSchema.parse(responseBody);
+  return ProcessTranscriptJobStartResponseSchema.parse(responseBody);
+};
+
+const fetchProcessingJob = async (
+  baseUrl: string,
+  jobId: string,
+): Promise<ProcessTranscriptJobResponse> => {
+  const response = await fetchWithTimeout(
+    `${baseUrl}/process/${jobId}`,
+    { method: 'GET' },
+    JOB_STATUS_TIMEOUT_MS,
+    'Reasoning job status',
+  );
+
+  const responseBody = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = responseBody?.error ?? `Reasoning status error (${response.status})`;
+    throw new Error(message);
+  }
+
+  return ProcessTranscriptJobResponseSchema.parse(responseBody);
+};
+
+const pollProcessingJob = async (
+  jobId: string,
+  options?: ProcessTranscriptOptions,
+): Promise<ProcessTranscriptResponse> => {
+  const baseUrl = getReasoningBaseUrl();
+  const startedAt = Date.now();
+
+  while (true) {
+    const job = await fetchProcessingJob(baseUrl, jobId);
+    options?.onProgress?.({
+      status: ProcessTranscriptJobStatusSchema.parse(job.status),
+      phase: job.phase,
+    });
+
+    if (job.status === 'succeeded') {
+      if (!job.result) {
+        throw new Error('Reasoning job completed without a result');
+      }
+      return ProcessTranscriptResponseSchema.parse(job.result);
+    }
+
+    if (job.status === 'failed') {
+      throw new Error(job.error ?? 'Reasoning job failed');
+    }
+
+    if (Date.now() - startedAt > JOB_MAX_DURATION_MS) {
+      throw new Error('Reasoning job exceeded maximum wait time');
+    }
+
+    await sleep(JOB_POLL_INTERVAL_MS);
+  }
 };
 
 export const appApi: AppApi = {
@@ -160,13 +232,11 @@ export const appApi: AppApi = {
       RefreshKanbanResponseSchema,
       payload,
     ),
-  processTranscript: async (payload) =>
-    postReasoning(
-      '/process',
-      ProcessTranscriptRequestSchema,
-      ProcessTranscriptResponseSchema,
-      payload,
-    ),
+  processTranscript: async (payload, options) => {
+    const job = await startProcessingJob(payload);
+    options?.onProgress?.({ status: job.status, phase: 'fetching' });
+    return pollProcessingJob(job.jobId, options);
+  },
   submitSession: async (payload) =>
     invoke(
       'notion:submitSession',
@@ -177,3 +247,8 @@ export const appApi: AppApi = {
   submitOne: async (payload) =>
     invoke('notion:submitOne', SubmitOneRequestSchema, SubmitOneResponseSchema, payload),
 };
+
+const sleep = (durationMs: number): Promise<void> =>
+  new Promise((resolve) => {
+    setTimeout(resolve, durationMs);
+  });

@@ -30,7 +30,8 @@ The server runs on `http://localhost:3000` by default. Override with
 
 - **LLM-only processing**
 
-  - `POST /process` (renderer-facing draft response)
+  - `POST /process` (returns a job id for async processing)
+  - `GET /process/:jobId` (poll status + final draft response)
   - `POST /api/process/high-level`
   - `POST /api/process` (runs orchestrator up to `TODOS_EXTRACTED`)
 

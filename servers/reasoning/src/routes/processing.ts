@@ -1,25 +1,28 @@
 /**
  * Transcript processing HTTP routes.
  *
- * Exposes a single POST /process endpoint that runs the stateless
- * reasoning pipeline and returns draft objects validated by shared
- * schemas. Designed for direct renderer calls over HTTP.
+ * Creates async processing jobs that can be polled for status so the
+ * renderer can handle long-running reasoning steps without timeouts.
  */
 import { Router } from 'express';
 import {
+  ProcessTranscriptJobResponseSchema,
+  ProcessTranscriptJobStartResponseSchema,
   ProcessTranscriptRequestSchema,
-  ProcessTranscriptResponseSchema,
+  type ProcessTranscriptJobStartResponse,
+  type ProcessTranscriptRequest,
   type ProcessTranscriptResponse,
 } from '@flwst/types/src/api/reasoning';
-import { runReasoningPipeline } from '../runner.js';
+import { ProcessingJobStore } from '../processing-job-store.js';
 
 type ProcessingRouterDeps = {
-  runPipeline?: (payload: unknown) => Promise<ProcessTranscriptResponse>;
+  jobStore?: ProcessingJobStore;
+  runPipeline?: (payload: ProcessTranscriptRequest) => Promise<ProcessTranscriptResponse>;
 };
 
 export function createProcessingRouter(deps: ProcessingRouterDeps = {}): Router {
   const router = Router();
-  const runPipeline = deps.runPipeline ?? runReasoningPipeline;
+  const jobStore = deps.jobStore ?? new ProcessingJobStore({ runPipeline: deps.runPipeline });
 
   router.post('/process', async (req, res) => {
     try {
@@ -31,15 +34,27 @@ export function createProcessingRouter(deps: ProcessingRouterDeps = {}): Router 
         });
       }
 
-      const payload = await runPipeline(parsed.data);
-      const validated = ProcessTranscriptResponseSchema.parse(payload);
-      return res.json(validated);
+      const job = jobStore.createJob(parsed.data);
+      const response: ProcessTranscriptJobStartResponse = {
+        jobId: job.jobId,
+        status: job.status,
+      };
+      return res.status(202).json(ProcessTranscriptJobStartResponseSchema.parse(response));
     } catch (error: any) {
       console.error('[processing] Error processing transcript:', error);
       return res.status(500).json({
         error: error?.message ?? 'Internal server error',
       });
     }
+  });
+
+  router.get('/process/:jobId', (req, res) => {
+    const job = jobStore.getJob(req.params.jobId);
+    if (!job) {
+      return res.status(404).json({ error: 'Unknown processing job' });
+    }
+
+    return res.json(ProcessTranscriptJobResponseSchema.parse(job));
   });
 
   return router;

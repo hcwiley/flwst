@@ -6,11 +6,16 @@
 import express from 'express';
 import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
-import { ProcessTranscriptResponseSchema } from '@flwst/types/src/api/reasoning';
+import {
+  ProcessTranscriptJobResponseSchema,
+  ProcessTranscriptJobStartResponseSchema,
+  ProcessTranscriptResponseSchema,
+} from '@flwst/types/src/api/reasoning';
+import { ProcessingJobStore } from '../src/processing-job-store.js';
 import { createProcessingRouter } from '../src/routes/processing.js';
 
 describe('processing routes', () => {
-  it('returns validated drafts for /process', async () => {
+  it('returns a job id for /process and allows polling', async () => {
     const responsePayload = ProcessTranscriptResponseSchema.parse({
       dailyNoteDraft: {
         localId: 'daily-session-1',
@@ -38,25 +43,33 @@ describe('processing routes', () => {
     });
 
     const runPipeline = vi.fn().mockResolvedValue(responsePayload);
+    const jobStore = new ProcessingJobStore({ runPipeline });
     const app = express();
     app.use(express.json());
-    app.use(createProcessingRouter({ runPipeline }));
+    app.use(createProcessingRouter({ jobStore }));
 
     const response = await request(app).post('/process').send({
       transcript: 'hello',
       sessionId: 'session-1',
     });
 
-    expect(response.status).toBe(200);
-    expect(() => ProcessTranscriptResponseSchema.parse(response.body)).not.toThrow();
+    expect(response.status).toBe(202);
+    expect(() => ProcessTranscriptJobStartResponseSchema.parse(response.body)).not.toThrow();
+
+    await new Promise((resolve) => setImmediate(resolve));
+
+    const statusResponse = await request(app).get(`/process/${response.body.jobId}`);
+    expect(statusResponse.status).toBe(200);
+    expect(() => ProcessTranscriptJobResponseSchema.parse(statusResponse.body)).not.toThrow();
     expect(runPipeline).toHaveBeenCalledTimes(1);
   });
 
   it('rejects invalid /process payloads', async () => {
     const runPipeline = vi.fn();
+    const jobStore = new ProcessingJobStore({ runPipeline });
     const app = express();
     app.use(express.json());
-    app.use(createProcessingRouter({ runPipeline }));
+    app.use(createProcessingRouter({ jobStore }));
 
     const response = await request(app).post('/process').send({ transcript: 'missing session' });
 

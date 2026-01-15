@@ -8,6 +8,8 @@ import { create } from 'zustand';
 import type {
   DailyNoteDraft,
   MatchSuggestion,
+  ProcessTranscriptJobPhase,
+  ProcessTranscriptJobStatus,
   ProcessTranscriptResponse,
   SubmitResult,
   TodoDraft,
@@ -118,16 +120,28 @@ export const createAppStore = (api: AppApi = appApi) =>
           draftTodos: [],
           error: undefined,
           warning: undefined,
-          processingPhase: 'reasoning',
+          processingPhase: 'fetching',
         },
       }));
 
       try {
-        const response = await api.processTranscript({
-          transcript,
-          sessionId,
-          context,
-        });
+        const response = await api.processTranscript(
+          {
+            transcript,
+            sessionId,
+            context,
+          },
+          {
+            onProgress: (progress) => {
+              set((state) => ({
+                session: {
+                  ...state.session,
+                  processingPhase: mapJobProgressToPhase(progress),
+                },
+              }));
+            },
+          },
+        );
         const normalized = applyMatchDefaults(response);
 
         set((state) => ({
@@ -296,6 +310,32 @@ function applyMatchDefaults(response: ProcessTranscriptResponse): ProcessTranscr
       };
     }),
   };
+}
+
+type JobProgress = {
+  status: ProcessTranscriptJobStatus;
+  phase?: ProcessTranscriptJobPhase;
+};
+
+function mapJobProgressToPhase(progress: JobProgress): AppState['session']['processingPhase'] {
+  if (progress.phase) {
+    if (progress.phase === 'done') return 'done';
+    if (progress.phase === 'error') return 'error';
+    return progress.phase;
+  }
+
+  switch (progress.status) {
+    case 'queued':
+      return 'fetching';
+    case 'running':
+      return 'reasoning';
+    case 'succeeded':
+      return 'done';
+    case 'failed':
+      return 'error';
+    default:
+      return 'reasoning';
+  }
 }
 
 function applySubmitResults(results: SessionSubmitResult, setState: SetState) {

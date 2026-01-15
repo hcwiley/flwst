@@ -35,8 +35,9 @@ pnpm dev
 
 High level request flow:
 
-- `POST /api/process/high-level` and `POST /api/process` to produce markdown +
-  structured todos.
+- `POST /process` to start transcript processing and `GET /process/:jobId`
+  to poll for the draft response.
+- `POST /api/process/high-level` for high-level extraction (optional).
 - `POST /api/notion/match` to enrich todos with Notion IDs/URLs.
 - `POST /api/notion/todos/update` to sync UI edits to the server (stored
   in-memory).
