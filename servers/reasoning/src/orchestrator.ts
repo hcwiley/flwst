@@ -726,6 +726,8 @@ export class ReasoningOrchestrator {
       'her',
       'us',
       'them',
+      'about',
+      'email',
       'check',
       'get',
       'buy',
@@ -734,15 +736,42 @@ export class ReasoningOrchestrator {
       'go',
     ]);
 
-    const words = text
-      .toLowerCase()
-      .split(/[\s/]+/) // Split by space and slash
-      .map((w) => w.replace(/[^\w]/g, ''))
-      .filter((w) => w.length >= 3 && !stopWords.has(w));
+    const rawTokens = text.split(/[\s/]+/);
+    const normalizeToken = (token: string): string =>
+      token.toLowerCase().replace(/[^\w]/g, '');
+    const isCandidate = (token: string): boolean =>
+      token.length >= 3 && !stopWords.has(token);
+    const isProperNoun = (token: string): boolean =>
+      /^[A-Z][a-z]/.test(token) || /^[A-Z]{2,}/.test(token);
 
-    const sorted = words.sort((a, b) => b.length - a.length);
-    console.debug(`[orchestrator] Extracted keywords for "${text}": ${sorted.join(', ')}`);
-    return sorted;
+    const candidates = rawTokens
+      .map(normalizeToken)
+      .filter((token) => isCandidate(token));
+
+    const properNouns = rawTokens
+      .map((token) => ({
+        raw: token,
+        normalized: normalizeToken(token),
+      }))
+      .filter(({ raw, normalized }) => isCandidate(normalized) && isProperNoun(raw))
+      .map(({ normalized }) => normalized);
+
+    const seen = new Set<string>();
+    const prioritized: string[] = [];
+
+    for (const token of properNouns) {
+      if (seen.has(token)) continue;
+      seen.add(token);
+      prioritized.push(token);
+    }
+
+    const sorted = candidates
+      .filter((token) => !seen.has(token))
+      .sort((a, b) => b.length - a.length);
+
+    const keywords = [...prioritized, ...sorted];
+    console.debug(`[orchestrator] Extracted keywords for "${text}": ${keywords.join(', ')}`);
+    return keywords;
   }
 
   /**
