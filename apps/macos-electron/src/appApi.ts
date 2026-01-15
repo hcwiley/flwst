@@ -42,8 +42,8 @@ export type AppApi = {
 };
 
 const DEFAULT_REASONING_PORT = 3000;
-const HEALTH_CHECK_TIMEOUT_MS = 1500;
-const REQUEST_TIMEOUT_MS = 15000;
+const HEALTH_CHECK_TIMEOUT_MS = 3000;
+const REQUEST_TIMEOUT_MS = 120000;
 
 let healthCheckPromise: Promise<void> | null = null;
 
@@ -72,11 +72,17 @@ const fetchWithTimeout = async (
   url: string,
   options: RequestInit,
   timeoutMs: number,
+  label: string,
 ): Promise<Response> => {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     return await fetch(url, { ...options, signal: controller.signal });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error(`${label} timed out after ${timeoutMs}ms`);
+    }
+    throw error;
   } finally {
     clearTimeout(timeout);
   }
@@ -91,6 +97,7 @@ const ensureReasoningReady = async (baseUrl: string): Promise<void> => {
         `${baseUrl}/health`,
         { method: 'GET' },
         HEALTH_CHECK_TIMEOUT_MS,
+        'Reasoning server health check',
       );
       if (!response.ok) {
         throw new Error(`Health check failed with ${response.status}`);
@@ -124,6 +131,7 @@ const postReasoning = async <TReq, TRes>(
       body: JSON.stringify(validatedRequest),
     },
     REQUEST_TIMEOUT_MS,
+    'Reasoning request',
   );
 
   const responseBody = await response.json().catch(() => ({}));
