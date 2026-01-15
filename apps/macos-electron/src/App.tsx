@@ -26,6 +26,14 @@ function App() {
   // Default to preview so the Daily Note reads cleanly.
   const [dailyNoteView, setDailyNoteView] = useState<'preview' | 'raw'>('preview');
   const ipcAvailable = Boolean(window?.ipcRenderer?.invoke);
+  const openExternal = (url?: string) => {
+    if (!url) return;
+    if (window.shell?.openExternal) {
+      void window.shell.openExternal(url);
+      return;
+    }
+    window.open(url, '_blank');
+  };
 
   const notionMirror = useAppStore((state) => state.notionMirror);
   const session = useAppStore((state) => state.session);
@@ -292,7 +300,14 @@ function App() {
                         borderRadius="$2"
                         gap="$1"
                       >
-                        <Text fontWeight="bold">{item.title}</Text>
+                        <XStack jc="space-between" ai="center" gap="$2">
+                          <Text fontWeight="bold">{item.title}</Text>
+                          {item.notionUrl && (
+                            <Button size="$1" variant="outlined" onPress={() => openExternal(item.notionUrl)}>
+                              View
+                            </Button>
+                          )}
+                        </XStack>
                         {item.project && <Text fontSize="$2">{item.project}</Text>}
                         {item.dueDate && (
                           <Text fontSize="$2" color="$color.gray10">
