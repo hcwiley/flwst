@@ -115,7 +115,7 @@ function App() {
 
   const columnCount = Math.max(1, Object.keys(groupedKanban).length);
   const fitColumnWidth = `${100 / columnCount}%`;
-  const columnWidth = kanbanLayout === 'fit' ? fitColumnWidth : 240;
+  const columnWidth = kanbanLayout === 'fit' ? fitColumnWidth : 400;
   const isFit = kanbanLayout === 'fit';
   const columnGap = isFit ? 0 : '$3';
 
@@ -316,12 +316,15 @@ function App() {
                           borderRadius="$2"
                           gap="$1"
                         >
-                          <XStack jc="space-between" ai="center" gap="$2">
-                            <Text fontWeight="bold">{item.title}</Text>
+                        <XStack jc="space-between" ai="center" gap="$2" flexWrap="wrap">
+                          <Text fontWeight="bold" flexShrink={1} minWidth={0}>
+                            {item.title}
+                          </Text>
                             {item.notionUrl && (
                               <Button
                                 size="$1"
                                 variant="outlined"
+                              flexShrink={0}
                                 onPress={() => openExternal(item.notionUrl)}
                               >
                                 View
