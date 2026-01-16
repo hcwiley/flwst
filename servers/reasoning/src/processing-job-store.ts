@@ -120,10 +120,12 @@ async function runTranscriptStages(
   onUpdate: (update: JobProgressUpdate) => void,
 ): Promise<ProcessTranscriptResponse> {
   // Run the orchestrator incrementally so clients can poll for partial results.
-  const { transcript, context, sessionId } = payload;
+  const { transcript, context, sessionId, transcriptType } = payload;
   const llmClient = new LlamaLLMClient();
   const notionClient = new MCPNotionClient();
   const orchestrator = new ReasoningOrchestrator(llmClient, notionClient, transcript, context);
+  // TODO: Use transcriptType to determine processing mode (daily-note vs update)
+  // For now, transcriptType is passed but not yet used in processing logic
 
   onUpdate({ phase: 'analyzing' });
   const highLevel = await orchestrator.run(ReasoningState.DAILY_NOTES_EXTRACTED);

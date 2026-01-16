@@ -141,6 +141,7 @@ export const ProcessTranscriptRequestSchema = z.object({
   transcript: z.string(),
   sessionId: z.string(),
   context: NotionContextResponseSchema.optional(),
+  transcriptType: z.enum(['daily-note', 'update']).optional(),
 });
 
 /**

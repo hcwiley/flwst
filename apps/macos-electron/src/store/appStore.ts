@@ -301,6 +301,16 @@ export const createAppStore = (api: AppApi = appApi) =>
         },
       }));
     },
+    resetSession: () => {
+      set((state) => ({
+        session: {
+          draftTodos: [],
+          processingPhase: 'idle',
+          error: undefined,
+          warning: undefined,
+        },
+      }));
+    },
   }));
 
 export const useAppStore = createAppStore();

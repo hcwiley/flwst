@@ -76,4 +76,5 @@ export type AppActions = {
   submitOne: (localId: string) => Promise<SubmitResult | undefined>;
   clearSessionError: () => void;
   clearSessionWarning: () => void;
+  resetSession: () => void;
 };
