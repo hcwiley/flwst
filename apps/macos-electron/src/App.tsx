@@ -21,7 +21,17 @@ import { useAppStore } from './store/appStore';
  */
 function App() {
   const [transcript, setTranscript] = useState('');
-  const [filters, setFilters] = useState({ project: '', status: '', dueStart: '', dueEnd: '' });
+  const [filters, setFilters] = useState(() => {
+    const defaultDate = new Date();
+    defaultDate.setDate(defaultDate.getDate() - 14);
+    return {
+      project: '',
+      status: '',
+      dueStart: '',
+      dueEnd: '',
+      createdAfter: defaultDate.toISOString().slice(0, 10),
+    };
+  });
   const [kanbanLayout, setKanbanLayout] = useState<'comfortable' | 'fit'>('comfortable');
   const [isRefreshingKanban, setIsRefreshingKanban] = useState(false);
   // Default to preview so the Daily Note reads cleanly.
@@ -89,6 +99,17 @@ function App() {
       columns[status].push(item);
     }
 
+    for (const status of Object.keys(columns)) {
+      columns[status]?.sort((a, b) => {
+        const aTime = Date.parse(a.lastEditedTime ?? '');
+        const bTime = Date.parse(b.lastEditedTime ?? '');
+        if (Number.isNaN(aTime) && Number.isNaN(bTime)) return 0;
+        if (Number.isNaN(aTime)) return 1;
+        if (Number.isNaN(bTime)) return -1;
+        return bTime - aTime;
+      });
+    }
+
     return columns;
   }, [notionMirror.kanbanItems, notionMirror.statuses]);
 
@@ -107,6 +128,7 @@ function App() {
           filters.dueStart || filters.dueEnd
             ? { start: filters.dueStart || undefined, end: filters.dueEnd || undefined }
             : undefined,
+        createdAfter: filters.createdAfter || undefined,
       });
     } finally {
       setIsRefreshingKanban(false);
@@ -286,6 +308,12 @@ function App() {
             placeholder="Due end"
             value={filters.dueEnd}
             onChangeText={(value) => setFilters((prev) => ({ ...prev, dueEnd: value }))}
+          />
+          <Input
+            size="$2"
+            placeholder="Created after (YYYY-MM-DD)"
+            value={filters.createdAfter}
+            onChangeText={(value) => setFilters((prev) => ({ ...prev, createdAfter: value }))}
           />
         </XStack>
 

@@ -34,7 +34,7 @@ export function registerIpcHandlers() {
 
   ipcMain.handle('notion:refreshKanban', async (_event, payload) => {
     RefreshKanbanRequestSchema.parse(payload);
-    const response = await gateway.refreshKanban();
+    const response = await gateway.refreshKanban(payload?.filters);
     return RefreshKanbanResponseSchema.parse(response);
   });
 

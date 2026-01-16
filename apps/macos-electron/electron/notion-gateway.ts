@@ -8,6 +8,7 @@ import {
   BootstrapMirrorResponse,
   NotionSelectOption,
   NotionTodoCard,
+  RefreshKanbanRequest,
   SubmitResult,
   SubmitSessionRequest,
   SubmitSessionResponse,
@@ -117,13 +118,16 @@ export class NotionGateway {
     };
   }
 
-  async refreshKanban(): Promise<{ kanbanItems: NotionTodoCard[]; lastSyncTime: string }> {
+  async refreshKanban(
+    filters?: RefreshKanbanRequest['filters'],
+  ): Promise<{ kanbanItems: NotionTodoCard[]; lastSyncTime: string }> {
     const tasksDbId = this.deps.notionConfig?.databases?.tasks?.id;
     if (!tasksDbId) {
       throw new Error('Tasks database ID not found in notionConfig');
     }
 
-    const tasks = (await this.deps.notionApiClient.queryDatabase(tasksDbId)) as any;
+    const filter = buildKanbanFilter(filters);
+    const tasks = (await this.deps.notionApiClient.queryDatabase(tasksDbId, filter)) as any;
     const kanbanItems = (tasks.results || []).map((page: any): NotionTodoCard => {
       const props = extractNotionTaskProperties(page);
       return {
@@ -308,4 +312,58 @@ export class NotionGateway {
       weekday: 'long',
     });
   }
+}
+
+function buildKanbanFilter(filters?: RefreshKanbanRequest['filters']): any | undefined {
+  if (!filters) return undefined;
+  const andFilters: any[] = [];
+
+  if (filters.project) {
+    andFilters.push({
+      property: 'Project',
+      select: { equals: filters.project },
+    });
+  }
+
+  if (filters.status) {
+    andFilters.push({
+      property: 'Status',
+      status: { equals: filters.status },
+    });
+  }
+
+  if (filters.dueDateRange?.start || filters.dueDateRange?.end) {
+    const dueFilter: any = {};
+    if (filters.dueDateRange.start) {
+      dueFilter.on_or_after = filters.dueDateRange.start;
+    }
+    if (filters.dueDateRange.end) {
+      dueFilter.on_or_before = filters.dueDateRange.end;
+    }
+    andFilters.push({
+      property: 'Due Date',
+      date: dueFilter,
+    });
+  }
+
+  if (filters.lastModifiedAfter) {
+    andFilters.push({
+      timestamp: 'last_edited_time',
+      last_edited_time: {
+        on_or_after: filters.lastModifiedAfter,
+      },
+    });
+  }
+
+  if (filters.createdAfter) {
+    andFilters.push({
+      timestamp: 'created_time',
+      created_time: {
+        on_or_after: filters.createdAfter,
+      },
+    });
+  }
+
+  if (andFilters.length === 0) return undefined;
+  return { and: andFilters };
 }

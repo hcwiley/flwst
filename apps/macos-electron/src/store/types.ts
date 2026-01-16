@@ -26,6 +26,7 @@ export type NotionMirrorFilters = {
   status?: string;
   dueDateRange?: { start?: string; end?: string };
   lastModifiedAfter?: string;
+  createdAfter?: string;
 };
 
 export type NotionMirrorState = {

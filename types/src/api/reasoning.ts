@@ -239,6 +239,7 @@ export const KanbanFilterSchema = z.object({
     })
     .optional(),
   lastModifiedAfter: z.string().optional(),
+  createdAfter: z.string().optional(),
 });
 
 export const RefreshKanbanRequestSchema = z.object({
