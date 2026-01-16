@@ -158,8 +158,23 @@ function App() {
           bg="$backgroundHover"
         />
 
-        <Button onPress={handleProcess} disabled={!transcript.trim() || !ipcAvailable} themeInverse>
-          {session.processingPhase === 'reasoning' ? <Spinner /> : 'Ingest Transcript'}
+        <Button
+          onPress={handleProcess}
+          disabled={
+            !transcript.trim() ||
+            !ipcAvailable ||
+            (session.processingPhase !== 'idle' && session.processingPhase !== 'done')
+          }
+          themeInverse
+        >
+          {session.processingPhase !== 'idle' && session.processingPhase !== 'done' ? (
+            <XStack ai="center" gap="$2">
+              <Spinner />
+              <Text>Processing...</Text>
+            </XStack>
+          ) : (
+            'Ingest Transcript'
+          )}
         </Button>
 
         {(session.processingPhase !== 'idle' || session.error || session.warning) && (
