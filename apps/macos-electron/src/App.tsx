@@ -34,6 +34,13 @@ function App() {
   });
   const [kanbanLayout, setKanbanLayout] = useState<'comfortable' | 'fit'>('comfortable');
   const [isRefreshingKanban, setIsRefreshingKanban] = useState(false);
+  const [enabledKanbanStatuses, setEnabledKanbanStatuses] = useState<string[]>([
+    'TODO',
+    'On Deck',
+    'In Progress',
+    'Blocked',
+    'BLOCKED',
+  ]);
   // Default to preview so the Daily Note reads cleanly.
   const [dailyNoteView, setDailyNoteView] = useState<'preview' | 'raw'>('preview');
   const ipcAvailable = Boolean(window?.ipcRenderer?.invoke);
@@ -51,6 +58,11 @@ function App() {
     if (typeof globalThis?.open === 'function') {
       globalThis.open(url, '_blank', 'noopener,noreferrer');
     }
+  };
+  const toggleKanbanStatus = (status: string) => {
+    setEnabledKanbanStatuses((prev) =>
+      prev.includes(status) ? prev.filter((value) => value !== status) : [...prev, status],
+    );
   };
 
   const notionMirror = useAppStore((state) => state.notionMirror);
@@ -84,17 +96,28 @@ function App() {
 
   const groupedKanban = useMemo(() => {
     const columns: Record<string, NotionTodoCard[]> = {};
+    const enabledStatusSet = new Set(enabledKanbanStatuses);
+    const defaultOrder = ['TODO', 'On Deck', 'In Progress', 'Blocked', 'Backlog', 'Done', 'Cancelled'];
     const statuses =
       notionMirror.statuses.length > 0
         ? notionMirror.statuses.map((status) => status.name)
-        : ['TODO', 'In Progress', 'Done'];
+        : defaultOrder;
+    const uniqueStatuses = Array.from(new Set(statuses));
+    const statusOrder = new Map(defaultOrder.map((status, index) => [status, index]));
+    uniqueStatuses.sort((a, b) => {
+      const aIndex = statusOrder.get(a) ?? Number.MAX_SAFE_INTEGER;
+      const bIndex = statusOrder.get(b) ?? Number.MAX_SAFE_INTEGER;
+      return aIndex - bIndex;
+    });
+    const visibleStatuses = uniqueStatuses.filter((status) => enabledStatusSet.has(status));
 
-    for (const status of statuses) {
+    for (const status of visibleStatuses) {
       columns[status] = [];
     }
 
     for (const item of notionMirror.kanbanItems) {
       const status = item.status || 'TODO';
+      if (!enabledStatusSet.has(status)) continue;
       if (!columns[status]) columns[status] = [];
       columns[status].push(item);
     }
@@ -111,7 +134,7 @@ function App() {
     }
 
     return columns;
-  }, [notionMirror.kanbanItems, notionMirror.statuses]);
+  }, [enabledKanbanStatuses, notionMirror.kanbanItems, notionMirror.statuses]);
 
   const handleProcess = async () => {
     if (!transcript.trim()) return;
@@ -316,6 +339,26 @@ function App() {
             onChangeText={(value) => setFilters((prev) => ({ ...prev, createdAfter: value }))}
           />
         </XStack>
+        <YStack gap="$2">
+          <Text fontSize="$2" color="$color.gray11">
+            Columns
+          </Text>
+          <XStack gap="$3" flexWrap="wrap">
+            {(notionMirror.statuses.length > 0
+              ? notionMirror.statuses.map((status) => status.name)
+              : ['TODO', 'On Deck', 'In Progress', 'Blocked', 'Backlog', 'Done', 'Cancelled']
+            ).map((status) => (
+              <XStack key={status} ai="center" gap="$2">
+                <Switch
+                  size="$2"
+                  checked={enabledKanbanStatuses.includes(status)}
+                  onCheckedChange={() => toggleKanbanStatus(status)}
+                />
+                <Text fontSize="$2">{status}</Text>
+              </XStack>
+            ))}
+          </XStack>
+        </YStack>
 
         <YStack position="relative">
           <YStack
