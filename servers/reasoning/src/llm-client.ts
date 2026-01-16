@@ -410,6 +410,12 @@ Respond with ONLY the JSON object.`;
       const todosWithStatus = applyContextStatusHints(extractedTodos, highLevelNotes);
 
       console.log('[llm-client] Step 2 extracted todos count:', extractedTodos.length);
+      // Log status/completed for each todo after extraction
+      todosWithStatus.forEach((todo, idx) => {
+        console.log(
+          `[llm-client] Todo ${idx + 1} status tracking: text="${todo.text}", status=${JSON.stringify(todo.status)}, completed=${JSON.stringify(todo.completed)}`,
+        );
+      });
 
       const result = {
         dailyNoteRichMarkdown: highLevelNotes.dailyNoteRichMarkdown,
@@ -649,7 +655,11 @@ function matchesAny(text: string, phrases: string[]): boolean {
 }
 
 function normalizeTodoText(text: string): string {
-  return text.toLowerCase().replace(/[^\w\s]/g, ' ').trim().replace(/\s+/g, ' ');
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s]/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
 }
 
 function stripStatusSuffix(text: string): string {

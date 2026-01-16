@@ -240,6 +240,9 @@ export class NotionGateway {
             errorMessage: 'Missing notionTargetId for matched todo',
           };
         }
+        console.log(
+          `[notion-gateway] Submitting update for "${draft.text}": status=${JSON.stringify(draft.status)}, completed=${JSON.stringify(draft.completed)}, notionId=${notionTargetId}`,
+        );
         await this.deps.notionClient.updateTodo({
           id: draft.localId,
           text: draft.text,
@@ -258,6 +261,9 @@ export class NotionGateway {
         return { localId: draft.localId, status: 'success', notionPageId: notionTargetId };
       }
 
+      console.log(
+        `[notion-gateway] Submitting create for "${draft.text}": status=${JSON.stringify(draft.status)}, completed=${JSON.stringify(draft.completed)}`,
+      );
       const created = await this.deps.notionClient.createTodo(
         {
           id: draft.localId,

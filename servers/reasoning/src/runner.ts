@@ -62,9 +62,17 @@ export function buildDraftResponse(
 
   const todoDrafts = result.todos.map((todo) => {
     const localId = todo.id?.trim() ? todo.id : randomUUID();
-    const normalizedStatus = normalizeTodoStatus(todo.status);
+    let normalizedStatus = normalizeTodoStatus(todo.status);
+
+    // Map completed: true to status: 'Done' if status is not already set
+    // This ensures that todos marked as completed in the transcript get the correct status
+    if (!normalizedStatus && todo.completed === true) {
+      normalizedStatus = 'Done';
+      console.log(`[runner] Mapped completed=true to status='Done' for "${todo.text}"`);
+    }
+
     const normalizedPriority = normalizeTodoPriority(todo.priority);
-    return TodoDraftSchema.parse({
+    const draft = TodoDraftSchema.parse({
       ...todo,
       id: localId,
       localId,
@@ -74,6 +82,11 @@ export function buildDraftResponse(
       matchState: todo.isMatched ? 'matched' : 'new',
       notionTargetId: todo.notionId,
     });
+    // Log status conversion from Todo to TodoDraft
+    console.log(
+      `[runner] Draft conversion for "${todo.text}": status=${JSON.stringify(todo.status)} -> ${JSON.stringify(draft.status)}, completed=${JSON.stringify(todo.completed)} -> ${JSON.stringify(draft.completed)}`,
+    );
+    return draft;
   });
 
   const matchSuggestions = todoDrafts.map((draft) =>

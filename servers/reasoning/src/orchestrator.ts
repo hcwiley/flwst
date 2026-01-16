@@ -398,6 +398,16 @@ export class ReasoningOrchestrator {
         });
       }
 
+      // Map completed: true to status: 'Done' if status is not already set
+      // This ensures that todos marked as completed get the correct status before matching
+      result.todos = result.todos.map((todo) => {
+        if (!todo.status && todo.completed === true) {
+          todo.status = 'Done';
+          this.log(`Mapped completed=true to status='Done' for "${todo.text}"`);
+        }
+        return todo;
+      });
+
       this.todos = result.todos;
       this.transitionTo(ReasoningState.TODOS_EXTRACTED);
       this.log(`Extracted ${this.todos.length} todos`);

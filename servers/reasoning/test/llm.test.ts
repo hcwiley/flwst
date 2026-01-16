@@ -30,13 +30,10 @@ describe('LLM Model Tests', () => {
   });
 
   it('applies status hints when missing', () => {
-    const updated = applyContextStatusHints(
-      [{ text: 'Run flwst locally with a Llama3 backend' }],
-      {
-        dailyNoteRichMarkdown: '# Daily',
-        potentialTodos: [{ text: 'Run flwst locally with a Llama3 backend', context: 'Done' }],
-      },
-    );
+    const updated = applyContextStatusHints([{ text: 'Run flwst locally with a Llama3 backend' }], {
+      dailyNoteRichMarkdown: '# Daily',
+      potentialTodos: [{ text: 'Run flwst locally with a Llama3 backend', context: 'Done' }],
+    });
 
     expect(updated[0]?.status).toBe('Done');
   });
@@ -54,15 +51,12 @@ describe('LLM Model Tests', () => {
   });
 
   it('applies context when high-level text includes status suffix', () => {
-    const updated = applyContextStatusHints(
-      [{ text: 'Run flwst locally with a Llama3 backend' }],
-      {
-        dailyNoteRichMarkdown: '# Daily',
-        potentialTodos: [
-          { text: 'Run flwst locally with a Llama3 backend: Done', context: 'Completed Tasks' },
-        ],
-      },
-    );
+    const updated = applyContextStatusHints([{ text: 'Run flwst locally with a Llama3 backend' }], {
+      dailyNoteRichMarkdown: '# Daily',
+      potentialTodos: [
+        { text: 'Run flwst locally with a Llama3 backend: Done', context: 'Completed Tasks' },
+      ],
+    });
 
     expect(updated[0]?.status).toBe('Done');
   });

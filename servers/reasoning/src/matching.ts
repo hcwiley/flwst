@@ -429,7 +429,13 @@ export async function matchTodosToNotionTasks(todos: Todo[], notionTasks: any[])
         enrichedTodo.priority = preferExisting(enrichedTodo.priority, props.priority as any);
       }
       if (props.status) {
+        const beforeStatus = enrichedTodo.status;
         enrichedTodo.status = preferExisting(enrichedTodo.status, props.status as any);
+        if (beforeStatus !== enrichedTodo.status) {
+          console.log(
+            `[matching] Status merge for "${todo.text}": transcript=${JSON.stringify(beforeStatus)}, notion=${JSON.stringify(props.status)}, result=${JSON.stringify(enrichedTodo.status)}`,
+          );
+        }
       }
       if (props.project) {
         enrichedTodo.project = preferExisting(enrichedTodo.project, props.project);

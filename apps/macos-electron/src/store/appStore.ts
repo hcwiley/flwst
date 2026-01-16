@@ -172,14 +172,24 @@ export const createAppStore = (api: AppApi = appApi) =>
       }
     },
     updateDraftTodo: (localId: string, patch: Partial<TodoDraft>) => {
-      set((state) => ({
-        session: {
-          ...state.session,
-          draftTodos: state.session.draftTodos.map((todo) =>
-            todo.localId === localId ? { ...todo, ...patch } : todo,
-          ),
-        },
-      }));
+      set((state) => {
+        const updatedTodos = state.session.draftTodos.map((todo) => {
+          if (todo.localId === localId) {
+            const updated = { ...todo, ...patch };
+            console.log(
+              `[appStore] updateDraftTodo for "${todo.text}": patch=${JSON.stringify(patch)}, resulting status=${JSON.stringify(updated.status)}, completed=${JSON.stringify(updated.completed)}`,
+            );
+            return updated;
+          }
+          return todo;
+        });
+        return {
+          session: {
+            ...state.session,
+            draftTodos: updatedTodos,
+          },
+        };
+      });
     },
     updateDailyNote: (patch: Partial<DailyNoteDraft>) => {
       set((state) => ({
@@ -332,14 +342,30 @@ function mergeDraftTodos(existing: TodoDraft[], incoming: TodoDraft[]): TodoDraf
 
   return incoming.map((todo) => {
     const current = existingById.get(todo.localId);
-    if (!current) return todo;
+    if (!current) {
+      console.log(
+        `[appStore] Merge: new todo "${todo.text}" status=${JSON.stringify(todo.status)}, completed=${JSON.stringify(todo.completed)}`,
+      );
+      return todo;
+    }
+
+    const mergedStatus = preferExisting(current.status, todo.status);
+    const mergedCompleted = preferExisting(current.completed, todo.completed);
+    const statusChanged = current.status !== mergedStatus;
+    const completedChanged = current.completed !== mergedCompleted;
+
+    if (statusChanged || completedChanged) {
+      console.log(
+        `[appStore] Merge status change for "${todo.text}": status ${JSON.stringify(current.status)} -> ${JSON.stringify(mergedStatus)}, completed ${JSON.stringify(current.completed)} -> ${JSON.stringify(mergedCompleted)}`,
+      );
+    }
 
     return {
       ...todo,
       text: preferExisting(current.text, todo.text),
-      completed: preferExisting(current.completed, todo.completed),
+      completed: mergedCompleted,
       priority: preferExisting(current.priority, todo.priority),
-      status: preferExisting(current.status, todo.status),
+      status: mergedStatus,
       project: preferExisting(current.project, todo.project),
       description: preferExisting(current.description, todo.description),
       dueDate: preferExisting(current.dueDate, todo.dueDate),

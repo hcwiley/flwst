@@ -356,6 +356,13 @@ export class MCPNotionClient implements INotionClient {
       // Update Status if provided
       if (todo.status !== undefined) {
         props.Status = { status: { name: todo.status } };
+        console.log(
+          `[notion-client] updateTodo: Setting status="${todo.status}" for todo ${todo.notionId} (completed=${JSON.stringify(todo.completed)})`,
+        );
+      } else {
+        console.log(
+          `[notion-client] updateTodo: No status provided for todo ${todo.notionId} (completed=${JSON.stringify(todo.completed)})`,
+        );
       }
 
       // Update Priority if provided
