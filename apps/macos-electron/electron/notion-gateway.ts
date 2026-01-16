@@ -49,6 +49,18 @@ const DEFAULT_DEPS: NotionGatewayDeps = {
 };
 
 /**
+ * Detect if a todo represents a cancel intent.
+ * Checks for cancel-related keywords in text or explicit Cancelled status.
+ */
+function isCancelIntent(draft: TodoDraft): boolean {
+  const normalizedText = draft.text.toLowerCase().trim();
+  const cancelKeywords = ['cancel', 'cancelled', 'canceling', 'cancellation'];
+  const hasCancelKeyword = cancelKeywords.some((keyword) => normalizedText.startsWith(keyword));
+  const hasCancelledStatus = draft.status === 'Cancelled';
+  return hasCancelKeyword || hasCancelledStatus;
+}
+
+/**
  * Decide how a draft todo should be submitted based on match state and flags.
  */
 export function planTodoSubmission(draft: TodoDraft): SubmitPlan {
@@ -69,6 +81,11 @@ export function planTodoSubmission(draft: TodoDraft): SubmitPlan {
       return { action: 'skip', reason: 'missing_notion_target' };
     }
     return { action: 'update' };
+  }
+
+  // Skip creating new tasks for unmatched cancel intents
+  if (isCancelIntent(draft)) {
+    return { action: 'skip', reason: 'unmatched_cancel_intent' };
   }
 
   return { action: 'create' };

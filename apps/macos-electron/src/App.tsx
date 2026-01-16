@@ -17,6 +17,35 @@ import { Markdown } from './components/Markdown';
 import { useAppStore } from './store/appStore';
 
 /**
+ * Normalize status to canonical case for case-insensitive comparison.
+ * Maps common variations to the schema-defined values.
+ */
+function normalizeStatus(status: string): string {
+  const normalized = status.trim();
+  const lower = normalized.toLowerCase();
+
+  // Map to canonical values from TodoSchema
+  const statusMap: Record<string, string> = {
+    todo: 'TODO',
+    'on deck': 'On Deck',
+    'in progress': 'In Progress',
+    blocked: 'BLOCKED',
+    done: 'Done',
+    cancelled: 'Cancelled',
+    canceled: 'Cancelled',
+  };
+
+  return statusMap[lower] || normalized;
+}
+
+/**
+ * Check if two status values are equal (case-insensitive).
+ */
+function statusEquals(status1: string, status2: string): boolean {
+  return normalizeStatus(status1) === normalizeStatus(status2);
+}
+
+/**
  * Renderer root view for Kanban + session drafts.
  */
 function App() {
@@ -38,7 +67,6 @@ function App() {
     'TODO',
     'On Deck',
     'In Progress',
-    'Blocked',
     'BLOCKED',
   ]);
   // Default to preview so the Daily Note reads cleanly.
@@ -60,9 +88,13 @@ function App() {
     }
   };
   const toggleKanbanStatus = (status: string) => {
-    setEnabledKanbanStatuses((prev) =>
-      prev.includes(status) ? prev.filter((value) => value !== status) : [...prev, status],
-    );
+    const normalizedStatus = normalizeStatus(status);
+    setEnabledKanbanStatuses((prev) => {
+      const normalizedPrev = prev.map(normalizeStatus);
+      return normalizedPrev.includes(normalizedStatus)
+        ? prev.filter((value) => !statusEquals(value, normalizedStatus))
+        : [...prev, normalizedStatus];
+    });
   };
 
   const notionMirror = useAppStore((state) => state.notionMirror);
@@ -96,11 +128,28 @@ function App() {
 
   const groupedKanban = useMemo(() => {
     const columns: Record<string, NotionTodoCard[]> = {};
-    const enabledStatusSet = new Set(enabledKanbanStatuses);
-    const defaultOrder = ['TODO', 'On Deck', 'In Progress', 'Blocked', 'Backlog', 'Done', 'Cancelled'];
+    // Normalize enabled statuses for case-insensitive comparison
+    const normalizedEnabledStatuses = enabledKanbanStatuses.map(normalizeStatus);
+    const enabledStatusSet = new Set(normalizedEnabledStatuses);
+    const defaultOrder = [
+      'TODO',
+      'On Deck',
+      'In Progress',
+      'BLOCKED',
+      'Backlog',
+      'Done',
+      'Cancelled',
+    ];
+
+    // Create mapping from normalized status to original display name
+    const statusDisplayMap = new Map<string, string>(); // normalized -> original
     const statuses =
       notionMirror.statuses.length > 0
-        ? notionMirror.statuses.map((status) => status.name)
+        ? notionMirror.statuses.map((status) => {
+            const normalized = normalizeStatus(status.name);
+            statusDisplayMap.set(normalized, status.name);
+            return normalized;
+          })
         : defaultOrder;
     const uniqueStatuses = Array.from(new Set(statuses));
     const statusOrder = new Map(defaultOrder.map((status, index) => [status, index]));
@@ -111,15 +160,21 @@ function App() {
     });
     const visibleStatuses = uniqueStatuses.filter((status) => enabledStatusSet.has(status));
 
-    for (const status of visibleStatuses) {
-      columns[status] = [];
+    // Use original display names as column keys when available
+    for (const normalizedStatus of visibleStatuses) {
+      const displayName = statusDisplayMap.get(normalizedStatus) || normalizedStatus;
+      columns[displayName] = [];
     }
 
     for (const item of notionMirror.kanbanItems) {
-      const status = item.status || 'TODO';
-      if (!enabledStatusSet.has(status)) continue;
-      if (!columns[status]) columns[status] = [];
-      columns[status].push(item);
+      const itemStatus = item.status || 'TODO';
+      const normalizedItemStatus = normalizeStatus(itemStatus);
+      // Check if this normalized status is enabled
+      if (!enabledStatusSet.has(normalizedItemStatus)) continue;
+      // Find the display name for this normalized status
+      const displayName = statusDisplayMap.get(normalizedItemStatus) || normalizedItemStatus;
+      if (!columns[displayName]) columns[displayName] = [];
+      columns[displayName].push(item);
     }
 
     for (const status of Object.keys(columns)) {
@@ -350,17 +405,23 @@ function App() {
           <XStack gap="$3" flexWrap="wrap">
             {(notionMirror.statuses.length > 0
               ? notionMirror.statuses.map((status) => status.name)
-              : ['TODO', 'On Deck', 'In Progress', 'Blocked', 'Backlog', 'Done', 'Cancelled']
-            ).map((status) => (
-              <XStack key={status} ai="center" gap="$2">
-                <Switch
-                  size="$2"
-                  checked={enabledKanbanStatuses.includes(status)}
-                  onCheckedChange={() => toggleKanbanStatus(status)}
-                />
-                <Text fontSize="$2">{status}</Text>
-              </XStack>
-            ))}
+              : ['TODO', 'On Deck', 'In Progress', 'BLOCKED', 'Backlog', 'Done', 'Cancelled']
+            ).map((status) => {
+              const normalizedStatus = normalizeStatus(status);
+              const isEnabled = enabledKanbanStatuses.some((enabled) =>
+                statusEquals(enabled, normalizedStatus),
+              );
+              return (
+                <XStack key={status} ai="center" gap="$2">
+                  <Switch
+                    size="$2"
+                    checked={isEnabled}
+                    onCheckedChange={() => toggleKanbanStatus(normalizedStatus)}
+                  />
+                  <Text fontSize="$2">{status}</Text>
+                </XStack>
+              );
+            })}
           </XStack>
         </YStack>
 

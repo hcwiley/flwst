@@ -61,3 +61,41 @@ describe('LLM Model Tests', () => {
     expect(updated[0]?.status).toBe('Done');
   });
 });
+
+/**
+ * Integration test for multi-date extraction
+ *
+ * This test validates that Step 1 extraction correctly splits multi-date lists
+ * into multiple potential tasks. Run with TEST_TYPE=integration.
+ */
+describe.skipIf(process.env.TEST_TYPE !== 'integration')(
+  'Multi-date extraction (integration)',
+  () => {
+    it('should split multi-date cancel statements into multiple tasks', async () => {
+      const { LlamaLLMClient } = await import('../src/llm-client.js');
+
+      const transcript = `The Instagram post for Example Project for November 22nd, November 23rd, and November 17th can all be cancelled.`;
+
+      const llmClient = new LlamaLLMClient();
+      const result = await llmClient.extractHighLevelNotes(transcript);
+
+      // Should extract 3 separate tasks, one for each date
+      expect(result.potentialTodos.length).toBeGreaterThanOrEqual(3);
+
+      // Each task should mention a specific date
+      const dateMentions = result.potentialTodos.filter(
+        (todo) =>
+          todo.text.includes('November 22') ||
+          todo.text.includes('November 23') ||
+          todo.text.includes('November 17'),
+      );
+      expect(dateMentions.length).toBeGreaterThanOrEqual(3);
+
+      // All should be cancel-related
+      const cancelTasks = result.potentialTodos.filter((todo) =>
+        todo.text.toLowerCase().includes('cancel'),
+      );
+      expect(cancelTasks.length).toBeGreaterThanOrEqual(3);
+    }, 60000); // 1 minute timeout for LLM call
+  },
+);

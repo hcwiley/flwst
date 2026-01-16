@@ -283,8 +283,12 @@ export class MCPNotionClient implements INotionClient {
 
   /**
    * Match todos to Notion tasks using fuzzy matching
+   * Returns enriched todos and list of unmatched cancel intents
    */
-  async matchTodosToNotionTasks(todos: Todo[], notionTasks: any[]): Promise<Todo[]> {
+  async matchTodosToNotionTasks(
+    todos: Todo[],
+    notionTasks: any[],
+  ): Promise<{ todos: Todo[]; unmatchedCancels: string[] }> {
     return matchTodosToNotionTasks(todos, notionTasks);
   }
 

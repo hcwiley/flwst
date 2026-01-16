@@ -96,8 +96,12 @@ export interface INotionClient {
 
   /**
    * Match todos to Notion tasks using fuzzy matching
+   * Returns enriched todos and list of unmatched cancel intents
    */
-  matchTodosToNotionTasks(todos: Todo[], notionTasks: any[]): Promise<Todo[]>;
+  matchTodosToNotionTasks(
+    todos: Todo[],
+    notionTasks: any[],
+  ): Promise<{ todos: Todo[]; unmatchedCancels: string[] }>;
 
   /**
    * Fetch page body/description from Notion
@@ -142,6 +146,7 @@ export interface OrchestratorState {
   logs: string[];
   warnings: string[];
   errors: string[];
+  unmatchedCancels: string[];
 }
 
 /**
@@ -161,6 +166,7 @@ export class ReasoningOrchestrator {
   private logs: string[] = [];
   private warnings: string[] = [];
   private errors: string[] = [];
+  private unmatchedCancels: string[] = [];
 
   constructor(
     private llmClient: ILLMClient,
@@ -196,6 +202,7 @@ export class ReasoningOrchestrator {
       logs: this.logs,
       warnings: this.warnings,
       errors: this.errors,
+      unmatchedCancels: this.unmatchedCancels,
     };
   }
 
@@ -313,10 +320,31 @@ export class ReasoningOrchestrator {
 
   /**
    * Format current state as DailyNoteResponse
+   * Appends Analysis Metadata section if there are warnings or unmatched cancels
    */
   private asResponse(): DailyNoteResponse {
+    let dailyNote = this.dailyNoteRichMarkdown;
+
+    // Append Analysis Metadata section if there's anything to report
+    if (this.unmatchedCancels.length > 0 || this.warnings.length > 0) {
+      const metadataLines: string[] = ['\n\n## Analysis Metadata\n'];
+      if (this.unmatchedCancels.length > 0) {
+        metadataLines.push('### Unmatched Cancel Attempts');
+        metadataLines.push(
+          ...this.unmatchedCancels.map(
+            (text) => `- Could not find matching task to cancel: "${text}"`,
+          ),
+        );
+      }
+      if (this.warnings.length > 0) {
+        metadataLines.push('### Processing Warnings');
+        metadataLines.push(...this.warnings.map((warning) => `- ${warning}`));
+      }
+      dailyNote = dailyNote + metadataLines.join('\n');
+    }
+
     return {
-      dailyNoteRichMarkdown: this.dailyNoteRichMarkdown,
+      dailyNoteRichMarkdown: dailyNote,
       todos: this.todos,
     };
   }
@@ -510,7 +538,12 @@ export class ReasoningOrchestrator {
         );
       }
       this.notionTasksSnapshot = allNotionTasks;
-      this.todos = await this.notionClient.matchTodosToNotionTasks(this.todos, allNotionTasks);
+      const matchResult = await this.notionClient.matchTodosToNotionTasks(
+        this.todos,
+        allNotionTasks,
+      );
+      this.todos = matchResult.todos;
+      this.unmatchedCancels = matchResult.unmatchedCancels;
       this.transitionTo(ReasoningState.TODOS_MATCHED);
 
       const matchedCount = this.todos.filter((t) => t.isMatched).length;

@@ -162,29 +162,53 @@ export class MockNotionClient implements INotionClient {
     });
   }
 
-  async matchTodosToNotionTasks(todos: Todo[], notionTasks: any[]): Promise<Todo[]> {
+  async matchTodosToNotionTasks(
+    todos: Todo[],
+    notionTasks: any[],
+  ): Promise<{ todos: Todo[]; unmatchedCancels: string[] }> {
     this.calls.matchTodos.push({ todos, tasks: notionTasks });
 
+    const unmatchedCancels: string[] = [];
+
     // Simple matching: check if todo text matches task name
-    return todos.map((todo) => {
+    const enrichedTodos = todos.map((todo) => {
+      // Detect cancel intent
+      const normalizedText = todo.text.toLowerCase().trim();
+      const cancelKeywords = ['cancel', 'cancelled', 'canceling', 'cancellation'];
+      const isCancel =
+        cancelKeywords.some((keyword) => normalizedText.startsWith(keyword)) ||
+        todo.status === 'Cancelled';
+
       const match = notionTasks.find((task) => {
         const taskName = task.properties?.Name?.title?.[0]?.plain_text || '';
-        const todoText = todo.text.toLowerCase();
         const taskNameLower = taskName.toLowerCase();
-        return taskNameLower.includes(todoText) || todoText.includes(taskNameLower);
+        // For cancel intents, try matching without cancel prefix
+        const textForMatching = isCancel
+          ? normalizedText.replace(
+              /^(cancel|cancelled|canceling|cancellation)\s+(post\s+for\s+)?/i,
+              '',
+            )
+          : normalizedText;
+        return taskNameLower.includes(textForMatching) || textForMatching.includes(taskNameLower);
       });
 
       if (match) {
-        return {
+        const enriched = {
           ...todo,
           isMatched: true,
           notionId: match.id,
           notionUrl: match.url,
-          status: match.properties?.Status?.status?.name || todo.status,
+          status: isCancel ? 'Cancelled' : match.properties?.Status?.status?.name || todo.status,
           priority: match.properties?.Priority?.select?.name || todo.priority,
           description:
             match.properties?.Description?.rich_text?.[0]?.plain_text || todo.description,
         };
+        return enriched;
+      }
+
+      // Track unmatched cancel intents
+      if (isCancel) {
+        unmatchedCancels.push(todo.text);
       }
 
       return {
@@ -192,6 +216,8 @@ export class MockNotionClient implements INotionClient {
         isMatched: false,
       };
     });
+
+    return { todos: enrichedTodos, unmatchedCancels };
   }
 
   async fetchPageBody(pageId: string): Promise<string> {

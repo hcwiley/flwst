@@ -44,11 +44,11 @@ describe('ReasoningOrchestrator', () => {
     it('should transition through matching and complete', async () => {
       const orchestrator = new ReasoningOrchestrator(llmClient, notionClient, transcript);
 
-      // Run the complete pipeline
+      // Run the complete pipeline (default stops at TODOS_MATCHED)
       const result = await orchestrator.run();
 
-      // Verify final state
-      expect(orchestrator.getState()).toBe(ReasoningState.DONE);
+      // Verify final state (default is TODOS_MATCHED, not DONE)
+      expect(orchestrator.getState()).toBe(ReasoningState.TODOS_MATCHED);
 
       // Verify result structure
       expect(result).toHaveProperty('dailyNoteRichMarkdown');
@@ -116,6 +116,9 @@ describe('ReasoningOrchestrator', () => {
 
       // Verify matching was called
       expect(notionClient.calls.matchTodos.length).toBeGreaterThan(0);
+
+      // Verify unmatchedCancels is tracked
+      expect(Array.isArray(snapshot.unmatchedCancels)).toBe(true);
 
       // Check that some todos are matched
       const matchedTodos = snapshot.todos.filter((t) => t.isMatched);
@@ -240,8 +243,8 @@ describe('ReasoningOrchestrator', () => {
       const validated = DailyNoteSchema.parse(result);
       expect(validated.todos.length).toBeGreaterThan(0);
 
-      // Verify state progression
-      expect(orchestrator.getState()).toBe(ReasoningState.DONE);
+      // Verify state progression (default stops at TODOS_MATCHED)
+      expect(orchestrator.getState()).toBe(ReasoningState.TODOS_MATCHED);
     });
   });
 });
