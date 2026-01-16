@@ -595,12 +595,13 @@ export function applyContextStatusHints(
   }
 
   return todos.map((todo) => {
-    if (todo.status !== undefined) return todo;
     const textKey = normalizeTodoText(todo.text ?? '');
     if (!textKey) return todo;
     const context = contextByText.get(textKey);
     const inferredStatus = context ? inferStatusFromContext(context) : undefined;
     if (!inferredStatus) return todo;
+    const currentStatus = normalizeStatusForCompare(todo.status);
+    if (currentStatus === inferredStatus) return todo;
     return { ...todo, status: inferredStatus };
   });
 }
@@ -637,4 +638,18 @@ function matchesAny(text: string, phrases: string[]): boolean {
 
 function normalizeTodoText(text: string): string {
   return text.toLowerCase().replace(/[^\w\s]/g, ' ').trim().replace(/\s+/g, ' ');
+}
+
+function normalizeStatusForCompare(status?: string): Todo['status'] | undefined {
+  if (!status) return undefined;
+  const normalized = status.trim().toLowerCase();
+  const mapping: Record<string, Todo['status']> = {
+    todo: 'TODO',
+    'on deck': 'On Deck',
+    'in progress': 'In Progress',
+    blocked: 'BLOCKED',
+    done: 'Done',
+    cancelled: 'Cancelled',
+  };
+  return mapping[normalized];
 }

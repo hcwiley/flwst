@@ -40,4 +40,16 @@ describe('LLM Model Tests', () => {
 
     expect(updated[0]?.status).toBe('Done');
   });
+
+  it('overrides status when context conflicts', () => {
+    const updated = applyContextStatusHints(
+      [{ text: 'Run flwst locally with a Llama3 backend', status: 'In Progress' }],
+      {
+        dailyNoteRichMarkdown: '# Daily',
+        potentialTodos: [{ text: 'Run flwst locally with a Llama3 backend', context: 'Completed' }],
+      },
+    );
+
+    expect(updated[0]?.status).toBe('Done');
+  });
 });
