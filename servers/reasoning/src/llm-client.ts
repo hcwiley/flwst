@@ -591,13 +591,19 @@ export function applyContextStatusHints(
 ): ExtractedTodo[] {
   const contextByText = new Map<string, string>();
   for (const item of highLevelNotes.potentialTodos) {
-    contextByText.set(normalizeTodoText(item.text), item.context ?? '');
+    const normalizedText = normalizeTodoText(item.text);
+    if (!normalizedText) continue;
+    contextByText.set(normalizedText, item.context ?? '');
+    const strippedText = stripStatusSuffix(normalizedText);
+    if (strippedText && strippedText !== normalizedText) {
+      contextByText.set(strippedText, item.context ?? '');
+    }
   }
 
   return todos.map((todo) => {
     const textKey = normalizeTodoText(todo.text ?? '');
     if (!textKey) return todo;
-    const context = contextByText.get(textKey);
+    const context = contextByText.get(textKey) ?? contextByText.get(stripStatusSuffix(textKey));
     const inferredStatus = context ? inferStatusFromContext(context) : undefined;
     if (!inferredStatus) return todo;
     const currentStatus = normalizeStatusForCompare(todo.status);
@@ -638,6 +644,31 @@ function matchesAny(text: string, phrases: string[]): boolean {
 
 function normalizeTodoText(text: string): string {
   return text.toLowerCase().replace(/[^\w\s]/g, ' ').trim().replace(/\s+/g, ' ');
+}
+
+function stripStatusSuffix(text: string): string {
+  const suffixes = [
+    ' done',
+    ' completed',
+    ' complete',
+    ' finished',
+    ' shipped',
+    ' in progress',
+    ' in-progress',
+    ' on deck',
+    ' todo',
+    ' blocked',
+    ' cancelled',
+    ' canceled',
+    " won't do",
+    ' wont do',
+  ];
+  for (const suffix of suffixes) {
+    if (text.endsWith(suffix)) {
+      return text.slice(0, -suffix.length).trim();
+    }
+  }
+  return text;
 }
 
 function normalizeStatusForCompare(status?: string): Todo['status'] | undefined {

@@ -52,4 +52,18 @@ describe('LLM Model Tests', () => {
 
     expect(updated[0]?.status).toBe('Done');
   });
+
+  it('applies context when high-level text includes status suffix', () => {
+    const updated = applyContextStatusHints(
+      [{ text: 'Run flwst locally with a Llama3 backend' }],
+      {
+        dailyNoteRichMarkdown: '# Daily',
+        potentialTodos: [
+          { text: 'Run flwst locally with a Llama3 backend: Done', context: 'Completed Tasks' },
+        ],
+      },
+    );
+
+    expect(updated[0]?.status).toBe('Done');
+  });
 });
