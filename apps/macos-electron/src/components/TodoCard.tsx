@@ -118,11 +118,13 @@ export function TodoCard({
 
   const handleNotionLink = () => {
     if (todo.notionUrl) {
-      const openFn = globalThis?.shell?.openExternal;
-      if (typeof openFn === 'function') {
-        void openFn(todo.notionUrl);
-        return;
-      }
+      console.log('todo.notionUrl', todo.notionUrl);
+      // const openFn = globalThis?.shell?.openExternal;
+      // console.log('openFn', openFn);
+      // if (typeof openFn === 'function') {
+      //   void openFn(todo.notionUrl);
+      //   return;
+      // }
       if (typeof globalThis?.open === 'function') {
         globalThis.open(todo.notionUrl, '_blank', 'noopener,noreferrer');
       }
