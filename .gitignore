@@ -27,3 +27,49 @@ venv/
 # node artifacts
 node_modules/
 .pnpm-store/
+
+# data
+data/
+
+# tmp
+tmp/
+
+# builds
+builds/
+dist/
+dist-*/
+release/
+
+# ml models
+*.gguf
+*.pt
+*.bin
+*.model
+*.mlmodel
+*.pb
+*.pbtxt
+*.h5
+*.hdf5
+*.ckpt
+*.ckpt.index
+*.meta
+*.pb
+*.pbtxt
+*.h5
+*.hdf5
+*.ckpt
+*.ckpt.index
+*.meta
+*.pb
+*.pbtxt
+*.h5
+*.hdf5
+*.ckpt
+*.ckpt.index
+*.meta
+
+# notion token
+.notion-token.json
+
+# env files
+.env
