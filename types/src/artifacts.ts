@@ -2,8 +2,8 @@
  * Artifact types for pipeline outputs and persistence.
  */
 
-import { z } from "zod";
-import { RunIdSchema, TimestampSchema } from "./core.js";
+import { z } from 'zod';
+import { RunIdSchema, TaskStatusSchema, TimestampSchema } from './core.js';
 
 /**
  * Raw transcript artifact.
@@ -52,8 +52,8 @@ export const TaskSchema = z.object({
   timestamp: TimestampSchema,
   title: z.string(),
   description: z.string().optional(),
-  priority: z.enum(["low", "medium", "high", "urgent"]),
-  status: z.enum(["todo", "in-progress", "blocked", "done", "archived"]),
+  priority: z.enum(['low', 'medium', 'high', 'urgent']),
+  status: TaskStatusSchema,
   project: z.string().optional(),
   tags: z.array(z.string()).optional(),
   dueDate: z.string().optional(),
@@ -78,7 +78,7 @@ export type TaskList = z.infer<typeof TaskListSchema>;
  */
 export const LogEntrySchema = z.object({
   timestamp: TimestampSchema,
-  level: z.enum(["debug", "info", "warn", "error"]),
+  level: z.enum(['debug', 'info', 'warn', 'error']),
   message: z.string(),
   metadata: z.record(z.unknown()).optional(),
 });

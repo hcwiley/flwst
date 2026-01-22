@@ -2,16 +2,8 @@
  * Run ID generation utilities for idempotent transcript processing.
  */
 
-import { randomUUID } from "node:crypto";
-import { RunIdSchema } from "@flwst/types";
-
-/**
- * Generate a new deterministic run ID.
- * Uses UUID v4 for uniqueness.
- */
-export function generateRunId(): string {
-  return randomUUID();
-}
+import { RunIdSchema } from '@flwst/types';
+import crypto from 'node:crypto';
 
 /**
  * Validate a run ID format.
@@ -30,13 +22,16 @@ export function createRunIdFromFilename(
 ): string {
   const normalized = filename
     .toLowerCase()
-    .replace(/[^a-z0-9]/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
+    .replace(/[^a-z0-9]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
 
-  const timestampStr = timestamp.toISOString().replace(/[:.]/g, "-");
+  const timestampStr = timestamp.toISOString().replace(/[:.]/g, '-');
 
-  // Use a deterministic hash-like approach, but still generate UUID for uniqueness
-  // In practice, you might want to use a hash of filename + timestamp
-  return generateRunId();
+  // use the filename-timestamp hashed into md5
+  const hash = crypto
+    .createHash('md5')
+    .update(`${normalized}-${timestampStr}`)
+    .digest('hex');
+  return hash;
 }
