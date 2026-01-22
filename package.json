@@ -12,7 +12,8 @@
     "lint": "turbo run lint",
     "format": "prettier -w .",
     "test": "echo \"No tests yet\"",
-    "typecheck": "turbo run typecheck"
+    "typecheck": "turbo run typecheck",
+    "dev:electron": "turbo run dev --filter=@flwst/electron"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
