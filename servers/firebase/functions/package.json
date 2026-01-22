@@ -19,7 +19,7 @@
     "node": "22"
   },
   "dependencies": {
-    "@flwst/types": "file:../../../types",
+    "@flwst/types": "file:./types",
     "firebase-admin": "^13.6.0",
     "firebase-functions": "^7.0.0"
   },

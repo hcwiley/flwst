@@ -12,8 +12,12 @@
       "predeploy": [
         "cd ../../.. && pnpm --filter @flwst/types build",
         "echo go into resource directory: \"$RESOURCE_DIR\"",
+        "cp -r ../../types \"$RESOURCE_DIR\"/types",
         "cd \"$RESOURCE_DIR\" && npm install",
         "npm --prefix \"$RESOURCE_DIR\" run build"
+      ],
+      "postdeploy": [
+        "rm -rf \"$RESOURCE_DIR\"/types"
       ],
       "source": "functions"
     }
