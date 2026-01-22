@@ -17,13 +17,19 @@
     "lint": "eslint ."
   },
   "devDependencies": {
+    "@types/react": "^19.2.9",
+    "react": "^19.2.3",
     "typescript": "^5.9.3"
   },
-  "dependencies": {
-    "@flwst/types": "workspace:*"
-  },
   "peerDependencies": {
-    "@tamagui/config": "^1.0.0",
-    "@tamagui/core": "^1.0.0"
+    "@types/react": "^19.2.9",
+    "react": "^19.2.3"
+  },
+  "dependencies": {
+    "@flwst/types": "workspace:*",
+    "@tamagui/config": "^1.144.3",
+    "@tamagui/lucide-icons": "^1.136.1",
+    "@tamagui/themes": "^1.144.3",
+    "tamagui": "^1.144.3"
   }
 }
