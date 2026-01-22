@@ -11,7 +11,7 @@
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "format": "prettier -w .",
-    "test": "echo \"No tests yet\"",
+    "test": "turbo run test",
     "typecheck": "turbo run typecheck",
     "dev:electron": "turbo run dev --filter=@flwst/electron"
   },

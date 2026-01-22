@@ -6,6 +6,7 @@ import { z } from 'zod';
 
 /**
  * Run ID for idempotent transcript processing.
+ * Format: UUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx).
  */
 export const RunIdSchema = z.string().uuid();
 

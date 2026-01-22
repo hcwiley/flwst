@@ -14,7 +14,8 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "node --test --import tsx \"src/**/*.test.ts\""
   },
   "devDependencies": {
     "typescript": "^5.9.3"
