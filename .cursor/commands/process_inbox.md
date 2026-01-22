@@ -51,32 +51,33 @@ High-level flow:
 3. Determine Notion targets, then update/create Tasks (must finish before Daily Note creation)
    - Use `config/notion.ts` → `notionConfig.database.tasks`.
    - Locate the Tasks database, capture its `data_source_id`, and pull property schema (priority/status/tags/project/etc.).
-  - For each reviewed task:
-    - Perform searches in Notion scoped to the task's `Project` value: require the candidate Notion page to have the same `Project` property (case-insensitive exact match) before considering it a duplicate. Within that project scope, you may apply fuzzy/name-keyword matching per `.cursor/guides/avoid_duplicate_tasks.md` to find likely matches.
-    - Only after a positive match that satisfies the `Project` scope (and a reasonable name-keyword match) should you mark the task as **UPDATE** (store the page ID + URL and pull existing content into `NOTION.md` for context). If no reliable match exists within the same project, label the task as **CREATE** and proceed accordingly.
-   - Properties: align exactly with the database schema. At a minimum populate:
-      - `Name`: task title (usually `{task} | {project}` from the feed).
-      - `Description`: Markdown summary distilled from `REVIEW.md`.
-      - `Project`: single/multi select mapping from the task table (blank only when truly unknown).
-      - `Priority`: normalized to one of the allowed values (`TOP`, `High`, `Medium`, `Low`, `Back burner`).
-      - `Status`: Notion status (`TODO`, `On Deck`, `In Progress`, `BLOCKED`, `Done`, `Cancelled`).
-      - `Tags`: convert comma-separated values into the DB’s multi-select options.
-      - `Due Date`: optional ISO date when present.
-      - `Assignee`: optional person reference; leave empty only when unspecified.
-      - `Daily Notes`: relation back to the new Daily Note once Step 4 completes (update the task afterward if the relation cannot be set during creation).
-     - Content: apply the Markdown from `REVIEW.md` as Notion blocks (merging instead of replacing when updating).
-     - Record the resulting page IDs + URLs and surface a definitive Create vs Update breakdown in the user summary (no guesses from local files) using the format:
 
-       ```
-       # Tasks
-       ## Create
-       - [Task Name](tmp/tasks/.../REVIEW.md) → pending Notion create
+- For each reviewed task:
+  - Perform searches in Notion scoped to the task's `Project` value: require the candidate Notion page to have the same `Project` property (case-insensitive exact match) before considering it a duplicate. Within that project scope, you may apply fuzzy/name-keyword matching per `.cursor/guides/avoid_duplicate_tasks.md` to find likely matches.
+  - Only after a positive match that satisfies the `Project` scope (and a reasonable name-keyword match) should you mark the task as **UPDATE** (store the page ID + URL and pull existing content into `NOTION.md` for context). If no reliable match exists within the same project, label the task as **CREATE** and proceed accordingly.
+- Properties: align exactly with the database schema. At a minimum populate:
+  - `Name`: task title (usually `{task} | {project}` from the feed).
+  - `Description`: Markdown summary distilled from `REVIEW.md`.
+  - `Project`: single/multi select mapping from the task table (blank only when truly unknown).
+  - `Priority`: normalized to one of the allowed values (`TOP`, `High`, `Medium`, `Low`, `Back burner`).
+  - `Status`: Notion status (`TODO`, `On Deck`, `In Progress`, `BLOCKED`, `Done`, `Cancelled`).
+  - `Tags`: convert comma-separated values into the DB’s multi-select options.
+  - `Due Date`: optional ISO date when present.
+  - `Assignee`: optional person reference; leave empty only when unspecified.
+  - `Daily Notes`: relation back to the new Daily Note once Step 4 completes (update the task afterward if the relation cannot be set during creation).
+  - Content: apply the Markdown from `REVIEW.md` as Notion blocks (merging instead of replacing when updating).
+  - Record the resulting page IDs + URLs and surface a definitive Create vs Update breakdown in the user summary (no guesses from local files) using the format:
 
-       ## Update
-       - [Task Name](Notion URL) → updating existing page
-       ```
+    ```
+    # Tasks
+    ## Create
+    - [Task Name](tmp/tasks/.../REVIEW.md) → pending Notion create
 
-       (Omit empty sections.)
+    ## Update
+    - [Task Name](Notion URL) → updating existing page
+    ```
+
+    (Omit empty sections.)
 
 4. Finalize the Daily Note in Notion (after all Tasks are handled)
    - Replace the placeholder `## TODOs` section in `tmp/daily_note.md` with a concise table that links directly to each created/updated Notion task (e.g., `| Task | Status | Link |`). No per-task narrative remains in the Daily Note—links provide the deep context.

@@ -18,7 +18,7 @@ For every row in the TODO table:
 - Require the `Project` property to match (case-insensitive exact match) before considering any fuzzy/name-keyword matches. In other words, scope Notion deduplication/search to candidate pages whose `Project` equals the task's `project` value.
 - Within that project scope you may apply the fuzzy matching rules in `.cursor/guides/avoid_duplicate_tasks.md`; prefer updating an existing task over creating a duplicate only when both the `Project` and a reasonable name-keyword similarity are present.
 - If notes indicate a likely match, flag it in the output with a short rationale that calls out the matching `Project`, e.g., “Match: Existing – same Project (`Example Platform`) and shares keywords with ‘Billing QA Sweep’”.
- </dedup_expectations>
+  </dedup_expectations>
 
 <output_format>
 For EACH task, emit the following structure (repeat back-to-back, no separators):

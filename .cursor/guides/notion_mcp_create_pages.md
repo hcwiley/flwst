@@ -1,6 +1,7 @@
 # Notion MCP create-pages Tool Usage Guide
 
 ## Overview
+
 This guide documents the correct usage of the `mcp_Notion_notion-create-pages` tool to avoid common errors encountered during development.
 
 ## Common Issues and Solutions
@@ -110,6 +111,7 @@ result = mcp_Notion_notion_create_pages(
 ## Database Property Names
 
 Always use the exact property names from the database schema. Common property names:
+
 - `Name` - Title property (required)
 - `Date` - Date property (use expanded format)
 - `Notes Summary` - Text property
@@ -119,11 +121,13 @@ Always use the exact property names from the database schema. Common property na
 ## Debugging Tips
 
 1. **If parent parameter fails:** Try using `database_id` instead of `data_source_id`:
+
    ```python
    parent = {'database_id': 'aaaaaaaa-bbbb-cccc-dddd-ffffffffffff'}
    ```
 
 2. **If Tags fails:** Ensure it's a valid JSON string. Use `json.dumps()` if needed:
+
    ```python
    import json
    tags_json = json.dumps(['tag1', 'tag2'])
@@ -147,4 +151,3 @@ Always use the exact property names from the database schema. Common property na
 - Notion MCP Documentation: See tool descriptions for full API details
 - Database schemas are returned in SQLite format by `notion-fetch`
 - Property types: title, text, date, multi_select, relation, etc.
-

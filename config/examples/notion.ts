@@ -30,16 +30,15 @@ export const notionConfig = {
   },
 };
 
-
 const printConfig = (config: any) => {
   for (const [key, value] of Object.entries(config)) {
-    if (typeof value === 'object' && value !== null) {
+    if (typeof value === "object" && value !== null) {
       printConfig(value);
     } else {
       console.log(`${key} => ${JSON.stringify(value, null, 2)}`);
     }
   }
-}
+};
 
 console.log(`\n--------------------------------\n`);
 console.log(`Notion config:`);
