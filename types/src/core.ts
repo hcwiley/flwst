@@ -2,7 +2,7 @@
  * Core domain types for FlowState.
  */
 
-import { z } from "zod";
+import { z } from 'zod';
 
 /**
  * Run ID for idempotent transcript processing.
@@ -21,7 +21,7 @@ export type Timestamp = z.infer<typeof TimestampSchema>;
 /**
  * Priority levels for tasks.
  */
-export const PrioritySchema = z.enum(["low", "medium", "high", "urgent"]);
+export const PrioritySchema = z.enum(['low', 'medium', 'high', 'urgent']);
 
 export type Priority = z.infer<typeof PrioritySchema>;
 
@@ -29,13 +29,13 @@ export type Priority = z.infer<typeof PrioritySchema>;
  * Task status values.
  */
 export const TaskStatusSchema = z.enum([
-  "backlog",
-  "on-deck",
-  "todo",
-  "in-progress",
-  "blocked",
-  "done",
-  "archived",
+  'backlog',
+  'on-deck',
+  'todo',
+  'in-progress',
+  'blocked',
+  'done',
+  'archived',
 ]);
 
 export type TaskStatus = z.infer<typeof TaskStatusSchema>;

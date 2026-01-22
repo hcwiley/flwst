@@ -2,8 +2,8 @@
  * Configuration types for user settings and prompts.
  */
 
-import { z } from "zod";
-import { PrioritySchema, TaskStatusSchema } from "./core.js";
+import { z } from 'zod';
+import { PrioritySchema, TaskStatusSchema } from './core.js';
 
 /**
  * User configuration schema.
@@ -49,14 +49,14 @@ export type FirebaseConfig = z.infer<typeof FirebaseConfigSchema>;
 
 export const GeminiConfigSchema = z.object({
   apiKey: z.string(),
-  model: z.string().default("gemini-3-flash-preview"),
+  model: z.string().default('gemini-3-flash-preview'),
 });
 
 export type GeminiConfig = z.infer<typeof GeminiConfigSchema>;
 
 export const SentryConfigSchema = z.object({
   dsn: z.string().url().optional(),
-  environment: z.string().default("development"),
+  environment: z.string().default('development'),
 });
 
 export type SentryConfig = z.infer<typeof SentryConfigSchema>;

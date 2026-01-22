@@ -3,8 +3,8 @@
  * Phase 1: Placeholder slices only.
  */
 
-import { create } from "zustand";
-import type { UserConfig } from "@flwst/types";
+import { create } from 'zustand';
+import type { UserConfig } from '@flwst/types';
 
 /**
  * Application store state interface.

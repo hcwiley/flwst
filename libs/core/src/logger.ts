@@ -2,12 +2,12 @@
  * Simple logging utility for FlowState pipeline.
  */
 
-import type { LogEntry } from "@flwst/types";
+import type { LogEntry } from '@flwst/types';
 
 /**
  * Log levels.
  */
-export type LogLevel = "debug" | "info" | "warn" | "error";
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 /**
  * Logger interface for structured logging.
@@ -25,12 +25,12 @@ export interface Logger {
 class ConsoleLogger implements Logger {
   private minLevel: LogLevel;
 
-  constructor(minLevel: LogLevel = "info") {
+  constructor(minLevel: LogLevel = 'info') {
     this.minLevel = minLevel;
   }
 
   private shouldLog(level: LogLevel): boolean {
-    const levels: LogLevel[] = ["debug", "info", "warn", "error"];
+    const levels: LogLevel[] = ['debug', 'info', 'warn', 'error'];
     return levels.indexOf(level) >= levels.indexOf(this.minLevel);
   }
 
@@ -52,9 +52,9 @@ class ConsoleLogger implements Logger {
 
     const prefix = `[${entry.timestamp}] [${level.toUpperCase()}]`;
     const logFn =
-      level === "error"
+      level === 'error'
         ? console.error
-        : level === "warn"
+        : level === 'warn'
           ? console.warn
           : console.log;
 
@@ -66,26 +66,26 @@ class ConsoleLogger implements Logger {
   }
 
   debug(message: string, metadata?: Record<string, unknown>): void {
-    this.log("debug", message, metadata);
+    this.log('debug', message, metadata);
   }
 
   info(message: string, metadata?: Record<string, unknown>): void {
-    this.log("info", message, metadata);
+    this.log('info', message, metadata);
   }
 
   warn(message: string, metadata?: Record<string, unknown>): void {
-    this.log("warn", message, metadata);
+    this.log('warn', message, metadata);
   }
 
   error(message: string, metadata?: Record<string, unknown>): void {
-    this.log("error", message, metadata);
+    this.log('error', message, metadata);
   }
 }
 
 /**
  * Create a logger instance.
  */
-export function createLogger(minLevel: LogLevel = "info"): Logger {
+export function createLogger(minLevel: LogLevel = 'info'): Logger {
   return new ConsoleLogger(minLevel);
 }
 

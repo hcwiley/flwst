@@ -2,7 +2,7 @@
  * Sentry integration configuration types.
  */
 
-import type { SentryConfig } from "@flwst/types";
+import type { SentryConfig } from '@flwst/types';
 
 /**
  * Sentry integration configuration interface.
@@ -18,5 +18,5 @@ export interface SentryIntegrationConfig extends SentryConfig {
 export function initSentry(config: SentryIntegrationConfig): void {
   // Future: Sentry initialization will be implemented here
   // eslint-disable-next-line no-console
-  console.log("Sentry initialization placeholder", config);
+  console.log('Sentry initialization placeholder', config);
 }

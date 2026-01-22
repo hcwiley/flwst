@@ -2,8 +2,8 @@
  * Notion API types and schemas.
  */
 
-import { z } from "zod";
-import { PrioritySchema, TaskStatusSchema } from "./core.js";
+import { z } from 'zod';
+import { PrioritySchema, TaskStatusSchema } from './core.js';
 
 /**
  * Notion page reference.

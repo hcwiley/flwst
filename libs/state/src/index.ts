@@ -5,4 +5,4 @@
  * Phase 1: Placeholder slices only, no app logic.
  */
 
-export * from "./store.js";
+export * from './store.js';

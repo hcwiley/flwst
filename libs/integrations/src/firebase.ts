@@ -2,7 +2,7 @@
  * Firebase integration configuration types.
  */
 
-import type { FirebaseConfig } from "@flwst/types";
+import type { FirebaseConfig } from '@flwst/types';
 
 /**
  * Firebase integration configuration interface.

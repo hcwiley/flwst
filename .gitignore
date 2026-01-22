@@ -53,20 +53,6 @@ release/
 *.ckpt
 *.ckpt.index
 *.meta
-*.pb
-*.pbtxt
-*.h5
-*.hdf5
-*.ckpt
-*.ckpt.index
-*.meta
-*.pb
-*.pbtxt
-*.h5
-*.hdf5
-*.ckpt
-*.ckpt.index
-*.meta
 
 # notion token
 .notion-token.json

@@ -2,7 +2,7 @@
  * Gemini integration configuration types.
  */
 
-import type { GeminiConfig } from "@flwst/types";
+import type { GeminiConfig } from '@flwst/types';
 
 /**
  * Gemini integration configuration interface.

@@ -6,7 +6,7 @@ import type {
   NotionConfig,
   NotionDailyNoteSchema,
   NotionTaskSchema,
-} from "@flwst/types";
+} from '@flwst/types';
 
 /**
  * Notion integration configuration interface.

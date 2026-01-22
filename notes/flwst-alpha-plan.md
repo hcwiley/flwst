@@ -328,7 +328,11 @@ Ship a reliable, dogfoodable alpha that replaces the current Cursor flow and can
 
 # Development Plan
 
+**Current Phase:** Phase 2 — Electron App Shell + Local Storage (in progress)
+
 ## **Phase 0 — Prerequisites and Human Setup (Manual)**
+
+### Status: In Progress (manual)
 
 **Owner:** Human
 
@@ -350,6 +354,8 @@ Ship a reliable, dogfoodable alpha that replaces the current Cursor flow and can
   - Daily Notes properties
   - To-Dos properties (status, priority, timestamps)
 - Create Sentry project
+  - Done: `flwst-dev-electron`
+  - DSN: `https://a481cf3641aedcb31e91f8312bb91f91@o4510755927687168.ingest.us.sentry.io/4510755934044160`
 - Create Amplitude project
 - Decide naming conventions for:
   - Flow State page
@@ -364,6 +370,8 @@ Deliverable:
 - Firebase project live
 
 ## **Phase 1 — Repo + Architecture Scaffolding**
+
+### Status: ✅
 
 **Owner:** Cursor
 
@@ -397,6 +405,8 @@ Deliverable:
 - No app logic yet
 
 ## **Phase 2 — Electron App Shell + Local Storage**
+
+### Status: In Progress
 
 **Owner:** Cursor
 

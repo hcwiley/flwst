@@ -5,8 +5,8 @@
  * Phase 1: Type definitions and config interfaces only.
  */
 
-export * from "./notion.js";
-export * from "./firebase.js";
-export * from "./gemini.js";
-export * from "./sentry.js";
-export * from "./amplitude.js";
+export * from './notion.js';
+export * from './firebase.js';
+export * from './gemini.js';
+export * from './sentry.js';
+export * from './amplitude.js';

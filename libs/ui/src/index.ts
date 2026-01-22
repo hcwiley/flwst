@@ -6,4 +6,4 @@
  * Do not integrate into Electron/RN apps in Phase 1.
  */
 
-export * from "./tamagui.js";
+export * from './tamagui.js';

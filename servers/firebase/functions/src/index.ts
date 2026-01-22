@@ -7,11 +7,11 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-import type { Response } from "express";
+import type { Response } from 'express';
 // import { setGlobalOptions } from "firebase-functions";
-import * as logger from "firebase-functions/logger";
-import type { Request } from "firebase-functions/v2/https";
-import { onRequest } from "firebase-functions/v2/https";
+import * as logger from 'firebase-functions/logger';
+import type { Request } from 'firebase-functions/v2/https';
+import { onRequest } from 'firebase-functions/v2/https';
 
 // Start writing functions
 // https://firebase.google.com/docs/functions/typescript
@@ -29,6 +29,6 @@ import { onRequest } from "firebase-functions/v2/https";
 // setGlobalOptions({ maxInstances: 10 });
 
 export const helloWorld = onRequest((request: Request, response: Response) => {
-  logger.info("Hello logs!", { structuredData: true });
-  response.send("Hello from Firebase!");
+  logger.info('Hello logs!', { structuredData: true });
+  response.send('Hello from Firebase!');
 });
