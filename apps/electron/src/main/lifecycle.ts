@@ -4,7 +4,7 @@
  */
 
 import { app, BrowserWindow } from 'electron';
-import { createMainWindow } from './window.js';
+import { createMainWindow } from './window';
 
 let mainWindow: BrowserWindow | null = null;
 

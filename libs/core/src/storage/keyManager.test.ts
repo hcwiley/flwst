@@ -5,7 +5,7 @@
 
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { KeyManager } from './keyManager.js';
+import { KeyManager } from './keyManager';
 
 // Mock keytar for testing
 let keychainStore: Map<string, string> = new Map();

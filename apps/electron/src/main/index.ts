@@ -1,15 +1,22 @@
 import { app, ipcMain } from 'electron';
 import { electronApp, optimizer } from '@electron-toolkit/utils';
-import { initSentryMain } from './sentry.js';
-import { initializeStorage } from './storage.js';
-import { createMainWindow } from './window.js';
+import { initSentryMain, getLogger } from './sentry';
+import { initializeStorage } from './storage';
+import { createMainWindow } from './window';
 import {
   enforceSingleInstance,
   registerAppLifecycleHandlers,
-} from './lifecycle.js';
+} from './lifecycle';
+import { logger } from '@flwst/core';
 
 // Initialize Sentry as early as possible in main process
 // In main process, process.env is available
+// DSN should be set via environment variable: SENTRY_DSN
+// Example: SENTRY_DSN=https://...@o4510755927687168.ingest.us.sentry.io/... pnpm dev:electron
+logger.info('Initializing Sentry', {
+  dsnConfigured: !!process.env.SENTRY_DSN,
+  environment: process.env.NODE_ENV || 'development',
+});
 initSentryMain(process.env.SENTRY_DSN, process.env.NODE_ENV || 'development');
 
 // Enforce single instance - exit if another instance is running
@@ -36,7 +43,7 @@ app.whenReady().then(() => {
   });
 
   // IPC test
-  ipcMain.on('ping', () => console.log('pong'));
+  ipcMain.on('ping', () => getLogger().info('pong'));
 
   // Create main window (tracking happens in createMainWindow)
   createMainWindow();

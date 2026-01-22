@@ -3,6 +3,8 @@
  * Initialized as early as possible to catch all errors.
  */
 
+import { logger, setExternalLogger } from '@flwst/core';
+
 /**
  * Initialize Sentry for Electron renderer process.
  * Should be called as early as possible in the renderer process.
@@ -14,8 +16,15 @@ export function initSentryRenderer(
   dsn?: string,
   environment: string = 'development',
 ): void {
+  const logsEnabled =
+    environment === 'production' || process.env.SENTRY_LOGS_ENABLED === 'true';
+
   if (!dsn) {
     // No DSN provided - Sentry disabled
+    logger.warn('Sentry DSN not configured - error tracking disabled', {
+      environment,
+      hint: 'Set SENTRY_DSN environment variable to enable Sentry',
+    });
     return;
   }
 
@@ -25,6 +34,7 @@ export function initSentryRenderer(
       sentry.init({
         dsn,
         environment,
+        enableLogs: logsEnabled,
         // Redact sensitive data per security guide
         beforeSend(event) {
           // Remove any potential sensitive data from context
@@ -40,8 +50,27 @@ export function initSentryRenderer(
           return event;
         },
       });
+
+      // Forward core logs to Sentry's logger API (production or explicit opt-in)
+      setExternalLogger(logsEnabled ? sentry.logger : null);
+
+      logger.info('Sentry renderer process initialized', {
+        environment,
+        dsnConfigured: !!dsn,
+        logsEnabled,
+      });
     })
-    .catch(() => {
-      // Sentry not available - silently fail
+    .catch((err) => {
+      logger.error('Failed to initialize Sentry renderer process', {
+        error: err,
+      });
     });
+}
+
+/**
+ * Get the Sentry-enabled logger instance.
+ * Returns the base logger if Sentry is not initialized.
+ */
+export function getLogger() {
+  return logger;
 }

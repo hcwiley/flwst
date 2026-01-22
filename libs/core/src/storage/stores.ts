@@ -5,8 +5,8 @@
 
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { encrypt, decrypt, EncryptionError } from './crypto.js';
-import { KeyManager } from './keyManager.js';
+import { encrypt, decrypt, EncryptionError } from './crypto';
+import { KeyManager } from './keyManager';
 import type { UserConfig } from '@flwst/types';
 import { UserConfigSchema } from '@flwst/types';
 

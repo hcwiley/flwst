@@ -20,6 +20,17 @@ $ pnpm install
 $ pnpm dev
 ```
 
+#### Environment Variables
+
+The app requires the following environment variables for full functionality:
+
+- **SENTRY_DSN** (optional): Sentry DSN for error tracking
+  - Example: `SENTRY_DSN=https://a481cf3641aedcb31e91f8312bb91f91@o4510755927687168.ingest.us.sentry.io/4510755934044160`
+  - Set it when running: `SENTRY_DSN=... pnpm dev:electron`
+  - Or export it in your shell: `export SENTRY_DSN=...` then `pnpm dev:electron`
+
+If `SENTRY_DSN` is not set, Sentry will be disabled and a warning will be logged.
+
 ### Build
 
 ```bash

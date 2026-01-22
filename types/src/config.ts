@@ -3,7 +3,7 @@
  */
 
 import { z } from 'zod';
-import { PrioritySchema, TaskStatusSchema } from './core.js';
+import { PrioritySchema, TaskStatusSchema } from './core';
 
 /**
  * User configuration schema.

@@ -354,8 +354,6 @@ Ship a reliable, dogfoodable alpha that replaces the current Cursor flow and can
   - Daily Notes properties
   - To-Dos properties (status, priority, timestamps)
 - Create Sentry project
-  - Done: `flwst-dev-electron`
-  - DSN: `https://a481cf3641aedcb31e91f8312bb91f91@o4510755927687168.ingest.us.sentry.io/4510755934044160`
 - Create Amplitude project
 - Decide naming conventions for:
   - Flow State page

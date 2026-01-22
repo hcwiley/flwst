@@ -6,8 +6,9 @@
 import { BrowserWindow, shell } from 'electron';
 import { join } from 'path';
 import { is } from '@electron-toolkit/utils';
+import { getLogger } from './sentry';
 import icon from '../../resources/icon.png?asset';
-import { setMainWindow } from './lifecycle.js';
+import { setMainWindow } from './lifecycle';
 
 /**
  * Window configuration options.
@@ -64,12 +65,15 @@ export function createMainWindow(
   mainWindow.webContents.on(
     'did-fail-load',
     (event, errorCode, errorDescription) => {
-      console.error('Renderer failed to load:', errorCode, errorDescription);
+      getLogger().error('Renderer failed to load', {
+        errorCode,
+        errorDescription,
+      });
     },
   );
 
   mainWindow.webContents.on('crashed', () => {
-    console.error('Renderer process crashed');
+    getLogger().error('Renderer process crashed');
   });
 
   mainWindow.webContents.setWindowOpenHandler((details) => {

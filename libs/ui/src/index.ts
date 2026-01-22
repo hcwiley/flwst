@@ -4,5 +4,5 @@
  * Shared UI configuration and Tamagui setup for FlowState.
  */
 
-export * from './tamagui.js';
-export * from './TamaguiProvider.js';
+export * from './tamagui';
+export * from './TamaguiProvider';

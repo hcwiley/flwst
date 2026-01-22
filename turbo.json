@@ -7,7 +7,8 @@
     },
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "env": ["SENTRY_DSN", "NODE_ENV"]
     },
     "lint": {
       "dependsOn": ["^lint"]

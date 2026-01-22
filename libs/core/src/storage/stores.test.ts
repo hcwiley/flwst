@@ -8,7 +8,7 @@ import test from 'node:test';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { ConfigStore } from './stores.js';
+import { ConfigStore } from './stores';
 import type { UserConfig } from '@flwst/types';
 import { UserConfigSchema } from '@flwst/types';
 

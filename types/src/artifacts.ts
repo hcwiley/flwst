@@ -3,7 +3,7 @@
  */
 
 import { z } from 'zod';
-import { RunIdSchema, TaskStatusSchema, TimestampSchema } from './core.js';
+import { RunIdSchema, TaskStatusSchema, TimestampSchema } from './core';
 
 /**
  * Raw transcript artifact.

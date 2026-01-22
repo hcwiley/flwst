@@ -2,7 +2,8 @@ import './assets/main.css';
 
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { initSentryRenderer } from '../sentry';
+import { logger } from '@flwst/core';
+import { initSentryRenderer, getLogger } from '../sentry';
 import App from './App';
 
 // Initialize Sentry as early as possible in renderer process
@@ -14,11 +15,11 @@ initSentryRenderer(
 
 // Error boundary for renderer
 window.addEventListener('error', (event) => {
-  console.error('Renderer error:', event.error);
+  getLogger().error('Renderer error', { error: event.error });
 });
 
 window.addEventListener('unhandledrejection', (event) => {
-  console.error('Unhandled promise rejection:', event.reason);
+  getLogger().error('Unhandled promise rejection', { reason: event.reason });
 });
 
 try {
@@ -33,7 +34,7 @@ try {
     </StrictMode>,
   );
 } catch (error) {
-  console.error('Failed to render app:', error);
+  getLogger().error('Failed to render app', { error });
   document.body.innerHTML = `
     <div style="padding: 20px; font-family: monospace;">
       <h1>Error Loading App</h1>
