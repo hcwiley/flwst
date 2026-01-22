@@ -1,0 +1,14 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true
+  },
+  "include": ["**/*.ts", "**/*.tsx"],
+  "references": [
+    { "path": "../../types" },
+    { "path": "../../libs/core" },
+    { "path": "../../libs/ui" },
+    { "path": "../../libs/state" },
+    { "path": "../../libs/integrations" }
+  ]
+}

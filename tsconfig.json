@@ -1,23 +1,23 @@
 {
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "@commands/*": ["commands/*"],
+      "@commands/*": [".cursor/commands/*"],
       "@notion.ts": ["config/notion.ts"]
-    },
-    "lib": ["ES2022"],
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "noEmit": true
+    }
   },
   "include": ["**/*.ts"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist", "apps", "libs", "types", "servers"],
+  "references": [
+    { "path": "./types" },
+    { "path": "./libs/core" },
+    { "path": "./libs/ui" },
+    { "path": "./libs/state" },
+    { "path": "./libs/integrations" },
+    { "path": "./apps/electron" },
+    { "path": "./apps/mobile" },
+    { "path": "./servers/firebase" }
+  ]
 }
-

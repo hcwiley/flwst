@@ -1,0 +1,14 @@
+{
+  "name": "@flwst/firebase",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "cd functions && npm run build",
+    "typecheck": "cd functions && npm run typecheck",
+    "lint": "cd functions && npm run lint",
+    "deploy": "firebase deploy --only functions,hosting"
+  },
+  "devDependencies": {
+    "tsc": "^2.0.4"
+  }
+}
