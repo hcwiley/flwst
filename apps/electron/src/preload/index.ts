@@ -1,8 +1,33 @@
-import { contextBridge } from 'electron';
+import { contextBridge, ipcRenderer } from 'electron';
 import { electronAPI } from '@electron-toolkit/preload';
+import type { OnboardingState } from '@flwst/types';
 
 // Custom APIs for renderer
-const api = {};
+const api = {
+  onboarding: {
+    getState: (): Promise<OnboardingState> =>
+      ipcRenderer.invoke('onboarding:getState'),
+    updateState: (partial: Partial<OnboardingState>): Promise<void> =>
+      ipcRenderer.invoke('onboarding:updateState', partial),
+  },
+  notion: {
+    startOAuth: (): Promise<{ authUrl: string }> =>
+      ipcRenderer.invoke('notion:startOAuth'),
+    storeOAuthResult: (result: {
+      accessToken: string;
+      workspace: { workspaceId: string; workspaceName?: string; botId?: string };
+    }): Promise<void> => ipcRenderer.invoke('notion:storeOAuthResult', result),
+    setParentPage: (parentPageId: string): Promise<void> =>
+      ipcRenderer.invoke('notion:setParentPage', parentPageId),
+    createResources: (options: {
+      parentPageId: string;
+    }): Promise<{
+      flowStatePageId: string;
+      dailyNotesDbId: string;
+      tasksDbId: string;
+    }> => ipcRenderer.invoke('notion:createResources', options),
+  },
+};
 
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise
