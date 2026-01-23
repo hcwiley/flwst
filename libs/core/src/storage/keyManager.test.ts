@@ -75,3 +75,52 @@ test('KeyManager handles keychain read failure gracefully', async () => {
     /keychain error/,
   );
 });
+
+test('KeyManager prevents race condition on concurrent key creation', async () => {
+  // Track how many times setPassword is called
+  let setPasswordCallCount = 0;
+  const raceTestKeytar = {
+    setPassword: async (service: string, account: string, password: string) => {
+      setPasswordCallCount++;
+      // Simulate some delay to increase chance of race condition
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      keychainStore.set(`${service}:${account}`, password);
+    },
+    getPassword: async (
+      service: string,
+      account: string,
+    ): Promise<string | null> => {
+      return keychainStore.get(`${service}:${account}`) || null;
+    },
+  };
+
+  // Clear keychain before test
+  keychainStore.clear();
+
+  // Create multiple managers (simulating ConfigStore and TokensStore)
+  const manager1 = new KeyManager(raceTestKeytar as any);
+  const manager2 = new KeyManager(raceTestKeytar as any);
+  const manager3 = new KeyManager(raceTestKeytar as any);
+
+  // Make concurrent calls to getOrCreateKey
+  const [key1, key2, key3] = await Promise.all([
+    manager1.getOrCreateKey(),
+    manager2.getOrCreateKey(),
+    manager3.getOrCreateKey(),
+  ]);
+
+  // All keys should be identical
+  assert.deepEqual(key1, key2);
+  assert.deepEqual(key2, key3);
+
+  // Only one key should have been written to keychain
+  assert.equal(setPasswordCallCount, 1);
+
+  // Verify the key in keychain matches what was returned
+  const storedKey = await raceTestKeytar.getPassword(
+    'com.flowstate.app',
+    'encryption-key',
+  );
+  assert.ok(storedKey);
+  assert.deepEqual(key1, Buffer.from(storedKey, 'base64'));
+});
