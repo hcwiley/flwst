@@ -19,9 +19,12 @@ export function registerAppLifecycleHandlers(): void {
     // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) {
       mainWindow = createMainWindow();
-    } else if (mainWindow) {
+    } else if (mainWindow && !mainWindow.isDestroyed()) {
       // Focus existing window
       mainWindow.focus();
+    } else {
+      // Window was destroyed, create a new one
+      mainWindow = createMainWindow();
     }
   });
 
@@ -52,11 +55,14 @@ export function enforceSingleInstance(): boolean {
 
   // Handle second instance launch - focus existing window
   app.on('second-instance', () => {
-    if (mainWindow) {
+    if (mainWindow && !mainWindow.isDestroyed()) {
       if (mainWindow.isMinimized()) {
         mainWindow.restore();
       }
       mainWindow.focus();
+    } else {
+      // Window was destroyed (e.g., closed on macOS), create a new one
+      mainWindow = createMainWindow();
     }
   });
 
