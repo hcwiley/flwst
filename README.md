@@ -1,16 +1,11 @@
 # flwst
 
-flow state: AI workflow to get your mind in order so you flow through your day.
+FlowState alpha monorepo for the Electron client, server scaffolding, and shared
+libraries.
 
-Neat. What does it do?
+## Architecture
 
-`flwst` is grouping of prompts, how-tos, and scripts to go from thinking to process management to execution without you having to do a lot of time consuming PM work (make tickets, update statuses, etc.)
-
-The initial integration targets:
-
-- Input from Voice Notes transcript
-- Processing of raw input via canned prompts
-- Generating and updating of tasks in Notion via MCP
+See `ARCH.md` for the current system overview and data flow.
 
 ## Monorepo Structure
 
@@ -19,8 +14,8 @@ This is a pnpm + Turbo monorepo with the following structure:
 ```
 flwst/
 ├── apps/
-│   ├── electron/          # Electron desktop app (Phase 2+)
-│   └── mobile/             # Expo mobile app (Phase 2+, stub only)
+│   ├── electron/          # Electron desktop app (Phase 2 complete)
+│   └── mobile/            # Expo mobile app (stub only)
 ├── libs/
 │   ├── core/              # Core runtime utilities (paths, runIds, logger)
 │   ├── ui/                # Tamagui UI configuration (Phase 1: scaffolding)
@@ -37,18 +32,18 @@ flwst/
 └── archive/               # Archived files (not tracked)
 ```
 
-### Package Names
+### Packages
 
 All workspace packages use the `@flwst/*` namespace:
 
-- `@flwst/types` - Shared types and Zod schemas
-- `@flwst/core` - Core utilities (no framework dependencies)
-- `@flwst/ui` - UI configuration (Tamagui)
-- `@flwst/state` - Zustand store scaffolding
-- `@flwst/integrations` - Integration config types
-- `@flwst/electron` - Electron app
-- `@flwst/mobile` - React Native (Expo) app
-- `@flwst/firebase` - Firebase server
+- `apps/electron` - Electron app (`apps/electron/README.md`)
+- `apps/mobile` - Expo stub (`apps/mobile/README.md`)
+- `servers/firebase` - Firebase server scaffold (`servers/firebase/README.md`)
+- `libs/core` - Core utilities (`libs/core/README.md`)
+- `libs/ui` - Tamagui UI config (`libs/ui`)
+- `libs/state` - Zustand store scaffold (`libs/state`)
+- `libs/integrations` - Integration types (`libs/integrations`)
+- `types` - Shared types and Zod schemas (`types`)
 
 ### Module System
 
@@ -104,12 +99,11 @@ pnpm turbo run typecheck
 
 #### Electron App
 
-```bash
-cd apps/electron
-npx electron-vite@latest init
-```
+The Electron app is already initialized. To run it:
 
-See `apps/electron/INIT_COMMANDS.md` for details.
+```bash
+pnpm --filter @flwst/electron dev
+```
 
 #### React Native (Expo) App
 
@@ -126,7 +120,7 @@ See `servers/firebase/README.md` for manual Firebase Console setup steps.
 
 ## Legacy Setup (Pre-Phase 1)
 
-Install Notion MCP:
+Install Notion MCP (legacy workflow only):
 
 - https://developers.notion.com/docs/get-started-with-mcp
 

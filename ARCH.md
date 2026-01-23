@@ -4,62 +4,67 @@
 
 This monorepo provides:
 
-- A **macOS Electron client** for pasting transcripts, reviewing outputs, and
-  editing todo metadata.
-- A **reasoning server** that orchestrates local LLM inference + Notion sync.
-- Shared **types** for schema validation and client/server compatibility.
+- An **Electron desktop client** for ingestion, review, and local persistence.
+- A **Firebase server scaffold** for server-mediated LLM calls (Phase 6).
+- Shared **types** and **core utilities** for schema validation and storage.
 
 ## Key Components
 
-- **macOS app**: `apps/macos-electron`
-- **reasoning server**: `servers/reasoning`
-- **shared API schemas**: `types/src/api/reasoning.ts`
+- **Electron app**: `apps/electron`
+- **Firebase server**: `servers/firebase`
+- **Core utilities**: `libs/core`
+- **Shared types**: `types`
 
 ## Data Flow
 
 ```mermaid
 flowchart TD
-  subgraph App[apps/macos-electron]
-    MacUI[macOS_UI]
+  subgraph App[apps/electron]
+    Renderer[Renderer UI]
+    Main[Main Process]
   end
 
-  subgraph Server[servers/reasoning]
-    ReasoningAPI[Express_API]
+  subgraph Core[libs/core]
+    Stores[Encrypted Stores]
+    Crypto[Crypto Helpers]
   end
 
-  subgraph LocalLLM[Local_LLM]
-    Llama[node-llama-cpp]
+  subgraph Local[Local Machine]
+    Keychain[OS Keychain]
+    Files[App Data Directory]
   end
 
-  subgraph Notion[Notion]
-    MCP[Notion_MCP]
-    API[Notion_API]
-    TasksDB[Tasks_DB]
-    DailyDB[DailyNotes_DB]
+  subgraph Sentry[Sentry]
+    SentryAPI[Crash + Log Events]
   end
 
-  subgraph Shared[Shared]
-    Types[types_api_reasoning]
+  subgraph Firebase[servers/firebase]
+    Functions[Firebase Functions]
   end
 
-  MacUI -->|"HTTP (localhost): transcript & todos"| ReasoningAPI
-  ReasoningAPI --> Llama
-  ReasoningAPI --> MCP
-  ReasoningAPI --> API
+  subgraph LLM[LLM Provider]
+    Gemini[Gemini API]
+  end
 
-  MCP --> TasksDB
-  API --> TasksDB
-  API --> DailyDB
+  subgraph Notion[Notion Cloud]
+    NotionAPI[Notion API]
+  end
 
-  MacUI --> Types
-  ReasoningAPI --> Types
+  Renderer --> Main
+  Main --> Stores
+  Stores --> Crypto
+  Crypto --> Keychain
+  Crypto --> Files
+  Main --> SentryAPI
+  Renderer --> SentryAPI
+
+  Renderer -.->|HTTPS (planned)| Functions
+  Functions -.-> Gemini
+  Functions -.-> NotionAPI
 ```
 
 ## Notes / Constraints
 
-- **Todo update syncing is in-memory**: the server stores UI edits (status,
-  priority, etc.) in a process-local map. If the server restarts, pending edits
-  are lost.
-- **Notion matching searches only Tasks DB**: search results are filtered to
-  only include pages whose `parent.database_id` matches the configured Tasks
-  database.
+- Firebase integration is scaffolded; server-mediated LLM and Notion sync are
+  implemented in Phase 6+.
+- Encrypted local storage is the current system of record for tokens/config.

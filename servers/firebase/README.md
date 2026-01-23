@@ -1,6 +1,10 @@
 # Firebase Server for FlowState
 
-Firebase Functions and Hosting setup for the FlowState API server.
+Firebase Functions and Hosting scaffold for the server-mediated API layer.
+
+## Architecture
+
+See `ARCH.md` for the data flow and planned integrations.
 
 ## Manual Setup Steps (Phase 0)
 
@@ -10,7 +14,7 @@ These steps must be completed manually in the Firebase Console:
 
 1. Go to [Firebase Console](https://console.firebase.google.com/)
 2. Click "Add project"
-3. Enter project name (e.g., "flowstate-alpha")
+3. Enter project name (e.g., "Example Project")
 4. Follow the setup wizard
 5. Note your project ID
 
@@ -60,10 +64,10 @@ servers/firebase/
 ├── hosting/            # Static hosting files (if needed)
 ├── firebase.json       # Firebase configuration
 ├── .firebaserc.example # Project ID template (copy to .firebaserc)
-└── README.md          # This file
+└── README.md           # This file
 ```
 
-## Phase 1 Status
+## Status
 
 - ✅ Project structure scaffolded
 - ✅ TypeScript configuration
@@ -71,6 +75,15 @@ servers/firebase/
 - ⏳ Firebase Console setup (manual)
 - ⏳ Environment variables (manual)
 - ⏳ API implementation (Phase 6)
+
+## Scripts
+
+Run from `servers/firebase`:
+
+- `pnpm build` - build Firebase Functions
+- `pnpm typecheck` - type check Firebase Functions
+- `pnpm lint` - lint Firebase Functions
+- `pnpm deploy` - deploy Functions and Hosting
 
 ## Notes
 

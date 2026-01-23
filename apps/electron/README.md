@@ -1,6 +1,20 @@
 # @flwst/electron
 
-An Electron application with React and TypeScript
+Electron + React client for the FlowState alpha. The main process handles
+window lifecycle, encrypted local storage, and crash reporting, while the
+renderer hosts the UI shell.
+
+## Key Dependencies
+
+- Electron + electron-vite
+- React + TypeScript
+- Tamagui (UI primitives)
+- `@flwst/core` (logging, run IDs, encrypted storage)
+- `@sentry/electron` (crash reporting)
+
+## Architecture
+
+See `ARCH.md` for the data flow and component responsibilities.
 
 ## Recommended IDE Setup
 
@@ -11,35 +25,42 @@ An Electron application with React and TypeScript
 ### Install
 
 ```bash
-$ pnpm install
+pnpm install
 ```
 
 ### Development
 
+From the repo root:
+
 ```bash
-$ pnpm dev
+pnpm --filter @flwst/electron dev
+```
+
+Or from this directory:
+
+```bash
+pnpm dev
 ```
 
 #### Environment Variables
 
-The app requires the following environment variables for full functionality:
-
-- **SENTRY_DSN** (optional): Sentry DSN for error tracking
+- `SENTRY_DSN` (optional): Sentry DSN for error tracking
   - Example: `SENTRY_DSN=https://example-key@o1234567890123456.ingest.us.sentry.io/1234567890123456`
-  - Set it when running: `SENTRY_DSN=... pnpm dev:electron`
-  - Or export it in your shell: `export SENTRY_DSN=...` then `pnpm dev:electron`
+  - Set it when running: `SENTRY_DSN=... pnpm --filter @flwst/electron dev`
+  - Or export it in your shell: `export SENTRY_DSN=...` then `pnpm dev`
+- `SENTRY_LOGS_ENABLED` (optional): set to `true` to forward logs to Sentry
 
 If `SENTRY_DSN` is not set, Sentry will be disabled and a warning will be logged.
 
 ### Build
 
 ```bash
-# For windows
-$ pnpm build:win
+# For Windows
+pnpm build:win
 
 # For macOS
-$ pnpm build:mac
+pnpm build:mac
 
 # For Linux
-$ pnpm build:linux
+pnpm build:linux
 ```

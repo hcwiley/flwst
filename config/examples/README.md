@@ -32,7 +32,7 @@ Firebase Functions environment variables are set in the Firebase Console, not in
 
 - **Local development**: `config/.env` (not committed)
 - **Firebase Functions**: Firebase Console > Functions > Configuration
-- **Notion OAuth**: Stored in encrypted local storage (see Phase 2)
+- **Notion OAuth**: Stored in encrypted local storage (implemented in Phase 2)
 - **Firebase API keys**: Firebase Console environment variables
 
 ## Security Notes
@@ -40,4 +40,4 @@ Firebase Functions environment variables are set in the Firebase Console, not in
 - All example files use placeholder values only
 - Never commit real credentials to git
 - Use environment variables for all secrets
-- Encrypt sensitive local data (see Phase 2 implementation)
+- Encrypt sensitive local data (implemented in Phase 2)
