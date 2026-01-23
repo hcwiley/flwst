@@ -437,31 +437,53 @@ Deliverable:
 
 **Goal:** Complete first-run experience end-to-end.
 
-- Welcome screen
-  - Explain FlowState
-  - Preview Inbox + Kanban
-- System selection screen
-  - Notion
-  - JIRA (CTA only)
-  - Other system freeform input
-- JIRA / Other system
-  - Feature request submission
-  - Amplitude tracking
-- Notion pre-OAuth explanation screen
-  - Visual representation of pages/databases to be created
-- Notion OAuth flow
-- Parent page selection
-- Confirmation screen before mutation
-- Create Flow State page
-- Create Daily Notes and To-Dos databases
-- Persist Notion IDs securely
-- Post-onboarding redirect to main UI
+### Implementation Details
+
+**Onboarding Flow States:**
+- `Welcome` - Explain FlowState and preview Inbox + Kanban
+- `SystemSelect` - User chooses Notion, JIRA (CTA), or Other
+- `FeatureRequest` - Collect use case, team size, urgency for JIRA/Other
+- `NotionExplain` - Visual representation of pages/databases to be created
+- `NotionOAuthStart` - Initiate OAuth flow (opens external browser)
+- `NotionOAuthComplete` - OAuth result confirmation
+- `ParentSelect` - User selects parent page for resources
+- `ConfirmCreate` - Confirmation screen before mutation
+- `CreateResources` - Create Flow State page, Daily Notes DB, To-Dos DB
+- `Done` - Completion state
+- Escape states: `CancelConfirm`, `Error`, `Busy`
+
+**Notion Status Enum:**
+- `disconnected` -> `oauth_pending` -> `authed` -> `parent_selected` -> `resources_created` -> `ready` (or `error`)
+
+**Onboarding Gate:**
+- App shows onboarding if `!onboardingCompleted || notion.status !== 'ready'`
+- `ready` means: OAuth result present (access token in main + workspace metadata in state) + parent page selected + resources created (DB IDs present)
+
+**Re-entry Conditions:**
+- Fresh install (no onboarding state)
+- Storage reset
+- User clicks "Reset onboarding" (future)
+- Missing/invalid Notion state (token expired, DB IDs missing)
+
+**IPC Surface:**
+- `onboarding.getState()` - Get current onboarding state
+- `onboarding.updateState(partial)` - Update onboarding state (authoritative)
+- `notion.startOAuth()` - Start OAuth flow (stub in Phase 3)
+- `notion.storeOAuthResult(...)` - Store OAuth result (stub in Phase 3)
+- `notion.setParentPage(...)` - Set parent page ID
+- `notion.createResources(...)` - Create Notion resources (stub in Phase 3)
+
+**Feature Request Persistence:**
+- Stored locally in onboarding state (no network blocking in Phase 3)
+- Optional telemetry integration in future phases
 
 Deliverable:
 
-- Clean first-run flow
-- Notion setup without surprises
-- Feature request data flowing
+- Clean first-run flow with all screens implemented
+- Notion setup without surprises (OAuth stubbed, resources creation stubbed)
+- Feature request data persisted locally
+- Onboarding state persisted in encrypted storage
+- App correctly gates between onboarding and main UI
 
 ---
 
