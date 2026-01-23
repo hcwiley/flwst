@@ -34,7 +34,7 @@ export function NotionExplainScreen({
         fontSize='$4'
         opacity={0.8}
       >
-        FlowState will create the following in your Notion workspace:
+        flwst will create the following in your Notion workspace:
       </Text>
       <Stack
         gap='$3'
@@ -43,7 +43,7 @@ export function NotionExplainScreen({
         backgroundColor='$backgroundHover'
         borderRadius='$4'
       >
-        <Text fontSize='$3'>• Flow State page (parent container)</Text>
+        <Text fontSize='$3'>• flwst page (parent container)</Text>
         <Text fontSize='$3'>• Daily Notes database</Text>
         <Text fontSize='$3'>• To-Dos database</Text>
       </Stack>

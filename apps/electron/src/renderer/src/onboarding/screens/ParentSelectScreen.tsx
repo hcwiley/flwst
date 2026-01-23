@@ -43,8 +43,8 @@ export function ParentSelectScreen({
         fontSize='$4'
         opacity={0.8}
       >
-        Choose the Notion page where FlowState will create the Flow State page,
-        Daily Notes database, and To-Dos database.
+        Choose the Notion page where flwst will create the flwst page, Daily
+        Notes database, and To-Dos database.
       </Text>
       <Stack
         gap='$3'
@@ -60,14 +60,14 @@ export function ParentSelectScreen({
           <Input
             value={parentPageId}
             onChangeText={setParentPageId}
-            placeholder='Enter Notion page ID'
+            placeholder='Paste Notion page URL or ID'
             size='$4'
           />
           <Text
             fontSize='$2'
             opacity={0.6}
           >
-            You can find the page ID in the Notion page URL.
+            Paste the full Notion page URL or the page ID.
           </Text>
         </Stack>
       </Stack>
