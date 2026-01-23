@@ -103,7 +103,7 @@ export function buildTasksDbProperties(
     Project: { select: { options: [] } },
     Description: { rich_text: {} },
     Priority: { select: { options: priorityOptions } },
-    Status: { status: { options: statusOptions } },
+    Status: { status: {} },
     Tags: { multi_select: { options: [] } },
     'Due Date': { date: {} },
     Assignee: { rich_text: {} },
@@ -114,6 +114,8 @@ export function buildTasksDbProperties(
     properties['Daily Notes'] = {
       relation: {
         database_id: normalizeNotionId(dailyNotesRelationDatabaseId),
+        type: 'single_property',
+        single_property: {},
       },
     };
   }
@@ -157,6 +159,8 @@ export function buildDailyNotesDbProperties(
     properties.Tasks = {
       relation: {
         database_id: normalizeNotionId(tasksRelationDatabaseId),
+        type: 'single_property',
+        single_property: {},
       },
     };
   }

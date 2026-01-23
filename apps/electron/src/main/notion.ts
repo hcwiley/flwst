@@ -299,7 +299,6 @@ export function registerNotionHandlers(): void {
 
     const notion = new Client({
       auth: accessToken,
-      notionVersion: NOTION_VERSION,
     });
 
     logger.info('Creating Notion resources', { parentPageId });
@@ -510,10 +509,10 @@ export function registerNotionHandlers(): void {
     flowStatePageId: string,
   ): Promise<string> {
     const properties = ensureDatabaseProperties(buildDailyNotesDbProperties());
-    const payload = {
+    const payload: CreateDatabaseParameters = {
       parent: { page_id: normalizeNotionId(flowStatePageId) },
-      title: [{ type: 'text' as const, text: { content: DAILY_NOTES_DB_TITLE } }],
-      properties,
+      title: [{ text: { content: DAILY_NOTES_DB_TITLE } }],
+      properties: properties as CreateDatabaseParameters['properties'],
     };
     // #region agent log
     fetch('http://127.0.0.1:7242/ingest/3e35c006-94a7-466a-acab-dce9d65a6631', {
@@ -526,8 +525,8 @@ export function registerNotionHandlers(): void {
         location: 'src/main/notion.ts:createDailyNotesDatabase:properties',
         message: 'daily notes properties built',
         data: {
-          keys: Object.keys(properties ?? {}),
-          keyCount: Object.keys(properties ?? {}).length,
+          keys: Object.keys(payload.properties),
+          keyCount: Object.keys(payload.properties).length,
           payloadKeys: Object.keys(payload),
           payloadHasProperties: payload.properties !== undefined,
         },
@@ -548,7 +547,7 @@ export function registerNotionHandlers(): void {
         data: {
           parentPageId: normalizeNotionId(flowStatePageId),
           title: DAILY_NOTES_DB_TITLE,
-          propertyKeys: Object.keys(properties ?? {}),
+          propertyKeys: Object.keys(payload.properties),
         },
         timestamp: Date.now(),
       }),
@@ -583,10 +582,10 @@ export function registerNotionHandlers(): void {
     const properties = ensureDatabaseProperties(
       buildTasksDbProperties(dailyNotesDbId),
     );
-    const payload = {
+    const payload: CreateDatabaseParameters = {
       parent: { page_id: normalizeNotionId(flowStatePageId) },
-      title: [{ type: 'text' as const, text: { content: TASKS_DB_TITLE } }],
-      properties,
+      title: [{ text: { content: TASKS_DB_TITLE } }],
+      properties: properties as CreateDatabaseParameters['properties'],
     };
     // #region agent log
     fetch('http://127.0.0.1:7242/ingest/3e35c006-94a7-466a-acab-dce9d65a6631', {
@@ -599,8 +598,8 @@ export function registerNotionHandlers(): void {
         location: 'src/main/notion.ts:createTasksDatabase:properties',
         message: 'tasks properties built',
         data: {
-          keys: Object.keys(properties ?? {}),
-          keyCount: Object.keys(properties ?? {}).length,
+          keys: Object.keys(payload.properties),
+          keyCount: Object.keys(payload.properties).length,
           payloadKeys: Object.keys(payload),
           payloadHasProperties: payload.properties !== undefined,
         },
@@ -621,7 +620,7 @@ export function registerNotionHandlers(): void {
         data: {
           parentPageId: normalizeNotionId(flowStatePageId),
           title: TASKS_DB_TITLE,
-          propertyKeys: Object.keys(properties ?? {}),
+          propertyKeys: Object.keys(payload.properties),
         },
         timestamp: Date.now(),
       }),
@@ -679,6 +678,8 @@ export function registerNotionHandlers(): void {
       Tasks: {
         relation: {
           database_id: normalizeNotionId(tasksDbId),
+          type: 'single_property',
+          single_property: {},
         },
       },
     };
@@ -704,7 +705,7 @@ export function registerNotionHandlers(): void {
       await notion.databases.update({
         database_id: normalizeNotionId(dailyNotesDbId),
         properties,
-      });
+      } as any);
       // #region agent log
       fetch('http://127.0.0.1:7242/ingest/3e35c006-94a7-466a-acab-dce9d65a6631', {
         method: 'POST',
