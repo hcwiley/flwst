@@ -268,6 +268,25 @@ export function registerNotionHandlers(): void {
     parentPageId: string,
     onboardingState?: OnboardingState,
   ): Promise<CreateResourcesResult> {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/3e35c006-94a7-466a-acab-dce9d65a6631', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: 'debug-session',
+        runId: 'pre',
+        hypothesisId: 'H1',
+        location: 'src/main/notion.ts:createResourcesInternal:entry',
+        message: 'createResourcesInternal entry',
+        data: {
+          parentPageId,
+          onboardingStatus: onboardingState?.notion?.status,
+          hasWorkspace: !!onboardingState?.notion?.workspace?.workspaceId,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion agent log
     const tokensStore = getTokensStore();
     const tokens = await tokensStore.read();
     const accessToken = tokens.notionAccessToken;
@@ -286,6 +305,25 @@ export function registerNotionHandlers(): void {
     logger.info('Creating Notion resources', { parentPageId });
 
     const stored = resolveStoredIds(tokens, onboardingState);
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/3e35c006-94a7-466a-acab-dce9d65a6631', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: 'debug-session',
+        runId: 'pre',
+        hypothesisId: 'H2',
+        location: 'src/main/notion.ts:createResourcesInternal:stored',
+        message: 'stored resource ids resolved',
+        data: {
+          hasFlowStatePageId: !!stored.flowStatePageId,
+          hasDailyNotesDbId: !!stored.dailyNotesDbId,
+          hasTasksDbId: !!stored.tasksDbId,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion agent log
     if (stored.flowStatePageId && stored.dailyNotesDbId && stored.tasksDbId) {
       const verified = await verifyResources(notion, stored);
       if (verified) {
@@ -471,12 +509,52 @@ export function registerNotionHandlers(): void {
     notion: Client,
     flowStatePageId: string,
   ): Promise<string> {
-    const properties = buildDailyNotesDbProperties();
-    const response = await notion.databases.create({
+    const properties = ensureDatabaseProperties(buildDailyNotesDbProperties());
+    const payload = {
       parent: { page_id: normalizeNotionId(flowStatePageId) },
-      title: [{ type: 'text', text: { content: DAILY_NOTES_DB_TITLE } }],
+      title: [{ type: 'text' as const, text: { content: DAILY_NOTES_DB_TITLE } }],
       properties,
-    });
+    };
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/3e35c006-94a7-466a-acab-dce9d65a6631', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: 'debug-session',
+        runId: 'pre',
+        hypothesisId: 'H3',
+        location: 'src/main/notion.ts:createDailyNotesDatabase:properties',
+        message: 'daily notes properties built',
+        data: {
+          keys: Object.keys(properties ?? {}),
+          keyCount: Object.keys(properties ?? {}).length,
+          payloadKeys: Object.keys(payload),
+          payloadHasProperties: payload.properties !== undefined,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion agent log
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/3e35c006-94a7-466a-acab-dce9d65a6631', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: 'debug-session',
+        runId: 'pre',
+        hypothesisId: 'H6',
+        location: 'src/main/notion.ts:createDailyNotesDatabase:call',
+        message: 'calling databases.create for daily notes',
+        data: {
+          parentPageId: normalizeNotionId(flowStatePageId),
+          title: DAILY_NOTES_DB_TITLE,
+          propertyKeys: Object.keys(properties ?? {}),
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion agent log
+    const response = await notion.databases.create(payload);
     return response.id;
   }
 
@@ -485,12 +563,35 @@ export function registerNotionHandlers(): void {
     flowStatePageId: string,
     dailyNotesDbId: string,
   ): Promise<string> {
-    const properties = buildTasksDbProperties(dailyNotesDbId);
-    const response = await notion.databases.create({
+    const properties = ensureDatabaseProperties(
+      buildTasksDbProperties(dailyNotesDbId),
+    );
+    const payload = {
       parent: { page_id: normalizeNotionId(flowStatePageId) },
-      title: [{ type: 'text', text: { content: TASKS_DB_TITLE } }],
+      title: [{ type: 'text' as const, text: { content: TASKS_DB_TITLE } }],
       properties,
-    });
+    };
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/3e35c006-94a7-466a-acab-dce9d65a6631', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: 'debug-session',
+        runId: 'pre',
+        hypothesisId: 'H4',
+        location: 'src/main/notion.ts:createTasksDatabase:properties',
+        message: 'tasks properties built',
+        data: {
+          keys: Object.keys(properties ?? {}),
+          keyCount: Object.keys(properties ?? {}).length,
+          payloadKeys: Object.keys(payload),
+          payloadHasProperties: payload.properties !== undefined,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion agent log
+    const response = await notion.databases.create(payload);
     return response.id;
   }
 
@@ -510,6 +611,35 @@ export function registerNotionHandlers(): void {
       database_id: normalizeNotionId(dailyNotesDbId),
       properties,
     });
+  }
+
+  function ensureDatabaseProperties(
+    properties?: CreateDatabaseParameters['properties'],
+  ): CreateDatabaseParameters['properties'] {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/3e35c006-94a7-466a-acab-dce9d65a6631', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: 'debug-session',
+        runId: 'pre',
+        hypothesisId: 'H5',
+        location: 'src/main/notion.ts:ensureDatabaseProperties',
+        message: 'ensureDatabaseProperties invoked',
+        data: {
+          hasProperties: !!properties,
+          keyCount: properties ? Object.keys(properties).length : 0,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion agent log
+    if (properties && Object.keys(properties).length > 0) {
+      return properties;
+    }
+    return {
+      Name: { title: {} },
+    };
   }
 
   async function persistIds(
