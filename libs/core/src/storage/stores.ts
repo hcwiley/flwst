@@ -7,8 +7,8 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { encrypt, decrypt, EncryptionError } from './crypto';
 import { KeyManager } from './keyManager';
-import type { UserConfig } from '@flwst/types';
-import { UserConfigSchema } from '@flwst/types';
+import type { UserConfig, Tokens } from '@flwst/types';
+import { UserConfigSchema, TokensSchema } from '@flwst/types';
 
 /**
  * Base class for encrypted storage stores.
@@ -151,12 +151,7 @@ export class ConfigStore extends EncryptedStore<UserConfig> {
 /**
  * Store for OAuth tokens and Notion IDs.
  */
-export class TokensStore extends EncryptedStore<{
-  notionAccessToken?: string;
-  notionPageId?: string;
-  notionDailyNotesDbId?: string;
-  notionTodosDbId?: string;
-}> {
+export class TokensStore extends EncryptedStore<Tokens> {
   constructor(
     storageDir: string,
     keytar: {
@@ -171,15 +166,16 @@ export class TokensStore extends EncryptedStore<{
     super(storageDir, new KeyManager(keytar), 'tokens.encrypted');
   }
 
-  protected getDefault() {
+  protected getDefault(): Tokens {
     return {};
   }
 
-  protected parse(data: string) {
-    return JSON.parse(data);
+  protected parse(data: string): Tokens {
+    const parsed = JSON.parse(data);
+    return TokensSchema.parse(parsed);
   }
 
-  protected serialize(data: ReturnType<typeof this.getDefault>): string {
+  protected serialize(data: Tokens): string {
     return JSON.stringify(data, null, 2);
   }
 }
