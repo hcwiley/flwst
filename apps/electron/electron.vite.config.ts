@@ -2,26 +2,62 @@ import { resolve } from 'path';
 import { defineConfig } from 'electron-vite';
 import react from '@vitejs/plugin-react';
 
+const r = (...parts: string[]) => resolve(__dirname, ...parts);
+
 export default defineConfig({
   main: {
-    // Optimize dependencies for main process
+    resolve: {
+      alias: {
+        // Use source files in dev, not dist
+        '@flwst/core': r('../../libs/core/src/index.ts'),
+        '@flwst/core/logger': r('../../libs/core/src/logger.ts'),
+        '@flwst/types': r('../../types/src/index.ts'),
+      },
+    },
+    ssr: {
+      // Keep workspace package bundled for SSR builds
+      noExternal: ['@flwst/core', '@flwst/types'],
+    },
     build: {
-      rollupOptions: {
-        external: ['@sentry/electron/main'],
+      // electron-vite externalizes deps in main/preload by default.
+      // Excluding this workspace package forces it to be bundled instead of `require('@flwst/core')`.
+      externalizeDeps: {
+        exclude: ['@flwst/core', '@flwst/types'],
       },
     },
   },
-  preload: {},
+
+  preload: {
+    resolve: {
+      alias: {
+        // Use source files in dev, not dist
+        '@flwst/core': r('../../libs/core/src/index.ts'),
+        '@flwst/core/logger': r('../../libs/core/src/logger.ts'),
+        '@flwst/types': r('../../types/src/index.ts'),
+      },
+    },
+    ssr: {
+      // Keep workspace package bundled for SSR builds
+      noExternal: ['@flwst/core', '@flwst/types'],
+    },
+    build: {
+      externalizeDeps: {
+        exclude: ['@flwst/core', '@flwst/types'],
+      },
+    },
+  },
+
   renderer: {
     resolve: {
       alias: {
-        '@renderer': resolve('src/renderer/src'),
+        '@renderer': r('src/renderer/src'),
         // Use source files in dev, not dist
-        '@flwst/ui': resolve('../../libs/ui/src'),
+        '@flwst/ui': r('../../libs/ui/src'),
         // Alias for subpath imports (e.g., @flwst/core/logger)
-        '@flwst/core/logger': resolve('../../libs/core/src/logger.ts'),
+        '@flwst/core/logger': r('../../libs/core/src/logger.ts'),
         // Use browser-safe exports for renderer (excludes Node.js modules like paths)
-        '@flwst/core': resolve('../../libs/core/src/index.browser.ts'),
+        '@flwst/core': r('../../libs/core/src/index.browser.ts'),
+        '@flwst/types': r('../../types/src/index.ts'),
       },
     },
     plugins: [react()],

@@ -4,6 +4,46 @@
  */
 
 import { logger, setExternalLogger } from '@flwst/core';
+import type { ExternalLogger, Logger } from '@flwst/core';
+
+type SentryRendererModule = typeof import('@sentry/electron/renderer');
+type SentrySeverity = 'debug' | 'info' | 'warning' | 'error';
+
+/**
+ * Build an external logger that forwards logs to Sentry.
+ */
+function createSentryExternalLogger(
+  sentry: SentryRendererModule,
+): ExternalLogger {
+  const capture = (
+    level: SentrySeverity,
+    message: string,
+    metadata?: Record<string, unknown>,
+  ): void => {
+    sentry.withScope((scope) => {
+      scope.setLevel(level);
+      if (metadata) {
+        scope.setExtras(metadata);
+      }
+
+      const error = metadata?.error;
+      if (error instanceof Error) {
+        scope.setContext('log', { message });
+        sentry.captureException(error);
+        return;
+      }
+
+      sentry.captureMessage(message);
+    });
+  };
+
+  return {
+    debug: (message, metadata) => capture('debug', message, metadata),
+    info: (message, metadata) => capture('info', message, metadata),
+    warn: (message, metadata) => capture('warning', message, metadata),
+    error: (message, metadata) => capture('error', message, metadata),
+  };
+}
 
 /**
  * Initialize Sentry for Electron renderer process.
@@ -51,8 +91,11 @@ export function initSentryRenderer(
         },
       });
 
-      // Forward core logs to Sentry's logger API (production or explicit opt-in)
-      setExternalLogger(logsEnabled ? sentry.logger : null);
+      // Forward core logs into Sentry (production or explicit opt-in)
+      const externalLogger = logsEnabled
+        ? createSentryExternalLogger(sentry)
+        : null;
+      setExternalLogger(externalLogger);
 
       logger.info('Sentry renderer process initialized', {
         environment,
@@ -71,6 +114,6 @@ export function initSentryRenderer(
  * Get the Sentry-enabled logger instance.
  * Returns the base logger if Sentry is not initialized.
  */
-export function getLogger() {
+export function getLogger(): Logger {
   return logger;
 }
