@@ -13,6 +13,7 @@
     "format": "prettier -w .",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
+    "nuke:node_modules": "rm -rf node_modules libs/*/node_modules apps/*/node_modules",
     "dev:electron": "turbo run dev --filter=@flwst/electron"
   },
   "lint-staged": {
@@ -60,8 +61,12 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
+      "@firebase/util",
       "electron",
-      "esbuild"
+      "electron-winstaller",
+      "esbuild",
+      "keytar",
+      "protobufjs"
     ]
   }
 }

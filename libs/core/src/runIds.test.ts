@@ -10,7 +10,7 @@ import {
   createRunIdFromFilename,
   md5HashToUuidV4,
   validateRunId,
-} from './runIds.js';
+} from './runIds';
 
 test('md5HashToUuidV4 maps known md5 to UUID v4', () => {
   const md5 = 'd41d8cd98f00b204e9800998ecf8427e';

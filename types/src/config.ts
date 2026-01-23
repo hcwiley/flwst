@@ -3,7 +3,7 @@
  */
 
 import { z } from 'zod';
-import { PrioritySchema, TaskStatusSchema } from './core.js';
+import { PrioritySchema, TaskStatusSchema } from './core';
 
 /**
  * User configuration schema.
@@ -67,6 +67,19 @@ export const AmplitudeConfigSchema = z.object({
 });
 
 export type AmplitudeConfig = z.infer<typeof AmplitudeConfigSchema>;
+
+/**
+ * OAuth tokens and Notion IDs schema.
+ * Used for encrypted storage of sensitive tokens.
+ */
+export const TokensSchema = z.object({
+  notionAccessToken: z.string().optional(),
+  notionPageId: z.string().optional(),
+  notionDailyNotesDbId: z.string().optional(),
+  notionTodosDbId: z.string().optional(),
+});
+
+export type Tokens = z.infer<typeof TokensSchema>;
 
 /**
  * Notion database schema definitions.

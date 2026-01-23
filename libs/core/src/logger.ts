@@ -20,9 +20,23 @@ export interface Logger {
 }
 
 /**
+ * Optional external log sink (e.g., Sentry logger).
+ */
+export type ExternalLogger = Pick<Logger, LogLevel>;
+
+let externalLogger: ExternalLogger | null = null;
+
+/**
+ * Register an external logger sink to mirror log messages.
+ */
+export function setExternalLogger(logger: ExternalLogger | null): void {
+  externalLogger = logger;
+}
+
+/**
  * Simple console logger implementation.
  */
-class ConsoleLogger implements Logger {
+export class ConsoleLogger implements Logger {
   private minLevel: LogLevel;
 
   constructor(minLevel: LogLevel = 'info') {
@@ -62,6 +76,12 @@ class ConsoleLogger implements Logger {
       logFn(prefix, message, metadata);
     } else {
       logFn(prefix, message);
+    }
+
+    try {
+      externalLogger?.[level]?.(message, metadata);
+    } catch {
+      // Ignore failures in external logger sinks.
     }
   }
 

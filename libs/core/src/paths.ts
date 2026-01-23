@@ -84,3 +84,24 @@ export function getTaskListPath(runId: string): string {
 export function getLogsPath(runId: string): string {
   return join(getArtifactsDir(), runId, 'logs.json');
 }
+
+/**
+ * Get the storage directory path for encrypted data.
+ */
+export function getStorageDir(): string {
+  return join(getAppCacheDir(), 'storage');
+}
+
+/**
+ * Get the path for encrypted tokens file.
+ */
+export function getTokensStoragePath(): string {
+  return join(getStorageDir(), 'tokens.encrypted');
+}
+
+/**
+ * Get the path for encrypted config file.
+ */
+export function getConfigStoragePath(): string {
+  return join(getStorageDir(), 'config.encrypted');
+}
