@@ -44,6 +44,7 @@ export default [
       'no-param-reassign': ['error', { props: false }],
       'no-underscore-dangle': 'off',
       'no-plusplus': ['error', { allowForLoopAfterthoughts: true }],
+      quotes: ['error', 'single'],
 
       // Imports (Airbnb-ish)
       'import/newline-after-import': 'error',
