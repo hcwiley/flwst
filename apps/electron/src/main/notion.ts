@@ -555,6 +555,23 @@ export function registerNotionHandlers(): void {
     }).catch(() => {});
     // #endregion agent log
     const response = await notion.databases.create(payload);
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/3e35c006-94a7-466a-acab-dce9d65a6631', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: 'debug-session',
+        runId: 'pre',
+        hypothesisId: 'H6',
+        location: 'src/main/notion.ts:createDailyNotesDatabase:success',
+        message: 'successfully created daily notes database',
+        data: {
+          id: response.id,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion agent log
     return response.id;
   }
 
@@ -591,8 +608,66 @@ export function registerNotionHandlers(): void {
       }),
     }).catch(() => {});
     // #endregion agent log
-    const response = await notion.databases.create(payload);
-    return response.id;
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/3e35c006-94a7-466a-acab-dce9d65a6631', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: 'debug-session',
+        runId: 'pre',
+        hypothesisId: 'H7',
+        location: 'src/main/notion.ts:createTasksDatabase:call',
+        message: 'calling databases.create for tasks',
+        data: {
+          parentPageId: normalizeNotionId(flowStatePageId),
+          title: TASKS_DB_TITLE,
+          propertyKeys: Object.keys(properties ?? {}),
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion agent log
+    try {
+      const response = await notion.databases.create(payload);
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/3e35c006-94a7-466a-acab-dce9d65a6631', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: 'debug-session',
+          runId: 'pre',
+          hypothesisId: 'H7',
+          location: 'src/main/notion.ts:createTasksDatabase:success',
+          message: 'successfully created tasks database',
+          data: {
+            id: response.id,
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion agent log
+      return response.id;
+    } catch (error) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/3e35c006-94a7-466a-acab-dce9d65a6631', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: 'debug-session',
+          runId: 'pre',
+          hypothesisId: 'H7',
+          location: 'src/main/notion.ts:createTasksDatabase:error',
+          message: 'failed to create tasks database',
+          data: {
+            error: error instanceof Error ? error.message : String(error),
+            code: (error as any).code,
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion agent log
+      throw error;
+    }
   }
 
   async function ensureDailyNotesRelation(
@@ -600,17 +675,71 @@ export function registerNotionHandlers(): void {
     dailyNotesDbId: string,
     tasksDbId: string,
   ): Promise<void> {
-    const properties: CreateDatabaseParameters['properties'] = {
+    const properties: any = {
       Tasks: {
         relation: {
           database_id: normalizeNotionId(tasksDbId),
         },
       },
     };
-    await notion.databases.update({
-      database_id: normalizeNotionId(dailyNotesDbId),
-      properties,
-    });
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/3e35c006-94a7-466a-acab-dce9d65a6631', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: 'debug-session',
+        runId: 'pre',
+        hypothesisId: 'H8',
+        location: 'src/main/notion.ts:ensureDailyNotesRelation:call',
+        message: 'calling databases.update for daily notes relation',
+        data: {
+          database_id: normalizeNotionId(dailyNotesDbId),
+          propertyKeys: Object.keys(properties),
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion agent log
+    try {
+      await notion.databases.update({
+        database_id: normalizeNotionId(dailyNotesDbId),
+        properties,
+      });
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/3e35c006-94a7-466a-acab-dce9d65a6631', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: 'debug-session',
+          runId: 'pre',
+          hypothesisId: 'H8',
+          location: 'src/main/notion.ts:ensureDailyNotesRelation:success',
+          message: 'successfully updated daily notes relation',
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion agent log
+    } catch (error) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/3e35c006-94a7-466a-acab-dce9d65a6631', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: 'debug-session',
+          runId: 'pre',
+          hypothesisId: 'H8',
+          location: 'src/main/notion.ts:ensureDailyNotesRelation:error',
+          message: 'failed to update daily notes relation',
+          data: {
+            error: error instanceof Error ? error.message : String(error),
+            code: (error as any).code,
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion agent log
+      throw error;
+    }
   }
 
   function ensureDatabaseProperties(
