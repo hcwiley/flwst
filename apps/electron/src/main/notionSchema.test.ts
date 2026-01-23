@@ -16,6 +16,20 @@ describe('notionSchema helpers', () => {
     assert.equal(normalized, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');
   });
 
+  it('normalizes Notion IDs from slug input', () => {
+    const normalized = normalizeNotionId(
+      'flwst-DEMO-2a3f192d8082806994c6cce9e70525a7',
+    );
+    assert.equal(normalized, '2a3f192d-8082-8069-94c6-cce9e70525a7');
+  });
+
+  it('normalizes Notion IDs from full URL input', () => {
+    const normalized = normalizeNotionId(
+      'https://www.notion.so/hcwiley/flwst-DEMO-2a3f192d8082806994c6cce9e70525a7?source=copy_link',
+    );
+    assert.equal(normalized, '2a3f192d-8082-8069-94c6-cce9e70525a7');
+  });
+
   it('builds tasks properties with relations when provided', () => {
     const properties = buildTasksDbProperties(
       'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
