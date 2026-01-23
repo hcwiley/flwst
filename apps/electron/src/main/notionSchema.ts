@@ -9,7 +9,7 @@
 import type { CreateDatabaseParameters } from '@notionhq/client/build/src/api-endpoints';
 import { PrioritySchema, TaskStatusSchema } from '@flwst/types';
 
-type NotionDatabaseProperties = CreateDatabaseParameters['properties'];
+type NotionDatabaseProperties = any;
 
 const NOTION_ID_REGEX = /^[0-9a-f]{32}$/i;
 const NOTION_HEX_REGEX = /[0-9a-f]{32}/gi;
@@ -93,9 +93,6 @@ export function buildTasksDbProperties(
 ): NotionDatabaseProperties {
   const priorityOptions = PrioritySchema.options.map((priority) => ({
     name: priority,
-  }));
-  const statusOptions = TaskStatusSchema.options.map((status) => ({
-    name: status,
   }));
 
   const properties: NotionDatabaseProperties = {

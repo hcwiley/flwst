@@ -15,7 +15,6 @@ import {
   normalizeNotionId,
 } from './notionSchema';
 
-const NOTION_VERSION = '2022-06-28';
 const FLOW_STATE_PAGE_TITLE = 'flwst';
 const DAILY_NOTES_DB_TITLE = 'Daily Notes';
 const TASKS_DB_TITLE = 'To-Dos';
@@ -347,8 +346,9 @@ export function registerNotionHandlers(): void {
         dailyNotesDbId: existing.dailyNotesDbId,
         tasksDbId: existing.tasksDbId,
       });
-      await persistIds(existing, parentPageId, onboardingState);
-      return existing;
+      const existingFull = existing as CreateResourcesResult;
+      await persistIds(existingFull, parentPageId, onboardingState);
+      return existingFull;
     }
 
     const flowStatePageId =
@@ -427,7 +427,7 @@ export function registerNotionHandlers(): void {
 
     const pageSearch = await notion.search({
       query: FLOW_STATE_PAGE_TITLE,
-      filter: { property: 'object', value: 'page' },
+      filter: { property: 'object', value: 'page' } as any,
     });
 
     for (const item of pageSearch.results) {
@@ -450,7 +450,7 @@ export function registerNotionHandlers(): void {
 
     const dbSearch = await notion.search({
       query: DAILY_NOTES_DB_TITLE,
-      filter: { property: 'object', value: 'database' },
+      filter: { property: 'object', value: 'database' } as any,
     });
     for (const item of dbSearch.results) {
       if (!('parent' in item)) {
@@ -469,7 +469,7 @@ export function registerNotionHandlers(): void {
 
     const tasksSearch = await notion.search({
       query: TASKS_DB_TITLE,
-      filter: { property: 'object', value: 'database' },
+      filter: { property: 'object', value: 'database' } as any,
     });
     for (const item of tasksSearch.results) {
       if (!('parent' in item)) {
@@ -509,10 +509,10 @@ export function registerNotionHandlers(): void {
     flowStatePageId: string,
   ): Promise<string> {
     const properties = ensureDatabaseProperties(buildDailyNotesDbProperties());
-    const payload: CreateDatabaseParameters = {
-      parent: { page_id: normalizeNotionId(flowStatePageId) },
+    const payload: any = {
+      parent: { type: 'page_id', page_id: normalizeNotionId(flowStatePageId) },
       title: [{ text: { content: DAILY_NOTES_DB_TITLE } }],
-      properties: properties as CreateDatabaseParameters['properties'],
+      properties: properties as any,
     };
     // #region agent log
     fetch('http://127.0.0.1:7242/ingest/3e35c006-94a7-466a-acab-dce9d65a6631', {
@@ -548,6 +548,7 @@ export function registerNotionHandlers(): void {
           parentPageId: normalizeNotionId(flowStatePageId),
           title: DAILY_NOTES_DB_TITLE,
           propertyKeys: Object.keys(payload.properties),
+          fullPayload: JSON.stringify(payload),
         },
         timestamp: Date.now(),
       }),
@@ -582,10 +583,10 @@ export function registerNotionHandlers(): void {
     const properties = ensureDatabaseProperties(
       buildTasksDbProperties(dailyNotesDbId),
     );
-    const payload: CreateDatabaseParameters = {
-      parent: { page_id: normalizeNotionId(flowStatePageId) },
+    const payload: any = {
+      parent: { type: 'page_id', page_id: normalizeNotionId(flowStatePageId) },
       title: [{ text: { content: TASKS_DB_TITLE } }],
-      properties: properties as CreateDatabaseParameters['properties'],
+      properties: properties as any,
     };
     // #region agent log
     fetch('http://127.0.0.1:7242/ingest/3e35c006-94a7-466a-acab-dce9d65a6631', {
@@ -621,6 +622,7 @@ export function registerNotionHandlers(): void {
           parentPageId: normalizeNotionId(flowStatePageId),
           title: TASKS_DB_TITLE,
           propertyKeys: Object.keys(payload.properties),
+          fullPayload: JSON.stringify(payload),
         },
         timestamp: Date.now(),
       }),
@@ -835,7 +837,7 @@ export function registerNotionHandlers(): void {
     if (error.code === APIErrorCode.Unauthorized) {
       return 'NOTION_TOKEN_MISSING';
     }
-    if (error.code === APIErrorCode.Forbidden) {
+    if (error.code === APIErrorCode.RestrictedResource) {
       if (isNotionNotShared(error.message)) {
         return 'NOTION_NOT_SHARED_WITH_PARENT';
       }
