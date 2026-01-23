@@ -63,9 +63,7 @@ function startCallbackServer(
   return new Promise((resolve, reject) => {
     const callbackUrl = new URL(redirectUri);
     // Extract port from redirect URI, default to 3000 if not specified
-    const port = callbackUrl.port
-      ? parseInt(callbackUrl.port, 10)
-      : 3000;
+    const port = callbackUrl.port ? parseInt(callbackUrl.port, 10) : 3000;
 
     let server: Server | null = null;
     const timeoutId = setTimeout(() => {
@@ -157,14 +155,21 @@ function startCallbackServer(
 async function exchangeCodeForToken(
   config: OAuthConfig,
   code: string,
-): Promise<{ access_token: string; workspace_id: string; workspace_name?: string; bot_id?: string }> {
-  const basicAuth = Buffer.from(`${config.clientId}:${config.clientSecret}`).toString('base64');
-  
+): Promise<{
+  access_token: string;
+  workspace_id: string;
+  workspace_name?: string;
+  bot_id?: string;
+}> {
+  const basicAuth = Buffer.from(
+    `${config.clientId}:${config.clientSecret}`,
+  ).toString('base64');
+
   const response = await fetch('https://api.notion.com/v1/oauth/token', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Basic ${basicAuth}`,
+      Authorization: `Basic ${basicAuth}`,
     },
     body: JSON.stringify({
       grant_type: 'authorization_code',
@@ -175,7 +180,9 @@ async function exchangeCodeForToken(
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Failed to exchange code for token: ${response.status} ${errorText}`);
+    throw new Error(
+      `Failed to exchange code for token: ${response.status} ${errorText}`,
+    );
   }
 
   const data = await response.json();
@@ -185,7 +192,7 @@ async function exchangeCodeForToken(
 /**
  * Complete OAuth flow: generate URL, start callback server, exchange code for token.
  * Returns access token and workspace metadata.
- * 
+ *
  * This function starts the callback server, generates the auth URL, and waits for the callback.
  * The caller should open the returned authUrl in a browser.
  */
@@ -204,7 +211,7 @@ export async function completeNotionOAuth(): Promise<{
   const state = randomBytes(16).toString('hex');
   const authUrl = generateAuthUrl(config, state);
 
-  logger.info('Starting Notion OAuth flow', { 
+  logger.info('Starting Notion OAuth flow', {
     authUrl: authUrl.replace(config.clientId, '***'),
     redirectUri: config.redirectUri,
   });

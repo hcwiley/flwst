@@ -38,7 +38,8 @@ export function registerOnboardingHandlers(): void {
       try {
         const configStore = getConfigStore();
         const currentState = await configStore.read();
-        const currentOnboarding = currentState.onboardingState || getDefaultOnboardingState();
+        const currentOnboarding =
+          currentState.onboardingState || getDefaultOnboardingState();
         const updatedOnboarding: OnboardingState = {
           ...currentOnboarding,
           ...partial,

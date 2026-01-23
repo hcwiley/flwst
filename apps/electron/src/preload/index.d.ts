@@ -13,9 +13,7 @@ export interface NotionAPI {
     workspace: NotionWorkspaceMetadata;
   }) => Promise<void>;
   setParentPage: (parentPageId: string) => Promise<void>;
-  createResources: (options: {
-    parentPageId: string;
-  }) => Promise<{
+  createResources: (options: { parentPageId: string }) => Promise<{
     flowStatePageId: string;
     dailyNotesDbId: string;
     tasksDbId: string;

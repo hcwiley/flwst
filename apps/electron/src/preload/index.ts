@@ -15,7 +15,11 @@ const api = {
       ipcRenderer.invoke('notion:startOAuth'),
     storeOAuthResult: (result: {
       accessToken: string;
-      workspace: { workspaceId: string; workspaceName?: string; botId?: string };
+      workspace: {
+        workspaceId: string;
+        workspaceName?: string;
+        botId?: string;
+      };
     }): Promise<void> => ipcRenderer.invoke('notion:storeOAuthResult', result),
     setParentPage: (parentPageId: string): Promise<void> =>
       ipcRenderer.invoke('notion:setParentPage', parentPageId),
