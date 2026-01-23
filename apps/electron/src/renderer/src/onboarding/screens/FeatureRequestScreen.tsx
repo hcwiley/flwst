@@ -45,15 +45,27 @@ export function FeatureRequestScreen({
       alignSelf='center'
       width='100%'
     >
-      <Text fontSize='$8' fontWeight='bold'>
+      <Text
+        fontSize='$8'
+        fontWeight='bold'
+      >
         Request {system === 'jira' ? 'JIRA' : 'System'} Integration
       </Text>
-      <Text fontSize='$4' opacity={0.8}>
+      <Text
+        fontSize='$4'
+        opacity={0.8}
+      >
         Help us prioritize this integration by sharing your use case.
       </Text>
-      <Stack gap='$3' marginTop='$2'>
+      <Stack
+        gap='$3'
+        marginTop='$2'
+      >
         <Stack gap='$2'>
-          <Text fontSize='$3' fontWeight='600'>
+          <Text
+            fontSize='$3'
+            fontWeight='600'
+          >
             Team Size
           </Text>
           <Input
@@ -64,7 +76,10 @@ export function FeatureRequestScreen({
           />
         </Stack>
         <Stack gap='$2'>
-          <Text fontSize='$3' fontWeight='600'>
+          <Text
+            fontSize='$3'
+            fontWeight='600'
+          >
             Urgency
           </Text>
           <Input
@@ -75,7 +90,10 @@ export function FeatureRequestScreen({
           />
         </Stack>
         <Stack gap='$2'>
-          <Text fontSize='$3' fontWeight='600'>
+          <Text
+            fontSize='$3'
+            fontWeight='600'
+          >
             Notes / Use Case
           </Text>
           <TextArea
@@ -87,11 +105,25 @@ export function FeatureRequestScreen({
           />
         </Stack>
       </Stack>
-      <Stack flexDirection='row' gap='$3' marginTop='$4'>
-        <Button onPress={onBack} theme='gray' size='$4' flex={1}>
+      <Stack
+        flexDirection='row'
+        gap='$3'
+        marginTop='$4'
+      >
+        <Button
+          onPress={onBack}
+          theme='gray'
+          size='$4'
+          flex={1}
+        >
           Back
         </Button>
-        <Button onPress={handleSubmit} theme='active' size='$4' flex={1}>
+        <Button
+          onPress={handleSubmit}
+          theme='active'
+          size='$4'
+          flex={1}
+        >
           Submit Request
         </Button>
       </Stack>

@@ -11,7 +11,11 @@ import { MainPane } from '../components/MainPane';
 export function MainLayout(): React.JSX.Element {
   return (
     <FlowStateTamaguiProvider defaultTheme='light'>
-      <Stack flexDirection='row' height='100vh' width='100vw'>
+      <Stack
+        flexDirection='row'
+        height='100vh'
+        width='100vw'
+      >
         <SideMenu />
         <MainPane />
       </Stack>

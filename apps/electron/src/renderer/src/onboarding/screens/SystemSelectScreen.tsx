@@ -21,13 +21,28 @@ export function SystemSelectScreen({
       justifyContent='center'
       gap='$4'
     >
-      <Text fontSize='$8' fontWeight='bold' textAlign='center'>
+      <Text
+        fontSize='$8'
+        fontWeight='bold'
+        textAlign='center'
+      >
         Choose Your To-Do System
       </Text>
-      <Text fontSize='$4' textAlign='center' maxWidth={500} opacity={0.8}>
+      <Text
+        fontSize='$4'
+        textAlign='center'
+        maxWidth={500}
+        opacity={0.8}
+      >
         Select the system you want to use with FlowState
       </Text>
-      <Stack flexDirection='column' gap='$3' marginTop='$4' width='100%' maxWidth={400}>
+      <Stack
+        flexDirection='column'
+        gap='$3'
+        marginTop='$4'
+        width='100%'
+        maxWidth={400}
+      >
         <Button
           onPress={() => onSelect('notion')}
           theme='active'

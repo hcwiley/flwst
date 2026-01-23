@@ -52,14 +52,33 @@ export function CreateResourcesScreen({
         alignSelf='center'
         width='100%'
       >
-        <Text fontSize='$8' fontWeight='bold' textAlign='center' color='$red10'>
+        <Text
+          fontSize='$8'
+          fontWeight='bold'
+          textAlign='center'
+          color='$red10'
+        >
           Error
         </Text>
-        <Text fontSize='$4' textAlign='center' opacity={0.8}>
+        <Text
+          fontSize='$4'
+          textAlign='center'
+          opacity={0.8}
+        >
           {error}
         </Text>
-        <Stack flexDirection='row' gap='$3' marginTop='$4' width='100%'>
-          <Button onPress={onBack} theme='gray' size='$4' flex={1}>
+        <Stack
+          flexDirection='row'
+          gap='$3'
+          marginTop='$4'
+          width='100%'
+        >
+          <Button
+            onPress={onBack}
+            theme='gray'
+            size='$4'
+            flex={1}
+          >
             Back
           </Button>
           <Button
@@ -93,19 +112,35 @@ export function CreateResourcesScreen({
       {isCreating ? (
         <>
           <Spinner size='large' />
-          <Text fontSize='$6' fontWeight='bold' textAlign='center'>
+          <Text
+            fontSize='$6'
+            fontWeight='bold'
+            textAlign='center'
+          >
             Creating Resources
           </Text>
-          <Text fontSize='$4' textAlign='center' opacity={0.8}>
+          <Text
+            fontSize='$4'
+            textAlign='center'
+            opacity={0.8}
+          >
             Setting up your Notion workspace...
           </Text>
         </>
       ) : (
         <>
-          <Text fontSize='$8' fontWeight='bold' textAlign='center'>
+          <Text
+            fontSize='$8'
+            fontWeight='bold'
+            textAlign='center'
+          >
             Success!
           </Text>
-          <Text fontSize='$4' textAlign='center' opacity={0.8}>
+          <Text
+            fontSize='$4'
+            textAlign='center'
+            opacity={0.8}
+          >
             Your Notion workspace has been set up successfully.
           </Text>
         </>

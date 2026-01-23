@@ -31,7 +31,7 @@ import {
 /**
  * Onboarding flow reducer.
  * Pure function that handles state transitions.
- * 
+ *
  * @internal - exported for testing
  */
 export function onboardingReducer(
@@ -292,11 +292,7 @@ export function OnboardingFlow({
   // Render appropriate screen based on step
   switch (flowState.step) {
     case 'Welcome':
-      return (
-        <WelcomeScreen
-          onNext={() => dispatch({ type: 'NEXT' })}
-        />
-      );
+      return <WelcomeScreen onNext={() => dispatch({ type: 'NEXT' })} />;
 
     case 'SystemSelect':
       return (
@@ -436,7 +432,11 @@ export function OnboardingFlow({
           alignItems='center'
           justifyContent='center'
         >
-          <Text fontSize='$8' fontWeight='bold' textAlign='center'>
+          <Text
+            fontSize='$8'
+            fontWeight='bold'
+            textAlign='center'
+          >
             Setup Complete!
           </Text>
         </Stack>

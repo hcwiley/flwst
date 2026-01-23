@@ -21,7 +21,11 @@ export function BusyScreen({ busy }: BusyScreenProps): React.JSX.Element {
     >
       <Spinner size='large' />
       {busy.message && (
-        <Text fontSize='$4' textAlign='center' opacity={0.8}>
+        <Text
+          fontSize='$4'
+          textAlign='center'
+          opacity={0.8}
+        >
           {busy.message}
         </Text>
       )}

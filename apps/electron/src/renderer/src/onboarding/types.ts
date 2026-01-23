@@ -57,7 +57,10 @@ export type OnboardingFlowAction =
   | { type: 'NEXT' }
   | { type: 'BACK' }
   | { type: 'SELECT_SYSTEM'; system: 'notion' | 'jira' | 'other' }
-  | { type: 'SUBMIT_FEATURE_REQUEST'; payload: OnboardingState['featureRequests'] }
+  | {
+      type: 'SUBMIT_FEATURE_REQUEST';
+      payload: OnboardingState['featureRequests'];
+    }
   | { type: 'SET_BUSY'; payload: BusyState }
   | { type: 'CLEAR_BUSY' }
   | { type: 'SET_ERROR'; payload: ErrorState }

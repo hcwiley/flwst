@@ -20,7 +20,10 @@ export function NotionOAuthStartScreen({
 
   useEffect(() => {
     // Listen for OAuth completion event from main process
-    const handleOAuthComplete = (_event: unknown, data: { success: boolean; error?: string }): void => {
+    const handleOAuthComplete = (
+      _event: unknown,
+      data: { success: boolean; error?: string },
+    ): void => {
       if (data.success) {
         setIsWaiting(false);
         setIsStarting(false);
@@ -34,10 +37,16 @@ export function NotionOAuthStartScreen({
     };
 
     if (window.electron?.ipcRenderer) {
-      window.electron.ipcRenderer.on('notion:oauthComplete', handleOAuthComplete);
+      window.electron.ipcRenderer.on(
+        'notion:oauthComplete',
+        handleOAuthComplete,
+      );
 
       return () => {
-        window.electron.ipcRenderer.removeListener('notion:oauthComplete', handleOAuthComplete);
+        window.electron.ipcRenderer.removeListener(
+          'notion:oauthComplete',
+          handleOAuthComplete,
+        );
       };
     }
     return undefined;
@@ -70,24 +79,48 @@ export function NotionOAuthStartScreen({
       alignSelf='center'
       width='100%'
     >
-      <Text fontSize='$8' fontWeight='bold' textAlign='center'>
+      <Text
+        fontSize='$8'
+        fontWeight='bold'
+        textAlign='center'
+      >
         Authorize Notion
       </Text>
       {isWaiting ? (
         <>
           <Spinner size='large' />
-          <Text fontSize='$4' textAlign='center' opacity={0.8}>
-            Waiting for authorization... Please complete the authorization in your browser.
+          <Text
+            fontSize='$4'
+            textAlign='center'
+            opacity={0.8}
+          >
+            Waiting for authorization... Please complete the authorization in
+            your browser.
           </Text>
         </>
       ) : (
         <>
-          <Text fontSize='$4' textAlign='center' opacity={0.8}>
-            Click the button below to open Notion and authorize FlowState to access
-            your workspace.
+          <Text
+            fontSize='$4'
+            textAlign='center'
+            opacity={0.8}
+          >
+            Click the button below to open Notion and authorize FlowState to
+            access your workspace.
           </Text>
-          <Stack flexDirection='row' gap='$3' marginTop='$4' width='100%'>
-            <Button onPress={onBack} theme='gray' size='$4' flex={1} disabled={isStarting}>
+          <Stack
+            flexDirection='row'
+            gap='$3'
+            marginTop='$4'
+            width='100%'
+          >
+            <Button
+              onPress={onBack}
+              theme='gray'
+              size='$4'
+              flex={1}
+              disabled={isStarting}
+            >
               Back
             </Button>
             <Button

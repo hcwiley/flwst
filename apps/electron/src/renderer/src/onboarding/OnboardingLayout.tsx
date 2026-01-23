@@ -16,8 +16,15 @@ export function OnboardingLayout({
 }: OnboardingLayoutProps): React.JSX.Element {
   return (
     <FlowStateTamaguiProvider defaultTheme='light'>
-      <Stack flexDirection='row' height='100vh' width='100vw'>
-        <Stack flex={1} backgroundColor='$background'>
+      <Stack
+        flexDirection='row'
+        height='100vh'
+        width='100vw'
+      >
+        <Stack
+          flex={1}
+          backgroundColor='$background'
+        >
           <OnboardingFlow onComplete={onComplete} />
         </Stack>
       </Stack>

@@ -31,18 +31,41 @@ export function NotionOAuthCompleteScreen({
       alignSelf='center'
       width='100%'
     >
-      <Text fontSize='$8' fontWeight='bold' textAlign='center'>
+      <Text
+        fontSize='$8'
+        fontWeight='bold'
+        textAlign='center'
+      >
         Notion Connected
       </Text>
-      <Text fontSize='$4' textAlign='center' opacity={0.8}>
+      <Text
+        fontSize='$4'
+        textAlign='center'
+        opacity={0.8}
+      >
         Your Notion workspace has been successfully connected. Now let's set up
         where FlowState will create your pages and databases.
       </Text>
-      <Stack flexDirection='row' gap='$3' marginTop='$4' width='100%'>
-        <Button onPress={onBack} theme='gray' size='$4' flex={1}>
+      <Stack
+        flexDirection='row'
+        gap='$3'
+        marginTop='$4'
+        width='100%'
+      >
+        <Button
+          onPress={onBack}
+          theme='gray'
+          size='$4'
+          flex={1}
+        >
           Back
         </Button>
-        <Button onPress={onNext} theme='active' size='$4' flex={1}>
+        <Button
+          onPress={onNext}
+          theme='active'
+          size='$4'
+          flex={1}
+        >
           Continue
         </Button>
       </Stack>
