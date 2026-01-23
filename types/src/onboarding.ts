@@ -41,6 +41,7 @@ export const NotionWorkspaceStateSchema = z.object({
   status: NotionStatusSchema,
   workspace: NotionWorkspaceMetadataSchema.optional(),
   parentPageId: z.string().optional(),
+  flowStatePageId: z.string().optional(),
   dailyNotesDbId: z.string().optional(),
   tasksDbId: z.string().optional(),
   createdAt: z.string().datetime().optional(),
@@ -60,9 +61,7 @@ export const FeatureRequestPayloadSchema = z.object({
   submittedAt: z.string().datetime(),
 });
 
-export type FeatureRequestPayload = z.infer<
-  typeof FeatureRequestPayloadSchema
->;
+export type FeatureRequestPayload = z.infer<typeof FeatureRequestPayloadSchema>;
 
 /**
  * Onboarding state persisted in storage.
