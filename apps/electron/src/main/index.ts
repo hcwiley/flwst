@@ -32,8 +32,8 @@ app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.electron');
 
   // Initialize encrypted storage
+  // Stores are now available via getConfigStore() and getTokensStore()
   initializeStorage();
-  // Storage is now available for IPC handlers
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
