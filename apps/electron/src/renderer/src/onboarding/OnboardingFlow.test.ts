@@ -6,10 +6,7 @@ import { describe, it } from 'node:test';
 import { strictEqual } from 'node:assert';
 import type { OnboardingState } from '@flwst/types';
 import { getDefaultOnboardingState } from '@flwst/types';
-import type {
-  OnboardingFlowState,
-  OnboardingFlowAction,
-} from './types';
+import type { OnboardingFlowState, OnboardingFlowAction } from './types';
 import { onboardingReducer } from './OnboardingFlow';
 
 /**
@@ -266,7 +263,10 @@ describe('onboardingReducer', () => {
       };
       const result = onboardingReducer(state, action);
       strictEqual(result.onboardingState.notion.status, 'authed');
-      strictEqual(result.onboardingState.notion.workspace?.workspaceId, 'test-workspace-id');
+      strictEqual(
+        result.onboardingState.notion.workspace?.workspaceId,
+        'test-workspace-id',
+      );
       strictEqual(result.onboardingState.onboardingCompleted, false);
     });
   });
