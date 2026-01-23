@@ -1,17 +1,20 @@
 # @flwst/electron Architecture
 
 ## Overview
+
 The Electron app is the primary alpha client. It combines a main process that
 owns lifecycle, encrypted local persistence, and crash reporting with a React
 renderer that hosts the UI shell.
 
 ## Key Responsibilities
+
 - Bootstrap the Electron lifecycle and window management.
 - Initialize encrypted local storage (tokens + config).
 - Provide a renderer UI shell for onboarding and workflow surfaces.
 - Report crashes and logs to Sentry when configured.
 
 ## Dependencies
+
 - `@flwst/core` for logging, run IDs, and encrypted storage utilities.
 - `@sentry/electron` for crash reporting.
 - `keytar` for OS keychain integration.
