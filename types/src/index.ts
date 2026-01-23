@@ -9,3 +9,4 @@ export * from './core';
 export * from './config';
 export * from './artifacts';
 export * from './notion';
+export * from './onboarding';

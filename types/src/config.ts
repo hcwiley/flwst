@@ -4,6 +4,7 @@
 
 import { z } from 'zod';
 import { PrioritySchema, TaskStatusSchema } from './core';
+import { OnboardingStateSchema } from './onboarding';
 
 /**
  * User configuration schema.
@@ -24,6 +25,7 @@ export const UserConfigSchema = z.object({
     dailyNotesDbId: z.string().optional(),
     todosDbId: z.string().optional(),
   }),
+  onboardingState: OnboardingStateSchema.optional(),
 });
 
 export type UserConfig = z.infer<typeof UserConfigSchema>;
