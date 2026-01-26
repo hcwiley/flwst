@@ -4,7 +4,8 @@ React Native (Expo) application for FlowState.
 
 ## Setup
 
-This package needs to be initialized with Expo. Run the following command from the repo root:
+This package needs to be initialized with Expo. Run the following command from
+the repo root:
 
 ```bash
 cd apps/mobile

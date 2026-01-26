@@ -28,9 +28,11 @@ pnpm install
 pnpm approve-builds electron
 ```
 
-Select the `electron` package (press `space` to toggle, then `enter`) and answer `y` when prompted to approve.
+Select the `electron` package (press `space` to toggle, then `enter`) and answer
+`y` when prompted to approve.
 
-3. Reinstall to ensure `electron/package.json` lives under `apps/electron/node_modules`:
+3. Reinstall to ensure `electron/package.json` lives under
+   `apps/electron/node_modules`:
 
 ```bash
 pnpm install
@@ -38,7 +40,8 @@ pnpm install
 
 ## Run the init
 
-The generator that actually worked is `@quick-start/electron`. From the repo root:
+The generator that actually worked is `@quick-start/electron`. From the repo
+root:
 
 ```bash
 pnpm create @quick-start/electron tmp/flwst-electron -- --template react-ts
@@ -51,7 +54,8 @@ rm -rf apps/electron/*
 cp -R tmp/flwst-electron/* apps/electron/
 ```
 
-Then install and build the workspace so Electron/native dependencies land properly:
+Then install and build the workspace so Electron/native dependencies land
+properly:
 
 ```bash
 pnpm install
@@ -69,4 +73,5 @@ After initialization, you may need to:
 
 - Main process: CommonJS (can migrate to ESM later)
 - Renderer: ESM via Vite
-- Workspace dependencies: `@flwst/types`, `@flwst/core`, `@flwst/ui`, `@flwst/state`, `@flwst/integrations`
+- Workspace dependencies: `@flwst/types`, `@flwst/core`, `@flwst/ui`,
+  `@flwst/state`, `@flwst/integrations`

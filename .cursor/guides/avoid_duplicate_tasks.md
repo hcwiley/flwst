@@ -2,11 +2,14 @@
 
 ## Overview
 
-This guide documents how to prevent creating duplicate tasks when processing daily notes. **Creating duplicates is a BIG NO NO** and must be avoided at all costs.
+This guide documents how to prevent creating duplicate tasks when processing
+daily notes. **Creating duplicates is a BIG NO NO** and must be avoided at all
+costs.
 
 ## The Problem
 
-When processing daily notes, tasks may be described differently but refer to the same work:
+When processing daily notes, tasks may be described differently but refer to the
+same work:
 
 - Daily note: "Finish Project Alpha architecture overview"
 - Existing task: "Architectural overview doc | Project Alpha"
@@ -27,9 +30,13 @@ Before creating ANY task:
 
 ### Rule 2: Filter by Project FIRST (REQUIRED)
 
-**REQUIRE the task's `Project` property to scope Notion lookups before applying fuzzy name matching.** This dramatically reduces false positives and prevents merging tasks across unrelated projects.
+**REQUIRE the task's `Project` property to scope Notion lookups before applying
+fuzzy name matching.** This dramatically reduces false positives and prevents
+merging tasks across unrelated projects.
 
-If the task has a `Project` property, search within that project first and only consider candidate pages whose `Project` property equals the task's `project` value (case-insensitive exact match):
+If the task has a `Project` property, search within that project first and only
+consider candidate pages whose `Project` property equals the task's `project`
+value (case-insensitive exact match):
 
 ```python
 # Example: Task name from daily notes is "Finish Project Alpha architecture overview"
@@ -55,17 +62,21 @@ search_queries = [
 
 - Reduces search results from hundreds to dozens
 - Same project = higher likelihood of being the same work
-- Prevents false matches from other projects (do NOT merge across different projects)
+- Prevents false matches from other projects (do NOT merge across different
+  projects)
 - Faster and more accurate matching
 
 ### Rule 3: When in Doubt, Update Don't Create (within same Project)
 
-**Only consider updating an existing task if it is in the SAME `Project`.** If you find ANY task in the same project that could be the same work:
+**Only consider updating an existing task if it is in the SAME `Project`.** If
+you find ANY task in the same project that could be the same work:
 
-- ✅ **UPDATE the existing task** (merge new content) — only when the existing task's `Project` matches
+- ✅ **UPDATE the existing task** (merge new content) — only when the existing
+  task's `Project` matches
 - ❌ **DO NOT create a new task**
 
-Only create a new task if you're **100% certain** no similar task exists in the same project.
+Only create a new task if you're **100% certain** no similar task exists in the
+same project.
 
 ## Step-by-Step Process
 
@@ -343,7 +354,8 @@ if not found_match:
 
 When searching, consider:
 
-- **Project** property: **FILTER BY THIS FIRST** - Most effective way to narrow results
+- **Project** property: **FILTER BY THIS FIRST** - Most effective way to narrow
+  results
 - **Name** property: Primary search target (after project filtering)
 - **Tags** property: Search tasks with matching tags (secondary filter)
 - **Description** property: May contain keywords (check after project match)
@@ -382,7 +394,8 @@ def prioritize_matches(results, target_project):
 1. **Filter by Project FIRST** - Most effective way to reduce duplicates
 2. **Search first, create second** - Always search before creating
 3. **Fuzzy matching is critical** - Don't rely on exact name matches
-4. **When in doubt, update (only within same Project)** - Better to update an existing same-project task than create a duplicate
+4. **When in doubt, update (only within same Project)** - Better to update an
+   existing same-project task than create a duplicate
 5. **Project + keywords** - Use both to find matches (project is primary filter)
 6. **Review carefully** - Don't skip reviewing search results
 7. **Prioritize same-project matches** - Higher likelihood of being duplicate
@@ -390,4 +403,5 @@ def prioritize_matches(results, target_project):
 ## Related Guides
 
 - `.cursor/guides/notion_mcp_create_pages.md` - How to create pages correctly
-- `.cursor/commands/process_inbox.md` - Full `/process_inbox` workflow (Daily Note + Tasks)
+- `.cursor/commands/process_inbox.md` - Full `/process_inbox` workflow (Daily
+  Note + Tasks)

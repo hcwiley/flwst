@@ -5,7 +5,8 @@ This directory contains example configuration files with placeholder values.
 ## Files
 
 - `.env.example` - Local development environment variables
-- `firebase.functions.env.example` - Firebase Functions environment variables template
+- `firebase.functions.env.example` - Firebase Functions environment variables
+  template
 
 ## Setup Instructions
 
@@ -22,7 +23,8 @@ This directory contains example configuration files with placeholder values.
 
 ### Firebase Functions
 
-Firebase Functions environment variables are set in the Firebase Console, not in files.
+Firebase Functions environment variables are set in the Firebase Console, not in
+files.
 
 1. Go to Firebase Console > Functions > Configuration
 2. Add the variables listed in `firebase.functions.env.example`

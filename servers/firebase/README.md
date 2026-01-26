@@ -36,13 +36,15 @@ These steps must be completed manually in the Firebase Console:
 1. In Firebase Console, go to "Functions" > "Configuration"
 2. Add the following environment variables:
    - `GEMINI_API_KEY`: Your Gemini API key (from Google Cloud Console)
-   - `FLOWSTATE_API_KEY`: API key for basic auth (generate a secure random string)
+   - `FLOWSTATE_API_KEY`: API key for basic auth (generate a secure random
+     string)
 
 ### 5. Configure Firebase CLI
 
 1. Install Firebase CLI globally: `npm install -g firebase-tools`
 2. Login: `firebase login`
-3. Initialize (if not done): `firebase init functions` and `firebase init hosting`
+3. Initialize (if not done): `firebase init functions` and
+   `firebase init hosting`
 4. Copy `.firebaserc.example` to `.firebaserc` and update with your project IDs
 
 ### 6. Deploy
