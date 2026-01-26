@@ -217,7 +217,8 @@ function getResumeStep(state: OnboardingState): OnboardingStep {
   switch (state.notion.status) {
     case 'ready':
     case 'resources_created':
-      return 'Done';
+      // Resources created but onboarding not complete -> show status conversion
+      return 'StatusConversion';
     case 'parent_selected':
       return 'ConfirmCreate';
     case 'authed':

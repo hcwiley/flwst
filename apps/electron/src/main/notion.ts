@@ -228,14 +228,18 @@ async function fetchDataSourceSchemaEntries(
       hypothesisId: 'H12',
       location: 'src/main/notion.ts:fetchDataSourceSchemaEntries',
       message: 'data source schema snapshot (startup)',
-      data: {
-        label,
-        dataSourceId,
-        objectType,
-        responseKeys,
-        propertyCount: entries.length,
-        properties: entries,
-      },
+      data: JSON.stringify(
+        {
+          label,
+          dataSourceId,
+          objectType,
+          responseKeys,
+          propertyCount: entries.length,
+          properties: entries,
+        },
+        null,
+        2,
+      ),
       timestamp: Date.now(),
     });
     return entries;
@@ -978,12 +982,16 @@ export function registerNotionHandlers(): void {
         hypothesisId: 'H12',
         location: 'src/main/notion.ts:logDatabaseSchemaByDataSourceId',
         message: 'data source schema snapshot',
-        data: {
-          label,
-          dataSourceId,
-          propertyCount: entries.length,
-          properties: entries,
-        },
+        data: JSON.stringify(
+          {
+            label,
+            dataSourceId,
+            propertyCount: entries.length,
+            properties: entries,
+          },
+          null,
+          2,
+        ),
         timestamp: Date.now(),
       });
     } catch (error) {
