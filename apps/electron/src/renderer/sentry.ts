@@ -22,12 +22,13 @@ function createSentryExternalLogger(
   ): void => {
     sentry.withScope((scope) => {
       scope.setLevel(level);
-      
+
       // Handle message as object or string
-      const messageStr = typeof message === 'string' 
-        ? message 
-        : JSON.stringify(message, null, 2);
-      
+      const messageStr =
+        typeof message === 'string'
+          ? message
+          : JSON.stringify(message, null, 2);
+
       if (metadata) {
         scope.setExtras(metadata);
       }

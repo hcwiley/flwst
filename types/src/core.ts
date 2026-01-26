@@ -28,7 +28,7 @@ export type Priority = z.infer<typeof PrioritySchema>;
 
 /**
  * Task status values.
- * 
+ *
  * Note: These are created as a Select property via the API.
  * Users should convert to Status property in Notion UI for better workflow features.
  * When converted, these will map to:

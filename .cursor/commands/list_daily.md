@@ -1,7 +1,6 @@
 ---
 name: list_daily
-description:
-  List entries in the "Daily Notes" Notion database via MCP using
+description: List entries in the "Daily Notes" Notion database via MCP using
   config/notion.ts
 ---
 
