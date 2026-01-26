@@ -44,6 +44,15 @@ export const NotionWorkspaceStateSchema = z.object({
   flowStatePageId: z.string().optional(),
   dailyNotesDataSourceId: z.string().optional(),
   tasksDataSourceId: z.string().optional(),
+  /**
+   * User-confirmed migration state for Status property.
+   */
+  statusPropertyMigrated: z.boolean().optional(),
+  /**
+   * Detected migration state from Notion schema checks.
+   */
+  statusPropertyNeedsMigration: z.boolean().optional(),
+  statusPropertyHasBeenMigrated: z.boolean().optional(),
   createdAt: z.string().datetime().optional(),
   updatedAt: z.string().datetime().optional(),
 });

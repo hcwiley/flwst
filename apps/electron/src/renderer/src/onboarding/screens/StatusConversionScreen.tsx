@@ -14,6 +14,10 @@ interface StatusConversionScreenProps {
 export function StatusConversionScreen({
   onContinue,
 }: StatusConversionScreenProps): React.JSX.Element {
+  const handleContinue = async (): Promise<void> => {
+    await window.electron.ipcRenderer.invoke('notion:confirmStatusMigration');
+    onContinue();
+  };
   return (
     <ScrollView flex={1}>
       <Stack
@@ -177,7 +181,7 @@ export function StatusConversionScreen({
         >
           <Button
             size='$5'
-            onPress={onContinue}
+            onPress={handleContinue}
             themeInverse
           >
             I've Converted the Status Property
