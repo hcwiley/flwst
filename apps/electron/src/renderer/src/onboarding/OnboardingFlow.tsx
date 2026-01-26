@@ -13,6 +13,7 @@ import type {
 } from './types';
 import { getLogger } from '../../sentry';
 import { getDefaultOnboardingState } from '@flwst/types';
+import { OnboardingStatusBar } from './OnboardingStatusBar';
 import {
   WelcomeScreen,
   SystemSelectScreen,
@@ -210,15 +211,24 @@ function getNextStep(
  * Determine the onboarding step to resume from stored state.
  */
 function getResumeStep(state: OnboardingState): OnboardingStep {
+  // Prefer the detected migration state from schema checks.
+  const needsStatusMigration =
+    state.notion.statusPropertyNeedsMigration === true &&
+    state.notion.statusPropertyHasBeenMigrated !== true;
+
+  if (needsStatusMigration) {
+    return 'StatusConversion';
+  }
+
   if (state.onboardingCompleted) {
     return 'Done';
   }
 
   switch (state.notion.status) {
     case 'ready':
+      return 'Done';
     case 'resources_created':
-      // Resources created but onboarding not complete -> show status conversion
-      return 'StatusConversion';
+      return state.onboardingCompleted ? 'Done' : 'StatusConversion';
     case 'parent_selected':
       return 'ConfirmCreate';
     case 'authed':
@@ -286,6 +296,55 @@ export function OnboardingFlow({
   });
   const [isHydrated, setIsHydrated] = useState(false);
 
+  /**
+   * Ordered onboarding steps used for progress tracking.
+   * We keep distinct tracks to avoid large jumps when branching.
+   */
+  const notionStepOrder: OnboardingStep[] = [
+    'Welcome',
+    'SystemSelect',
+    'NotionExplain',
+    'NotionOAuthStart',
+    'NotionOAuthComplete',
+    'ParentSelect',
+    'ConfirmCreate',
+    'CreateResources',
+    'StatusConversion',
+    'Done',
+  ];
+  const requestStepOrder: OnboardingStep[] = [
+    'Welcome',
+    'SystemSelect',
+    'FeatureRequest',
+    'FeatureRequestThankYou',
+  ];
+  const isRequestFlow =
+    flowState.step === 'FeatureRequest' ||
+    flowState.step === 'FeatureRequestThankYou';
+  const stepOrder = isRequestFlow ? requestStepOrder : notionStepOrder;
+
+  /**
+   * Normalize transient steps into a stable progress step.
+   * This keeps the status bar consistent during busy/error screens.
+   */
+  const progressStep: OnboardingStep = (() => {
+    switch (flowState.step) {
+      case 'Busy':
+        return flowState.busy?.returnToStep ?? 'Welcome';
+      case 'Error':
+        return flowState.error?.returnToStep ?? 'Welcome';
+      case 'CancelConfirm':
+        return 'Welcome';
+      default:
+        return flowState.step;
+    }
+  })();
+
+  const stepIndex = Math.max(0, stepOrder.indexOf(progressStep));
+  const totalSteps = stepOrder.length;
+  const percentComplete =
+    totalSteps <= 1 ? 100 : Math.round((stepIndex / (totalSteps - 1)) * 100);
+
   // Load initial state from IPC on mount
   useEffect(() => {
     const loadState = async (): Promise<void> => {
@@ -306,6 +365,8 @@ export function OnboardingFlow({
               hasParentPageId: !!state.notion?.parentPageId,
               hasWorkspaceId: !!state.notion?.workspace?.workspaceId,
               onboardingCompleted: !!state.onboardingCompleted,
+              needsMigration: state.notion?.statusPropertyNeedsMigration,
+              hasBeenMigrated: state.notion?.statusPropertyHasBeenMigrated,
             },
             timestamp: Date.now(),
           });
@@ -319,6 +380,69 @@ export function OnboardingFlow({
       }
     };
     loadState();
+  }, []);
+
+  // Listen for push events from main process when onboarding state changes
+  useEffect(() => {
+    const handleStateChanged = async (): Promise<void> => {
+      try {
+        // DEBUG: notion-onboarding
+        logger.debug('notion-onboarding', {
+          sessionId: 'debug-session',
+          runId: 'pre',
+          hypothesisId: 'H13',
+          location: 'OnboardingFlow.tsx:handleStateChanged',
+          message: 'received onboarding state changed event from main',
+          timestamp: Date.now(),
+        });
+
+        // Re-fetch state from main and rehydrate
+        const latestState = await window.api.onboarding.getState();
+        const resumeStep = getResumeStep(latestState);
+
+        // DEBUG: notion-onboarding
+        logger.debug('notion-onboarding', {
+          sessionId: 'debug-session',
+          runId: 'pre',
+          hypothesisId: 'H13',
+          location: 'OnboardingFlow.tsx:handleStateChanged:rehydrate',
+          message: 'rehydrating onboarding state after push event',
+          data: {
+            resumeStep,
+            notionStatus: latestState.notion?.status,
+            needsMigration: latestState.notion?.statusPropertyNeedsMigration,
+            hasBeenMigrated: latestState.notion?.statusPropertyHasBeenMigrated,
+            onboardingCompleted: !!latestState.onboardingCompleted,
+          },
+          timestamp: Date.now(),
+        });
+
+        dispatch({
+          type: 'HYDRATE',
+          payload: { state: latestState, step: resumeStep },
+        });
+      } catch (error) {
+        console.error(
+          'Failed to refresh onboarding state after push event:',
+          error,
+        );
+      }
+    };
+
+    if (window.electron?.ipcRenderer) {
+      window.electron.ipcRenderer.on(
+        'onboarding:stateChanged',
+        handleStateChanged,
+      );
+
+      return () => {
+        window.electron.ipcRenderer.removeListener(
+          'onboarding:stateChanged',
+          handleStateChanged,
+        );
+      };
+    }
+    return undefined;
   }, []);
 
   // Persist state changes to main process
@@ -386,182 +510,211 @@ export function OnboardingFlow({
     return undefined;
   }, [flowState.step, onComplete]);
 
-  // Render appropriate screen based on step
-  switch (flowState.step) {
-    case 'Welcome':
-      return <WelcomeScreen onNext={() => dispatch({ type: 'NEXT' })} />;
+  /**
+   * Render appropriate screen based on current step.
+   * Wrapped with the shared footer status bar for visibility.
+   */
+  const renderStep = (): React.JSX.Element => {
+    switch (flowState.step) {
+      case 'Welcome':
+        return <WelcomeScreen onNext={() => dispatch({ type: 'NEXT' })} />;
 
-    case 'SystemSelect':
-      return (
-        <SystemSelectScreen
-          onSelect={(system) => dispatch({ type: 'SELECT_SYSTEM', system })}
-        />
-      );
+      case 'SystemSelect':
+        return (
+          <SystemSelectScreen
+            onSelect={(system) => dispatch({ type: 'SELECT_SYSTEM', system })}
+          />
+        );
 
-    case 'FeatureRequest': {
-      const system =
-        flowState.onboardingState.featureRequests?.[0]?.system === 'JIRA'
-          ? 'jira'
-          : 'other';
-      return (
-        <FeatureRequestScreen
-          system={system}
-          onSubmit={(payload) =>
-            dispatch({ type: 'SUBMIT_FEATURE_REQUEST', payload })
-          }
-          onBack={() => dispatch({ type: 'BACK' })}
-        />
-      );
-    }
+      case 'FeatureRequest': {
+        const system =
+          flowState.onboardingState.featureRequests?.[0]?.system === 'JIRA'
+            ? 'jira'
+            : 'other';
+        return (
+          <FeatureRequestScreen
+            system={system}
+            onSubmit={(payload) =>
+              dispatch({ type: 'SUBMIT_FEATURE_REQUEST', payload })
+            }
+            onBack={() => dispatch({ type: 'BACK' })}
+          />
+        );
+      }
 
-    case 'FeatureRequestThankYou':
-      return (
-        <FeatureRequestThankYouScreen
-          onContinue={() => dispatch({ type: 'NEXT' })}
-        />
-      );
+      case 'FeatureRequestThankYou':
+        return (
+          <FeatureRequestThankYouScreen
+            onContinue={() => dispatch({ type: 'NEXT' })}
+          />
+        );
 
-    case 'NotionExplain':
-      return (
-        <NotionExplainScreen
-          onNext={() => dispatch({ type: 'NEXT' })}
-          onBack={() => dispatch({ type: 'BACK' })}
-        />
-      );
+      case 'NotionExplain':
+        return (
+          <NotionExplainScreen
+            onNext={() => dispatch({ type: 'NEXT' })}
+            onBack={() => dispatch({ type: 'BACK' })}
+          />
+        );
 
-    case 'NotionOAuthStart':
-      return (
-        <NotionOAuthStartScreen
-          onNext={() => dispatch({ type: 'NEXT' })}
-          onBack={() => dispatch({ type: 'BACK' })}
-        />
-      );
+      case 'NotionOAuthStart':
+        return (
+          <NotionOAuthStartScreen
+            onNext={() => dispatch({ type: 'NEXT' })}
+            onBack={() => dispatch({ type: 'BACK' })}
+          />
+        );
 
-    case 'NotionOAuthComplete':
-      return (
-        <NotionOAuthCompleteScreen
-          onNext={() => dispatch({ type: 'NEXT' })}
-          onBack={() => dispatch({ type: 'BACK' })}
-        />
-      );
+      case 'NotionOAuthComplete':
+        return (
+          <NotionOAuthCompleteScreen
+            onNext={() => dispatch({ type: 'NEXT' })}
+            onBack={() => dispatch({ type: 'BACK' })}
+          />
+        );
 
-    case 'ParentSelect':
-      return (
-        <ParentSelectScreen
-          onNext={async (parentPageId) => {
-            await window.api.notion.setParentPage(parentPageId);
-            dispatch({
-              type: 'UPDATE_STATE',
-              payload: {
-                notion: {
-                  ...flowState.onboardingState.notion,
-                  parentPageId,
-                  status: 'parent_selected',
+      case 'ParentSelect':
+        return (
+          <ParentSelectScreen
+            onNext={async (parentPageId) => {
+              await window.api.notion.setParentPage(parentPageId);
+              dispatch({
+                type: 'UPDATE_STATE',
+                payload: {
+                  notion: {
+                    ...flowState.onboardingState.notion,
+                    parentPageId,
+                    status: 'parent_selected',
+                  },
                 },
-              },
-            });
-            dispatch({ type: 'NEXT' });
-          }}
-          onBack={() => dispatch({ type: 'BACK' })}
-        />
-      );
+              });
+              dispatch({ type: 'NEXT' });
+            }}
+            onBack={() => dispatch({ type: 'BACK' })}
+          />
+        );
 
-    case 'ConfirmCreate':
-      return (
-        <ConfirmCreateScreen
-          parentPageId={flowState.onboardingState.notion.parentPageId || ''}
-          onConfirm={() => dispatch({ type: 'NEXT' })}
-          onBack={() => dispatch({ type: 'BACK' })}
-        />
-      );
+      case 'ConfirmCreate':
+        return (
+          <ConfirmCreateScreen
+            parentPageId={flowState.onboardingState.notion.parentPageId || ''}
+            onConfirm={() => dispatch({ type: 'NEXT' })}
+            onBack={() => dispatch({ type: 'BACK' })}
+          />
+        );
 
-    case 'CreateResources':
-      return (
-        <CreateResourcesScreen
-          parentPageId={flowState.onboardingState.notion.parentPageId || ''}
-          onComplete={async () => {
-            // State is already updated by the IPC handler with DB IDs and status='ready'
-            // Advance to status conversion screen
-            dispatch({ type: 'NEXT' });
-          }}
-          onBack={() => dispatch({ type: 'BACK' })}
-        />
-      );
+      case 'CreateResources':
+        return (
+          <CreateResourcesScreen
+            parentPageId={flowState.onboardingState.notion.parentPageId || ''}
+            onComplete={async () => {
+              try {
+                const latestState = await window.api.onboarding.getState();
+                const resumeStep = getResumeStep(latestState);
+                dispatch({
+                  type: 'HYDRATE',
+                  payload: { state: latestState, step: resumeStep },
+                });
+              } catch (error) {
+                console.error('Failed to refresh onboarding state:', error);
+                dispatch({ type: 'NEXT' });
+              }
+            }}
+            onBack={() => dispatch({ type: 'BACK' })}
+          />
+        );
 
-    case 'StatusConversion':
-      return (
-        <StatusConversionScreen
-          onContinue={() => {
-            // Mark onboarding as complete
-            dispatch({
-              type: 'UPDATE_STATE',
-              payload: {
-                onboardingCompleted: true,
-              },
-            });
-            dispatch({ type: 'NEXT' });
-          }}
-        />
-      );
+      case 'StatusConversion':
+        return (
+          <StatusConversionScreen
+            onContinue={() => {
+              // Mark onboarding as complete
+              dispatch({
+                type: 'UPDATE_STATE',
+                payload: {
+                  onboardingCompleted: true,
+                },
+              });
+              dispatch({ type: 'NEXT' });
+            }}
+          />
+        );
 
-    case 'Busy':
-      return flowState.busy ? (
-        <BusyScreen busy={flowState.busy} />
-      ) : (
-        <WelcomeScreen onNext={() => dispatch({ type: 'NEXT' })} />
-      );
+      case 'Busy':
+        return flowState.busy ? (
+          <BusyScreen busy={flowState.busy} />
+        ) : (
+          <WelcomeScreen onNext={() => dispatch({ type: 'NEXT' })} />
+        );
 
-    case 'Error':
-      return flowState.error ? (
-        <ErrorScreen
-          error={flowState.error}
-          onRetry={() => dispatch({ type: 'CLEAR_ERROR' })}
-          onCancel={() => dispatch({ type: 'CANCEL' })}
-        />
-      ) : (
-        <WelcomeScreen onNext={() => dispatch({ type: 'NEXT' })} />
-      );
+      case 'Error':
+        return flowState.error ? (
+          <ErrorScreen
+            error={flowState.error}
+            onRetry={() => dispatch({ type: 'CLEAR_ERROR' })}
+            onCancel={() => dispatch({ type: 'CANCEL' })}
+          />
+        ) : (
+          <WelcomeScreen onNext={() => dispatch({ type: 'NEXT' })} />
+        );
 
-    case 'CancelConfirm':
-      return (
-        <CancelConfirmScreen
-          onConfirm={() => dispatch({ type: 'CONFIRM_CANCEL' })}
-          onCancel={() => dispatch({ type: 'BACK' })}
-        />
-      );
+      case 'CancelConfirm':
+        return (
+          <CancelConfirmScreen
+            onConfirm={() => dispatch({ type: 'CONFIRM_CANCEL' })}
+            onCancel={() => dispatch({ type: 'BACK' })}
+          />
+        );
 
-    case 'Done':
-      return (
-        <Stack
-          flexDirection='column'
-          flex={1}
-          padding='$6'
-          alignItems='center'
-          justifyContent='center'
-        >
-          <Text
-            fontSize='$8'
-            fontWeight='bold'
-            textAlign='center'
+      case 'Done':
+        return (
+          <Stack
+            flexDirection='column'
+            flex={1}
+            padding='$6'
+            alignItems='center'
+            justifyContent='center'
           >
-            Setup Complete!
-          </Text>
-        </Stack>
-      );
+            <Text
+              fontSize='$8'
+              fontWeight='bold'
+              textAlign='center'
+            >
+              Setup Complete!
+            </Text>
+          </Stack>
+        );
 
-    default: {
-      const step: OnboardingStep = flowState.step;
-      return (
-        <Stack
-          flexDirection='column'
-          flex={1}
-          padding='$6'
-          alignItems='center'
-          justifyContent='center'
-        >
-          <Text fontSize='$4'>Unknown step: {step}</Text>
-        </Stack>
-      );
+      default: {
+        const step: OnboardingStep = flowState.step;
+        return (
+          <Stack
+            flexDirection='column'
+            flex={1}
+            padding='$6'
+            alignItems='center'
+            justifyContent='center'
+          >
+            <Text fontSize='$4'>Unknown step: {step}</Text>
+          </Stack>
+        );
+      }
     }
-  }
+  };
+
+  return (
+    <Stack
+      flex={1}
+      backgroundColor='$background'
+    >
+      <Stack flex={1}>{renderStep()}</Stack>
+      <OnboardingStatusBar
+        currentStep={flowState.step}
+        progressStep={progressStep}
+        stepIndex={stepIndex}
+        totalSteps={totalSteps}
+        percentComplete={percentComplete}
+      />
+    </Stack>
+  );
 }
