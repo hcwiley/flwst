@@ -3,7 +3,7 @@
  * Manages the onboarding flow state and transitions.
  */
 
-import { useReducer, useEffect } from 'react';
+import { useReducer, useEffect, useState } from 'react';
 import { Stack, Text } from 'tamagui';
 import type { OnboardingState } from '@flwst/types';
 import type {
@@ -11,6 +11,7 @@ import type {
   OnboardingFlowAction,
   OnboardingStep,
 } from './types';
+import { getLogger } from '../../sentry';
 import { getDefaultOnboardingState } from '@flwst/types';
 import {
   WelcomeScreen,
@@ -23,6 +24,7 @@ import {
   ParentSelectScreen,
   ConfirmCreateScreen,
   CreateResourcesScreen,
+  StatusConversionScreen,
   BusyScreen,
   ErrorScreen,
   CancelConfirmScreen,
@@ -134,6 +136,15 @@ export function onboardingReducer(
         step: 'Done',
       };
 
+    case 'HYDRATE':
+      return {
+        ...state,
+        step: action.payload.step,
+        onboardingState: action.payload.state,
+        busy: undefined,
+        error: undefined,
+      };
+
     case 'UPDATE_STATE': {
       const updatedState: OnboardingState = {
         ...state.onboardingState,
@@ -185,11 +196,39 @@ function getNextStep(
     case 'ConfirmCreate':
       return 'CreateResources';
     case 'CreateResources':
+      return 'StatusConversion';
+    case 'StatusConversion':
       return 'Done';
     case 'Done':
       return 'Done';
     default:
       return currentStep;
+  }
+}
+
+/**
+ * Determine the onboarding step to resume from stored state.
+ */
+function getResumeStep(state: OnboardingState): OnboardingStep {
+  if (state.onboardingCompleted) {
+    return 'Done';
+  }
+
+  switch (state.notion.status) {
+    case 'ready':
+    case 'resources_created':
+      return 'Done';
+    case 'parent_selected':
+      return 'ConfirmCreate';
+    case 'authed':
+      return 'ParentSelect';
+    case 'oauth_pending':
+      return 'NotionOAuthComplete';
+    case 'error':
+      return 'NotionExplain';
+    case 'disconnected':
+    default:
+      return 'Welcome';
   }
 }
 
@@ -216,6 +255,8 @@ function getPreviousStep(currentStep: OnboardingStep): OnboardingStep {
       return 'ParentSelect';
     case 'CreateResources':
       return 'ConfirmCreate';
+    case 'StatusConversion':
+      return 'CreateResources';
     default:
       return 'Welcome';
   }
@@ -237,10 +278,12 @@ export function OnboardingFlow({
   initialState,
   onComplete,
 }: OnboardingFlowProps): React.JSX.Element {
+  const logger = getLogger();
   const [flowState, dispatch] = useReducer(onboardingReducer, {
     step: 'Welcome',
     onboardingState: initialState || getDefaultOnboardingState(),
   });
+  const [isHydrated, setIsHydrated] = useState(false);
 
   // Load initial state from IPC on mount
   useEffect(() => {
@@ -248,11 +291,30 @@ export function OnboardingFlow({
       try {
         const state = await window.api.onboarding.getState();
         if (state) {
-          dispatch({ type: 'UPDATE_STATE', payload: state });
+          const resumeStep = getResumeStep(state);
+          // DEBUG: notion-onboarding
+          logger.debug('notion-onboarding', {
+            sessionId: 'debug-session',
+            runId: 'pre',
+            hypothesisId: 'H11',
+            location: 'OnboardingFlow.tsx:loadState',
+            message: 'loaded onboarding state from main',
+            data: {
+              resumeStep,
+              notionStatus: state.notion?.status,
+              hasParentPageId: !!state.notion?.parentPageId,
+              hasWorkspaceId: !!state.notion?.workspace?.workspaceId,
+              onboardingCompleted: !!state.onboardingCompleted,
+            },
+            timestamp: Date.now(),
+          });
+          dispatch({ type: 'HYDRATE', payload: { state, step: resumeStep } });
         }
       } catch (error) {
         // If state doesn't exist, use default
         console.error('Failed to load onboarding state:', error);
+      } finally {
+        setIsHydrated(true);
       }
     };
     loadState();
@@ -262,6 +324,40 @@ export function OnboardingFlow({
   useEffect(() => {
     const persistState = async (): Promise<void> => {
       try {
+        if (!isHydrated) {
+          // DEBUG: notion-onboarding
+          logger.debug('notion-onboarding', {
+            sessionId: 'debug-session',
+            runId: 'pre',
+            hypothesisId: 'H11',
+            location: 'OnboardingFlow.tsx:persistState:skip',
+            message: 'skipping persist before hydration',
+            data: {
+              step: flowState.step,
+              notionStatus: flowState.onboardingState.notion?.status,
+            },
+            timestamp: Date.now(),
+          });
+          return;
+        }
+        // DEBUG: notion-onboarding
+        logger.debug('notion-onboarding', {
+          sessionId: 'debug-session',
+          runId: 'pre',
+          hypothesisId: 'H11',
+          location: 'OnboardingFlow.tsx:persistState',
+          message: 'persisting onboarding state from renderer',
+          data: {
+            step: flowState.step,
+            notionStatus: flowState.onboardingState.notion?.status,
+            hasParentPageId: !!flowState.onboardingState.notion?.parentPageId,
+            hasWorkspaceId:
+              !!flowState.onboardingState.notion?.workspace?.workspaceId,
+            onboardingCompleted:
+              !!flowState.onboardingState.onboardingCompleted,
+          },
+          timestamp: Date.now(),
+        });
         await window.api.onboarding.updateState(flowState.onboardingState);
       } catch (error) {
         console.error('Failed to persist onboarding state:', error);
@@ -276,7 +372,7 @@ export function OnboardingFlow({
       }
     };
     persistState();
-  }, [flowState.onboardingState, flowState.step]);
+  }, [flowState.onboardingState, flowState.step, isHydrated]);
 
   // Handle completion
   useEffect(() => {
@@ -384,7 +480,18 @@ export function OnboardingFlow({
           parentPageId={flowState.onboardingState.notion.parentPageId || ''}
           onComplete={async () => {
             // State is already updated by the IPC handler with DB IDs and status='ready'
-            // Just mark onboarding as complete and advance
+            // Advance to status conversion screen
+            dispatch({ type: 'NEXT' });
+          }}
+          onBack={() => dispatch({ type: 'BACK' })}
+        />
+      );
+
+    case 'StatusConversion':
+      return (
+        <StatusConversionScreen
+          onContinue={() => {
+            // Mark onboarding as complete
             dispatch({
               type: 'UPDATE_STATE',
               payload: {
@@ -393,7 +500,6 @@ export function OnboardingFlow({
             });
             dispatch({ type: 'NEXT' });
           }}
-          onBack={() => dispatch({ type: 'BACK' })}
         />
       );
 
