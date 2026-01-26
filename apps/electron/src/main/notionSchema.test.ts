@@ -37,7 +37,7 @@ describe('notionSchema helpers', () => {
     assert.ok(properties.Status);
     assert.ok(properties.Priority);
     assert.equal(
-      properties['Daily Notes'].relation.database_id,
+      properties['Daily Notes'].relation.data_source_id,
       'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
     );
     assert.equal(properties['Daily Notes'].relation.type, 'single_property');
@@ -45,10 +45,10 @@ describe('notionSchema helpers', () => {
 
   it('builds daily notes properties with relations when provided', () => {
     const properties: any = buildDailyNotesDbProperties(
-      'cccccccccccccccccccccccccccccccc',
+      'cccccccc-cccc-cccc-cccc-cccccccccccc',
     );
     assert.equal(
-      properties.Tasks.relation.database_id,
+      properties.Tasks.relation.data_source_id,
       'cccccccc-cccc-cccc-cccc-cccccccccccc',
     );
     assert.equal(properties.Tasks.relation.type, 'single_property');

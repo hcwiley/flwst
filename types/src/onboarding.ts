@@ -42,8 +42,8 @@ export const NotionWorkspaceStateSchema = z.object({
   workspace: NotionWorkspaceMetadataSchema.optional(),
   parentPageId: z.string().optional(),
   flowStatePageId: z.string().optional(),
-  dailyNotesDbId: z.string().optional(),
-  tasksDbId: z.string().optional(),
+  dailyNotesDataSourceId: z.string().optional(),
+  tasksDataSourceId: z.string().optional(),
   createdAt: z.string().datetime().optional(),
   updatedAt: z.string().datetime().optional(),
 });
