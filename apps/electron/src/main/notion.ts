@@ -2,7 +2,7 @@
  * IPC handlers for Notion integration.
  */
 
-import { ipcMain, shell } from 'electron';
+import { BrowserWindow, ipcMain, shell } from 'electron';
 import { APIErrorCode, APIResponseError, Client } from '@notionhq/client';
 import type { NotionWorkspaceMetadata, OnboardingState } from '@flwst/types';
 import { getLogger } from './sentry';
@@ -47,6 +47,32 @@ const createResourcesInFlight = new Map<
   string,
   Promise<CreateResourcesResult>
 >();
+
+/**
+ * Emit onboarding state changed event to all renderer windows.
+ * Called after main process updates onboarding state (e.g., migration flags).
+ */
+function emitOnboardingStateChanged(): void {
+  try {
+    BrowserWindow.getAllWindows().forEach((window) => {
+      window.webContents.send('onboarding:stateChanged');
+    });
+    // DEBUG: notion-onboarding
+    logger.debug('notion-onboarding', {
+      sessionId: 'debug-session',
+      runId: 'pre',
+      hypothesisId: 'H13',
+      location: 'src/main/notion.ts:emitOnboardingStateChanged',
+      message: 'emitted onboarding state changed event',
+      data: {
+        windowCount: BrowserWindow.getAllWindows().length,
+      },
+      timestamp: Date.now(),
+    });
+  } catch (error) {
+    logger.error('Failed to emit onboarding state changed event', { error });
+  }
+}
 
 type NotionPropertyEntry = {
   key: string;
@@ -124,6 +150,33 @@ function pickMissingProperties(
   return Object.fromEntries(
     Object.entries(expected).filter(([key]) => !actualKeys.has(key)),
   ) as NotionDatabaseProperties;
+}
+
+/**
+ * Detect if the Status property has been migrated from select to status type.
+ * The migration is needed if the "Status" property (exact name) is still type "select".
+ * The migration is complete when "Status" property is type "status" (or doesn't exist and a status-type property exists).
+ */
+function detectStatusPropertyMigration(schema: NotionPropertyEntry[]): {
+  needsMigration: boolean;
+  hasBeenMigrated: boolean;
+} {
+  const statusProperty = schema.find((entry) => entry.key === 'Status');
+  const hasStatusTypeProperty = schema.some((entry) => entry.type === 'status');
+
+  // Needs migration if Status property exists and is type select
+  const needsMigration = statusProperty?.type === 'select';
+
+  // Migration is complete if Status property is type status, OR
+  // if Status doesn't exist but a status-type property exists (user may have renamed it)
+  const hasBeenMigrated =
+    statusProperty?.type === 'status' ||
+    (!statusProperty && hasStatusTypeProperty);
+
+  return {
+    needsMigration,
+    hasBeenMigrated,
+  };
 }
 
 function getDataSourcesClient(notion: Client): {
@@ -731,6 +784,46 @@ export function registerNotionHandlers(): void {
       }
     },
   );
+
+  // Confirm status property migration
+  ipcMain.handle('notion:confirmStatusMigration', async (): Promise<void> => {
+    try {
+      const configStore = getConfigStore();
+      const config = await configStore.read();
+
+      if (!config.onboardingState) {
+        throw new NotionError(
+          'NOTION_VALIDATION_ERROR',
+          'Onboarding state not found',
+        );
+      }
+
+      await configStore.write({
+        ...config,
+        onboardingState: {
+          ...config.onboardingState,
+          onboardingCompleted: config.onboardingState.onboardingCompleted,
+          notion: {
+            ...config.onboardingState.notion,
+            statusPropertyMigrated: true,
+            statusPropertyNeedsMigration: false,
+            statusPropertyHasBeenMigrated: true,
+            status: 'ready',
+            updatedAt: new Date().toISOString(),
+          },
+        },
+      });
+
+      logger.info('Status property migration confirmed');
+    } catch (error) {
+      const notionError = toNotionError(error);
+      logger.error('Failed to confirm status migration', {
+        code: notionError.code,
+        message: notionError.message,
+      });
+      throw notionError;
+    }
+  });
 
   async function createResourcesInternal(
     parentPageId: string,
@@ -1513,16 +1606,21 @@ export function registerNotionHandlers(): void {
         ...updatedOnboarding,
         notion: {
           ...updatedOnboarding.notion,
-          status: 'ready',
+          status: 'resources_created',
           parentPageId,
           flowStatePageId: ids.flowStatePageId,
           dailyNotesDataSourceId: ids.dailyNotesDataSourceId,
           tasksDataSourceId: ids.tasksDataSourceId,
+          statusPropertyMigrated: false,
+          statusPropertyNeedsMigration: true,
+          statusPropertyHasBeenMigrated: false,
           updatedAt: now,
           createdAt: updatedOnboarding.notion.createdAt ?? now,
         },
       },
     });
+    // Notify renderer that onboarding state changed (migration flags set)
+    emitOnboardingStateChanged();
   }
 
   function toNotionError(error: unknown): NotionError {
@@ -1660,6 +1758,116 @@ export async function checkNotionSchemasOnStartup(): Promise<void> {
       },
       timestamp: Date.now(),
     });
+
+    // Detect Status property migration
+    const tasksMigrationStatus = detectStatusPropertyMigration(tasksSchema);
+
+    // DEBUG: notion-onboarding
+    logger.debug('notion-onboarding', {
+      sessionId: 'debug-session',
+      runId: 'pre',
+      hypothesisId: 'H12',
+      location: 'src/main/notion.ts:checkNotionSchemasOnStartup:migration',
+      message: 'status property migration detection',
+      data: {
+        needsMigration: tasksMigrationStatus.needsMigration,
+        hasBeenMigrated: tasksMigrationStatus.hasBeenMigrated,
+        currentFlag: onboardingState?.notion.statusPropertyMigrated,
+      },
+      timestamp: Date.now(),
+    });
+
+    // Persist detected migration status for renderer gating.
+    if (
+      onboardingState &&
+      (onboardingState.notion.statusPropertyNeedsMigration !==
+        tasksMigrationStatus.needsMigration ||
+        onboardingState.notion.statusPropertyHasBeenMigrated !==
+          tasksMigrationStatus.hasBeenMigrated)
+    ) {
+      await configStore.write({
+        ...config,
+        onboardingState: {
+          ...onboardingState,
+          onboardingCompleted: onboardingState.onboardingCompleted,
+          notion: {
+            ...onboardingState.notion,
+            statusPropertyNeedsMigration: tasksMigrationStatus.needsMigration,
+            statusPropertyHasBeenMigrated: tasksMigrationStatus.hasBeenMigrated,
+            updatedAt: new Date().toISOString(),
+          },
+        },
+      });
+      // Notify renderer that onboarding state changed
+      emitOnboardingStateChanged();
+    }
+
+    // Auto-update flag if user has already migrated in Notion UI
+    // Only auto-update if onboarding is complete (user has seen the screen before)
+    if (
+      onboardingState &&
+      onboardingState.onboardingCompleted &&
+      tasksMigrationStatus.hasBeenMigrated &&
+      !onboardingState.notion.statusPropertyMigrated
+    ) {
+      logger.info('Status property migration detected, updating state', {
+        dataSourceId: tasksDataSourceId,
+      });
+
+      await configStore.write({
+        ...config,
+        onboardingState: {
+          ...onboardingState,
+          onboardingCompleted: onboardingState.onboardingCompleted,
+          notion: {
+            ...onboardingState.notion,
+            statusPropertyMigrated: true,
+            updatedAt: new Date().toISOString(),
+          },
+        },
+      });
+      // Notify renderer that onboarding state changed
+      emitOnboardingStateChanged();
+    }
+
+    // Reset flag if migration is still needed (handles case where flag was incorrectly set)
+    if (
+      onboardingState &&
+      tasksMigrationStatus.needsMigration &&
+      onboardingState.notion.statusPropertyMigrated
+    ) {
+      logger.info(
+        'Status property migration flag was set but migration still needed, resetting flag',
+        {
+          dataSourceId: tasksDataSourceId,
+        },
+      );
+
+      await configStore.write({
+        ...config,
+        onboardingState: {
+          ...onboardingState,
+          onboardingCompleted: onboardingState.onboardingCompleted,
+          notion: {
+            ...onboardingState.notion,
+            statusPropertyMigrated: false,
+            updatedAt: new Date().toISOString(),
+          },
+        },
+      });
+      // Notify renderer that onboarding state changed
+      emitOnboardingStateChanged();
+    }
+
+    // Log if migration is recommended
+    if (
+      tasksMigrationStatus.needsMigration &&
+      !onboardingState?.notion.statusPropertyMigrated
+    ) {
+      logger.info('Status property migration recommended', {
+        dataSourceId: tasksDataSourceId,
+      });
+    }
 
     if (
       dailyDiff.missing.length > 0 ||
