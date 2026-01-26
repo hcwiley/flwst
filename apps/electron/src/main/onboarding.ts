@@ -21,6 +21,22 @@ export function registerOnboardingHandlers(): void {
       const configStore = getConfigStore();
       const state = await configStore.read();
       const onboardingState = state.onboardingState;
+      // DEBUG: notion-onboarding
+      logger.debug('notion-onboarding', {
+        sessionId: 'debug-session',
+        runId: 'pre',
+        hypothesisId: 'H10',
+        location: 'src/main/onboarding.ts:getState',
+        message: 'onboarding state read',
+        data: {
+          hasOnboardingState: !!onboardingState,
+          notionStatus: onboardingState?.notion?.status,
+          hasParentPageId: !!onboardingState?.notion?.parentPageId,
+          hasWorkspaceId: !!onboardingState?.notion?.workspace?.workspaceId,
+          onboardingCompleted: !!onboardingState?.onboardingCompleted,
+        },
+        timestamp: Date.now(),
+      });
       if (onboardingState) {
         return onboardingState;
       }
@@ -50,6 +66,21 @@ export function registerOnboardingHandlers(): void {
           onboardingState: updatedOnboarding,
         };
         await configStore.write(updatedConfig);
+        // DEBUG: notion-onboarding
+        logger.debug('notion-onboarding', {
+          sessionId: 'debug-session',
+          runId: 'pre',
+          hypothesisId: 'H10',
+          location: 'src/main/onboarding.ts:updateState',
+          message: 'onboarding state persisted',
+          data: {
+            notionStatus: updatedOnboarding?.notion?.status,
+            hasParentPageId: !!updatedOnboarding?.notion?.parentPageId,
+            hasWorkspaceId: !!updatedOnboarding?.notion?.workspace?.workspaceId,
+            onboardingCompleted: !!updatedOnboarding?.onboardingCompleted,
+          },
+          timestamp: Date.now(),
+        });
         logger.info('Onboarding state updated');
       } catch (error) {
         logger.error('Failed to update onboarding state', { error });
