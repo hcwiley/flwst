@@ -1,9 +1,10 @@
 # @flwst/core
 
-Shared runtime utilities used by the apps and services. This package focuses
-on deterministic IDs, logging, and encrypted local storage helpers.
+Shared runtime utilities used by the apps and services. This package focuses on
+deterministic IDs, logging, and encrypted local storage helpers.
 
 ## Key Responsibilities
+
 - Generate stable run IDs for ingests.
 - Provide a structured logger with optional external sinks.
 - Handle encrypted local storage for config and tokens.
