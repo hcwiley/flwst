@@ -1,15 +1,21 @@
 /**
- * Busy screen - shown during async operations.
+ * Busy screen component - shown during async operations.
+ * Generic reusable component for displaying loading states.
  */
 
 import { Stack, Text, Spinner } from 'tamagui';
-import type { BusyState } from '../types';
 
 export interface BusyScreenProps {
-  busy: BusyState;
+  /**
+   * Optional message to display below the spinner.
+   */
+  message?: string;
 }
 
-export function BusyScreen({ busy }: BusyScreenProps): React.JSX.Element {
+/**
+ * Busy screen component displaying a spinner and optional message.
+ */
+export function BusyScreen({ message }: BusyScreenProps): React.JSX.Element {
   return (
     <Stack
       flexDirection='column'
@@ -20,13 +26,13 @@ export function BusyScreen({ busy }: BusyScreenProps): React.JSX.Element {
       justifyContent='center'
     >
       <Spinner size='large' />
-      {busy.message && (
+      {message && (
         <Text
           fontSize='$4'
           textAlign='center'
           opacity={0.8}
         >
-          {busy.message}
+          {message}
         </Text>
       )}
     </Stack>

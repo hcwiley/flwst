@@ -1,18 +1,35 @@
 /**
- * Error screen - shown when errors occur.
+ * Error screen component - shown when errors occur.
+ * Generic reusable component for displaying error states.
  */
 
 import { Stack, Text, Button } from 'tamagui';
-import type { ErrorState } from '../types';
 
 export interface ErrorScreenProps {
-  error: ErrorState;
+  /**
+   * User-friendly error message to display.
+   */
+  safeMessage: string;
+  /**
+   * Optional debug code for troubleshooting.
+   */
+  debugCode?: string;
+  /**
+   * Callback when user clicks retry.
+   */
   onRetry: () => void;
+  /**
+   * Callback when user clicks cancel.
+   */
   onCancel: () => void;
 }
 
+/**
+ * Error screen component displaying error message and action buttons.
+ */
 export function ErrorScreen({
-  error,
+  safeMessage,
+  debugCode,
   onRetry,
   onCancel,
 }: ErrorScreenProps): React.JSX.Element {
@@ -41,15 +58,15 @@ export function ErrorScreen({
         textAlign='center'
         opacity={0.8}
       >
-        {error.safeMessage}
+        {safeMessage}
       </Text>
-      {error.debugCode && (
+      {debugCode && (
         <Text
           fontSize='$2'
           opacity={0.6}
           marginTop='$2'
         >
-          Error code: {error.debugCode}
+          Error code: {debugCode}
         </Text>
       )}
       <Stack

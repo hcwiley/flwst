@@ -26,10 +26,9 @@ import {
   ConfirmCreateScreen,
   CreateResourcesScreen,
   StatusConversionScreen,
-  BusyScreen,
-  ErrorScreen,
   CancelConfirmScreen,
 } from './screens';
+import { BusyScreen, ErrorScreen } from '@flwst/ui';
 
 /**
  * Onboarding flow reducer.
@@ -566,7 +565,7 @@ export function OnboardingFlow({
 
       case 'Busy':
         return flowState.busy ? (
-          <BusyScreen busy={flowState.busy} />
+          <BusyScreen message={flowState.busy.message} />
         ) : (
           <WelcomeScreen onNext={() => dispatch({ type: 'NEXT' })} />
         );
@@ -574,7 +573,8 @@ export function OnboardingFlow({
       case 'Error':
         return flowState.error ? (
           <ErrorScreen
-            error={flowState.error}
+            safeMessage={flowState.error.safeMessage}
+            debugCode={flowState.error.debugCode}
             onRetry={() => dispatch({ type: 'CLEAR_ERROR' })}
             onCancel={() => dispatch({ type: 'CANCEL' })}
           />
