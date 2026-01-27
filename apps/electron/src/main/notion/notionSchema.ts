@@ -7,7 +7,7 @@
  */
 
 import { PrioritySchema, TaskStatusSchema } from '@flwst/types';
-import { getLogger } from './sentry';
+import { getLogger } from '../sentry';
 import type { NotionDatabaseProperties } from './notionTypes';
 
 const logger = getLogger();

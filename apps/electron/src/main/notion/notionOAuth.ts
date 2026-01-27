@@ -6,7 +6,7 @@
 import { createServer, Server } from 'node:http';
 import { URL } from 'node:url';
 import { randomBytes } from 'node:crypto';
-import { getLogger } from './sentry';
+import { getLogger } from '../sentry';
 
 const logger = getLogger();
 
