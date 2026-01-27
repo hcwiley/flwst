@@ -1,6 +1,8 @@
 # flwst
 
-FlowState alpha monorepo for the Electron client, server scaffolding, and shared
+> flow state: AI workflow to get your mind in order so you flow through your day.
+
+monorepo for the Electron client, server scaffolding, and shared
 libraries.
 
 ## Architecture
