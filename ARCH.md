@@ -90,7 +90,7 @@ flowchart TD
   Main --> SentryAPI
   Renderer --> SentryAPI
 
-  Renderer -.->|HTTPS (planned)| Functions
+  Renderer -.->|"HTTPS (planned)"| Functions
   Functions -.->|future| Gemini
   Functions -.->|future| NotionAPI
 ```
