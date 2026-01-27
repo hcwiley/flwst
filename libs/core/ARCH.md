@@ -26,9 +26,9 @@ flowchart TD
     AppMain[Electron Main Process]
   end
 
-  subgraph Core[@flwst/core]
-    Stores[ConfigStore + TokensStore]
-    Crypto[Encryption Helpers]
+  subgraph Core["@flwst/core"]
+    Stores["ConfigStore + TokensStore"]
+    Crypto["Encryption Helpers"]
   end
 
   subgraph OS[Local Machine]
