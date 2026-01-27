@@ -6,11 +6,11 @@
  * separate from the runtime mapping of artifacts into Notion page properties.
  */
 
-import type { CreateDatabaseParameters } from '@notionhq/client/build/src/api-endpoints';
 import { PrioritySchema, TaskStatusSchema } from '@flwst/types';
+import { getLogger } from './sentry';
+import type { NotionDatabaseProperties } from './notionTypes';
 
-type NotionDatabaseProperties = CreateDatabaseParameters['properties'];
-
+const logger = getLogger();
 const NOTION_ID_REGEX = /^[0-9a-f]{32}$/i;
 const NOTION_HEX_REGEX = /[0-9a-f]{32}/gi;
 const NOTION_UUID_REGEX =
@@ -89,53 +89,74 @@ export function normalizeNotionId(id: string): string {
  * Build Task database properties (design-time schema).
  */
 export function buildTasksDbProperties(
-  dailyNotesRelationDatabaseId?: string,
+  dailyNotesDataSourceId?: string,
 ): NotionDatabaseProperties {
+  const priorityColorMap: Record<string, string> = {
+    low: 'gray',
+    medium: 'blue',
+    high: 'orange',
+    urgent: 'red',
+  };
+
   const priorityOptions = PrioritySchema.options.map((priority) => ({
     name: priority,
+    color: priorityColorMap[priority] || 'default',
   }));
-  const statusOptions = TaskStatusSchema.options.map((status) => ({
-    name: status,
-  }));
+
+  // Status options with colors that map to workflow stages
+  // Users should convert this to a Status property in Notion UI for better workflow features
+  const statusOptions = TaskStatusSchema.options.map((status) => {
+    // Map status values to appropriate colors
+    const colorMap: Record<string, string> = {
+      Backlog: 'gray',
+      'To-do': 'default',
+      'On Deck': 'blue',
+      'In progress': 'yellow',
+      BLOCKED: 'red',
+      Done: 'green',
+      Cancelled: 'gray',
+    };
+    return {
+      name: status,
+      color: colorMap[status] || 'default',
+    };
+  });
 
   const properties: NotionDatabaseProperties = {
     Name: { title: {} },
     Project: { select: { options: [] } },
     Description: { rich_text: {} },
     Priority: { select: { options: priorityOptions } },
-    Status: { status: { options: statusOptions } },
+    Status: { select: { options: statusOptions } },
     Tags: { multi_select: { options: [] } },
     'Due Date': { date: {} },
     Assignee: { rich_text: {} },
     'Source Run ID': { rich_text: {} },
   };
 
-  if (dailyNotesRelationDatabaseId) {
+  if (dailyNotesDataSourceId) {
     properties['Daily Notes'] = {
       relation: {
-        database_id: normalizeNotionId(dailyNotesRelationDatabaseId),
+        data_source_id: dailyNotesDataSourceId,
+        type: 'single_property',
+        single_property: {},
       },
     };
   }
 
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/3e35c006-94a7-466a-acab-dce9d65a6631', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      sessionId: 'debug-session',
-      runId: 'pre',
-      hypothesisId: 'H3',
-      location: 'src/main/notionSchema.ts:buildTasksDbProperties',
-      message: 'built tasks db properties',
-      data: {
-        keyCount: Object.keys(properties).length,
-        hasRelation: !!dailyNotesRelationDatabaseId,
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion agent log
+  // DEBUG: notion-onboarding
+  logger.debug('notion-onboarding', {
+    sessionId: 'debug-session',
+    runId: 'pre',
+    hypothesisId: 'H3',
+    location: 'src/main/notionSchema.ts:buildTasksDbProperties',
+    message: 'built tasks db properties',
+    data: {
+      keyCount: Object.keys(properties).length,
+      hasRelation: !!dailyNotesDataSourceId,
+    },
+    timestamp: Date.now(),
+  });
 
   return properties;
 }
@@ -144,7 +165,7 @@ export function buildTasksDbProperties(
  * Build Daily Notes database properties (design-time schema).
  */
 export function buildDailyNotesDbProperties(
-  tasksRelationDatabaseId?: string,
+  tasksDataSourceId?: string,
 ): NotionDatabaseProperties {
   const properties: NotionDatabaseProperties = {
     Name: { title: {} },
@@ -153,32 +174,29 @@ export function buildDailyNotesDbProperties(
     Tags: { multi_select: { options: [] } },
   };
 
-  if (tasksRelationDatabaseId) {
+  if (tasksDataSourceId) {
     properties.Tasks = {
       relation: {
-        database_id: normalizeNotionId(tasksRelationDatabaseId),
+        data_source_id: tasksDataSourceId,
+        type: 'single_property',
+        single_property: {},
       },
     };
   }
 
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/3e35c006-94a7-466a-acab-dce9d65a6631', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      sessionId: 'debug-session',
-      runId: 'pre',
-      hypothesisId: 'H3',
-      location: 'src/main/notionSchema.ts:buildDailyNotesDbProperties',
-      message: 'built daily notes db properties',
-      data: {
-        keyCount: Object.keys(properties).length,
-        hasRelation: !!tasksRelationDatabaseId,
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion agent log
+  // DEBUG: notion-onboarding
+  logger.debug('notion-onboarding', {
+    sessionId: 'debug-session',
+    runId: 'pre',
+    hypothesisId: 'H3',
+    location: 'src/main/notionSchema.ts:buildDailyNotesDbProperties',
+    message: 'built daily notes db properties',
+    data: {
+      keyCount: Object.keys(properties).length,
+      hasRelation: !!tasksDataSourceId,
+    },
+    timestamp: Date.now(),
+  });
 
   return properties;
 }

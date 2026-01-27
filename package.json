@@ -14,7 +14,8 @@
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
     "nuke:node_modules": "rm -rf node_modules libs/*/node_modules apps/*/node_modules",
-    "dev:electron": "turbo run dev --filter=@flwst/electron"
+    "dev:electron": "turbo run dev --filter=@flwst/electron",
+    "clear:storage": "pnpm --filter @flwst/electron clear:storage"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

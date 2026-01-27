@@ -8,6 +8,13 @@ import type { OnboardingState } from '@flwst/types';
  * Gate: !onboardingCompleted || notion.status !== 'ready'
  */
 function shouldShowOnboarding(state: OnboardingState): boolean {
+  const needsStatusMigration =
+    state.notion.statusPropertyNeedsMigration === true &&
+    state.notion.statusPropertyHasBeenMigrated !== true;
+
+  if (needsStatusMigration) {
+    return true;
+  }
   if (!state.onboardingCompleted) {
     return true;
   }

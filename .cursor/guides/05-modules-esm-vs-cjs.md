@@ -11,8 +11,8 @@ Hybrid approach:
 
 ## Rationale
 
-Node-runtime targets are least fragile with CJS during alpha.
-Bundled targets prefer ESM.
+Node-runtime targets are least fragile with CJS during alpha. Bundled targets
+prefer ESM.
 
 ## Rule
 

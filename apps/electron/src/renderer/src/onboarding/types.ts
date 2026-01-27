@@ -18,6 +18,7 @@ export type OnboardingStep =
   | 'ParentSelect'
   | 'ConfirmCreate'
   | 'CreateResources'
+  | 'StatusConversion'
   | 'Done'
   | 'CancelConfirm'
   | 'Error'
@@ -67,5 +68,9 @@ export type OnboardingFlowAction =
   | { type: 'CLEAR_ERROR' }
   | { type: 'CANCEL' }
   | { type: 'CONFIRM_CANCEL' }
+  | {
+      type: 'HYDRATE';
+      payload: { state: OnboardingState; step: OnboardingStep };
+    }
   | { type: 'UPDATE_STATE'; payload: Partial<OnboardingState> }
   | { type: 'RESET' };

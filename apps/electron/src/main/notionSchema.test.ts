@@ -31,24 +31,26 @@ describe('notionSchema helpers', () => {
   });
 
   it('builds tasks properties with relations when provided', () => {
-    const properties = buildTasksDbProperties(
+    const properties: any = buildTasksDbProperties(
       'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
     );
     assert.ok(properties.Status);
     assert.ok(properties.Priority);
     assert.equal(
-      properties['Daily Notes'].relation.database_id,
+      properties['Daily Notes'].relation.data_source_id,
       'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
     );
+    assert.equal(properties['Daily Notes'].relation.type, 'single_property');
   });
 
   it('builds daily notes properties with relations when provided', () => {
-    const properties = buildDailyNotesDbProperties(
-      'cccccccccccccccccccccccccccccccc',
-    );
-    assert.equal(
-      properties.Tasks.relation.database_id,
+    const properties: any = buildDailyNotesDbProperties(
       'cccccccc-cccc-cccc-cccc-cccccccccccc',
     );
+    assert.equal(
+      properties.Tasks.relation.data_source_id,
+      'cccccccc-cccc-cccc-cccc-cccccccccccc',
+    );
+    assert.equal(properties.Tasks.relation.type, 'single_property');
   });
 });
