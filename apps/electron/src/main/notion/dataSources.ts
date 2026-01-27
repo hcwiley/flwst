@@ -267,6 +267,8 @@ export async function ensureDataSourcePropertiesOnStartup(
 
     await fetchDataSourceSchemaEntries(notion, dataSourceId, label);
   } catch (error) {
-    logger.error('Failed to ensure data source properties on startup', { error });
+    logger.error('Failed to ensure data source properties on startup', {
+      error,
+    });
   }
 }

@@ -219,20 +219,41 @@ export async function findExistingResources(
 }
 
 /**
- * Create the flow state page.
+ * Generic wrapper for creating a Notion page.
+ * Provides parent page_id and title.
  */
-export async function createFlowStatePage(
+async function createNotionPage(
   notion: Client,
   parentPageId: string,
+  title: string,
 ): Promise<string> {
   const response = await notion.pages.create({
     parent: { page_id: parentPageId },
     properties: {
       title: {
-        title: [{ text: { content: FLOW_STATE_PAGE_TITLE } }],
+        title: [{ text: { content: title } }],
       },
     },
   });
+  return response.id;
+}
+
+/**
+ * Generic wrapper for creating a Notion database.
+ * Provides parent page_id, title, and properties.
+ */
+async function createNotionDatabase(
+  notion: Client,
+  parentPageId: string,
+  title: string,
+  properties: NotionDatabaseProperties,
+): Promise<string> {
+  const payload: any = {
+    parent: { type: 'page_id', page_id: normalizeNotionId(parentPageId) },
+    title: [{ text: { content: title } }],
+    properties: properties as any,
+  };
+  const response = await notion.databases.create(payload);
   return response.id;
 }
 
@@ -251,6 +272,16 @@ function ensureDatabaseProperties(
 }
 
 /**
+ * Create the flow state page.
+ */
+export async function createFlowStatePage(
+  notion: Client,
+  parentPageId: string,
+): Promise<string> {
+  return createNotionPage(notion, parentPageId, FLOW_STATE_PAGE_TITLE);
+}
+
+/**
  * Create the Daily Notes database.
  */
 export async function createDailyNotesDatabase(
@@ -258,13 +289,12 @@ export async function createDailyNotesDatabase(
   flowStatePageId: string,
 ): Promise<string> {
   const properties = ensureDatabaseProperties(buildDailyNotesDbProperties());
-  const payload: any = {
-    parent: { type: 'page_id', page_id: normalizeNotionId(flowStatePageId) },
-    title: [{ text: { content: DAILY_NOTES_DB_TITLE } }],
-    properties: properties as any,
-  };
-  const response = await notion.databases.create(payload);
-  return response.id;
+  return createNotionDatabase(
+    notion,
+    flowStatePageId,
+    DAILY_NOTES_DB_TITLE,
+    properties,
+  );
 }
 
 /**
@@ -275,14 +305,13 @@ export async function createTasksDatabase(
   flowStatePageId: string,
 ): Promise<string> {
   const properties = ensureDatabaseProperties(buildTasksDbProperties());
-  const payload: any = {
-    parent: { type: 'page_id', page_id: normalizeNotionId(flowStatePageId) },
-    title: [{ text: { content: TASKS_DB_TITLE } }],
-    properties: properties as any,
-  };
   try {
-    const response = await notion.databases.create(payload);
-    return response.id;
+    return createNotionDatabase(
+      notion,
+      flowStatePageId,
+      TASKS_DB_TITLE,
+      properties,
+    );
   } catch (error) {
     logger.error('Failed to create tasks database', { error });
     throw error;
@@ -297,7 +326,7 @@ export async function addDatabaseProperties(
   notion: Client,
   dataSourceId: string,
   properties: NotionDatabaseProperties,
-  label: 'daily_notes' | 'tasks',
+  _label: 'daily_notes' | 'tasks',
 ): Promise<void> {
   // Remove the Name property since it's already created by databases.create
   const { Name, ...propsToAdd } = properties;
@@ -308,17 +337,10 @@ export async function addDatabaseProperties(
 
   try {
     const dataSources = getDataSourcesClient(notion);
-    const updateResponse = (await dataSources.update({
+    await dataSources.update({
       data_source_id: dataSourceId,
       properties: propsToAdd,
-    })) as { properties?: Record<string, { type?: string }> };
-
-    // Verify the properties were added
-    const responseProperties = (updateResponse.properties ?? {}) as Record<
-      string,
-      { type?: string }
-    >;
-    const addedKeys = Object.keys(responseProperties);
+    });
   } catch (error) {
     logger.error('Failed to add database properties', { error });
     throw error;

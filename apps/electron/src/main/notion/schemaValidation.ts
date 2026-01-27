@@ -101,9 +101,7 @@ function diffPropertyTypes(
  * The migration is needed if the "Status" property (exact name) is still type "select".
  * The migration is complete when "Status" property is type "status" (or doesn't exist and a status-type property exists).
  */
-export function detectStatusPropertyMigration(
-  schema: NotionPropertyEntry[],
-): {
+export function detectStatusPropertyMigration(schema: NotionPropertyEntry[]): {
   needsMigration: boolean;
   hasBeenMigrated: boolean;
 } {
@@ -114,15 +112,141 @@ export function detectStatusPropertyMigration(
   const needsMigration = statusProperty?.type === 'select';
 
   // Migration is complete if Status property is type status, OR
-  // if Status doesn't exist but a status-type property exists (user may have renamed it)
+  // if any status-type property exists (user may have renamed it)
   const hasBeenMigrated =
-    statusProperty?.type === 'status' ||
-    (!statusProperty && hasStatusTypeProperty);
+    statusProperty?.type === 'status' || hasStatusTypeProperty;
 
   return {
     needsMigration,
     hasBeenMigrated,
   };
+}
+
+/**
+ * Check if a schema fetch was successful.
+ * Empty schemas likely indicate a fetch failure rather than a database with no properties.
+ */
+function isSchemaValid(schema: NotionPropertyEntry[]): boolean {
+  // A valid schema should have at least one property (typically "Name")
+  // Empty schemas likely indicate fetch failures
+  return schema.length > 0;
+}
+
+/**
+ * Persist detected migration status for renderer gating.
+ */
+async function persistMigrationStatus(
+  configStore: ReturnType<typeof getConfigStore>,
+  config: Awaited<ReturnType<ReturnType<typeof getConfigStore>['read']>>,
+  onboardingState: NonNullable<
+    Awaited<
+      ReturnType<ReturnType<typeof getConfigStore>['read']>
+    >['onboardingState']
+  >,
+  migrationStatus: { needsMigration: boolean; hasBeenMigrated: boolean },
+): Promise<void> {
+  if (
+    onboardingState.notion.statusPropertyNeedsMigration ===
+      migrationStatus.needsMigration &&
+    onboardingState.notion.statusPropertyHasBeenMigrated ===
+      migrationStatus.hasBeenMigrated
+  ) {
+    return; // No change needed
+  }
+
+  await configStore.write({
+    ...config,
+    onboardingState: {
+      ...onboardingState,
+      onboardingCompleted: onboardingState.onboardingCompleted,
+      notion: {
+        ...onboardingState.notion,
+        statusPropertyNeedsMigration: migrationStatus.needsMigration,
+        statusPropertyHasBeenMigrated: migrationStatus.hasBeenMigrated,
+        updatedAt: new Date().toISOString(),
+      },
+    },
+  });
+  emitOnboardingStateChanged();
+}
+
+/**
+ * Auto-update flag if user has already migrated in Notion UI.
+ * Only auto-update if onboarding is complete (user has seen the screen before).
+ */
+async function markMigrationComplete(
+  configStore: ReturnType<typeof getConfigStore>,
+  config: Awaited<ReturnType<ReturnType<typeof getConfigStore>['read']>>,
+  onboardingState: NonNullable<
+    Awaited<
+      ReturnType<ReturnType<typeof getConfigStore>['read']>
+    >['onboardingState']
+  >,
+  tasksDataSourceId: string,
+): Promise<void> {
+  if (
+    !onboardingState.onboardingCompleted ||
+    onboardingState.notion.statusPropertyMigrated
+  ) {
+    return; // Not applicable
+  }
+
+  logger.info('Status property migration detected, updating state', {
+    dataSourceId: tasksDataSourceId,
+  });
+
+  await configStore.write({
+    ...config,
+    onboardingState: {
+      ...onboardingState,
+      onboardingCompleted: onboardingState.onboardingCompleted,
+      notion: {
+        ...onboardingState.notion,
+        statusPropertyMigrated: true,
+        updatedAt: new Date().toISOString(),
+      },
+    },
+  });
+  emitOnboardingStateChanged();
+}
+
+/**
+ * Reset flag if migration is still needed (handles case where flag was incorrectly set).
+ */
+async function resetMigrationFlag(
+  configStore: ReturnType<typeof getConfigStore>,
+  config: Awaited<ReturnType<ReturnType<typeof getConfigStore>['read']>>,
+  onboardingState: NonNullable<
+    Awaited<
+      ReturnType<ReturnType<typeof getConfigStore>['read']>
+    >['onboardingState']
+  >,
+  tasksDataSourceId: string,
+): Promise<void> {
+  if (!onboardingState.notion.statusPropertyMigrated) {
+    return; // Flag not set, nothing to reset
+  }
+
+  logger.info(
+    'Status property migration flag was set but migration still needed, resetting flag',
+    {
+      dataSourceId: tasksDataSourceId,
+    },
+  );
+
+  await configStore.write({
+    ...config,
+    onboardingState: {
+      ...onboardingState,
+      onboardingCompleted: onboardingState.onboardingCompleted,
+      notion: {
+        ...onboardingState.notion,
+        statusPropertyMigrated: false,
+        updatedAt: new Date().toISOString(),
+      },
+    },
+  });
+  emitOnboardingStateChanged();
 }
 
 /**
@@ -171,103 +295,63 @@ export async function checkNotionSchemasOnStartup(): Promise<void> {
       'tasks',
     );
 
-    const dailyDiff = diffPropertyTypes(expectedTypes.daily, dailySchema);
-    const tasksDiff = diffPropertyTypes(expectedTypes.tasks, tasksSchema);
+    // Guard: Skip migration status updates if schema fetch failed (empty schemas)
+    // Empty schemas likely indicate fetch failures rather than databases with no properties
+    const isTasksSchemaValid = isSchemaValid(tasksSchema);
 
-    // Detect Status property migration
-    const tasksMigrationStatus = detectStatusPropertyMigration(tasksSchema);
+    if (isTasksSchemaValid && onboardingState) {
+      // Detect Status property migration
+      const tasksMigrationStatus = detectStatusPropertyMigration(tasksSchema);
 
-    // Persist detected migration status for renderer gating.
-    if (
-      onboardingState &&
-      (onboardingState.notion.statusPropertyNeedsMigration !==
-        tasksMigrationStatus.needsMigration ||
-        onboardingState.notion.statusPropertyHasBeenMigrated !==
-          tasksMigrationStatus.hasBeenMigrated)
-    ) {
-      await configStore.write({
-        ...config,
-        onboardingState: {
-          ...onboardingState,
-          onboardingCompleted: onboardingState.onboardingCompleted,
-          notion: {
-            ...onboardingState.notion,
-            statusPropertyNeedsMigration: tasksMigrationStatus.needsMigration,
-            statusPropertyHasBeenMigrated: tasksMigrationStatus.hasBeenMigrated,
-            updatedAt: new Date().toISOString(),
-          },
-        },
-      });
-      // Notify renderer that onboarding state changed
-      emitOnboardingStateChanged();
-    }
-
-    // Auto-update flag if user has already migrated in Notion UI
-    // Only auto-update if onboarding is complete (user has seen the screen before)
-    if (
-      onboardingState &&
-      onboardingState.onboardingCompleted &&
-      tasksMigrationStatus.hasBeenMigrated &&
-      !onboardingState.notion.statusPropertyMigrated
-    ) {
-      logger.info('Status property migration detected, updating state', {
-        dataSourceId: tasksDataSourceId,
-      });
-
-      await configStore.write({
-        ...config,
-        onboardingState: {
-          ...onboardingState,
-          onboardingCompleted: onboardingState.onboardingCompleted,
-          notion: {
-            ...onboardingState.notion,
-            statusPropertyMigrated: true,
-            updatedAt: new Date().toISOString(),
-          },
-        },
-      });
-      // Notify renderer that onboarding state changed
-      emitOnboardingStateChanged();
-    }
-
-    // Reset flag if migration is still needed (handles case where flag was incorrectly set)
-    if (
-      onboardingState &&
-      tasksMigrationStatus.needsMigration &&
-      onboardingState.notion.statusPropertyMigrated
-    ) {
-      logger.info(
-        'Status property migration flag was set but migration still needed, resetting flag',
-        {
-          dataSourceId: tasksDataSourceId,
-        },
+      // Persist detected migration status for renderer gating.
+      await persistMigrationStatus(
+        configStore,
+        config,
+        onboardingState,
+        tasksMigrationStatus,
       );
 
-      await configStore.write({
-        ...config,
-        onboardingState: {
-          ...onboardingState,
-          onboardingCompleted: onboardingState.onboardingCompleted,
-          notion: {
-            ...onboardingState.notion,
-            statusPropertyMigrated: false,
-            updatedAt: new Date().toISOString(),
-          },
+      // Auto-update flag if user has already migrated in Notion UI
+      if (tasksMigrationStatus.hasBeenMigrated) {
+        await markMigrationComplete(
+          configStore,
+          config,
+          onboardingState,
+          tasksDataSourceId,
+        );
+      }
+
+      // Reset flag if migration is still needed
+      if (tasksMigrationStatus.needsMigration) {
+        await resetMigrationFlag(
+          configStore,
+          config,
+          onboardingState,
+          tasksDataSourceId,
+        );
+      }
+
+      // Log if migration is recommended
+      if (
+        tasksMigrationStatus.needsMigration &&
+        !onboardingState.notion.statusPropertyMigrated
+      ) {
+        logger.info('Status property migration recommended', {
+          dataSourceId: tasksDataSourceId,
+        });
+      }
+    } else if (!isTasksSchemaValid) {
+      logger.warn(
+        'Skipping migration status checks: tasks schema fetch may have failed',
+        {
+          tasksDataSourceId,
+          schemaLength: tasksSchema.length,
         },
-      });
-      // Notify renderer that onboarding state changed
-      emitOnboardingStateChanged();
+      );
     }
 
-    // Log if migration is recommended
-    if (
-      tasksMigrationStatus.needsMigration &&
-      !onboardingState?.notion.statusPropertyMigrated
-    ) {
-      logger.info('Status property migration recommended', {
-        dataSourceId: tasksDataSourceId,
-      });
-    }
+    const dailyDiff = diffPropertyTypes(expectedTypes.daily, dailySchema);
+    const tasksDiff = diffPropertyTypes(expectedTypes.tasks, tasksSchema);
 
     if (
       dailyDiff.missing.length > 0 ||
