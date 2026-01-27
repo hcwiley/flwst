@@ -1,6 +1,6 @@
 /**
  * Welcome screen - first step of onboarding.
- * Explains FlowState and previews Inbox + Kanban.
+ * Explains flwst and previews Inbox + Kanban.
  */
 
 import { Stack, Text, Button } from 'tamagui';
@@ -26,7 +26,7 @@ export function WelcomeScreen({
         fontWeight='bold'
         textAlign='center'
       >
-        Welcome to FlowState
+        Welcome to flwst
       </Text>
       <Text
         fontSize='$5'
@@ -34,8 +34,9 @@ export function WelcomeScreen({
         maxWidth={600}
         opacity={0.8}
       >
-        FlowState helps you capture your thoughts, process them with AI, and
-        organize your work in Notion. Get started by connecting your workspace.
+        flwst (flow state) helps you capture your thoughts, process them with
+        AI, and organize your work in Notion. Get started by connecting your
+        workspace.
       </Text>
       <Stack
         flexDirection='row'
