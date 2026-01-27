@@ -54,7 +54,9 @@ pnpm clear:storage
 ```
 
 This removes the encrypted storage directory including all tokens,
-configuration, and onboarding state.
+configuration, and onboarding state. The script clears both production and
+development storage locations so onboarding can start from a clean slate in
+`pnpm dev`.
 
 #### Environment Variables
 

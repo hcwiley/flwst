@@ -6,6 +6,8 @@ libraries.
 ## Architecture
 
 See `ARCH.md` for the current system overview and data flow.
+The Electron onboarding flow uses push-based IPC updates to keep the renderer
+in sync with migration state.
 
 ## Monorepo Structure
 

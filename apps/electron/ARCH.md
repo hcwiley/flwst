@@ -13,6 +13,7 @@ reporting with a React renderer that hosts the UI shell and onboarding flow.
 - Handle Notion OAuth flow and manage access tokens
 - Create and validate Notion database schemas (using data sources API)
 - Provide a renderer UI shell for onboarding and workflow surfaces
+- Push onboarding state updates from main to renderer
 - Report crashes and logs to Sentry when configured
 
 ## Dependencies
@@ -68,6 +69,7 @@ flowchart TD
   subgraph Renderer[Electron Renderer]
     UI[React UI Shell]
     Onboarding[Onboarding Flow]
+    StatusBar[Onboarding Status Bar]
   end
 
   subgraph Main[Electron Main Process]
@@ -94,6 +96,8 @@ flowchart TD
 
   UI -->|IPC| Lifecycle
   Onboarding -->|IPC| NotionIPC
+  Onboarding --> StatusBar
+  NotionIPC -->|"onboarding:stateChanged"| Onboarding
   NotionIPC --> Storage
   NotionIPC --> NotionAPI
   NotionIPC -->|OAuth flow| NotionOAuth
@@ -142,6 +146,13 @@ sequenceDiagram
     M->>N: Create Bidirectional Relation
     M->>S: Persist data_source_ids
     M->>R: Resources Created
+    M->>R: onboarding:stateChanged
+    R->>S: Refresh onboarding state
+    R->>U: Status Migration Instructions
+    U->>R: Confirm Migration
+    R->>M: notion:confirmStatusMigration
+    M->>S: Mark Migration Complete
+    M->>R: onboarding:stateChanged
     R->>U: Onboarding Complete
 ```
 

@@ -75,6 +75,7 @@ flowchart TD
 
   Renderer --> Main
   Renderer --> NotionIPC
+  Main -->|"onboarding:stateChanged"| Renderer
   Main --> Stores
   NotionIPC --> NotionAPI
   NotionIPC -->|OAuth flow| NotionOAuth
@@ -175,6 +176,7 @@ Both stores use `keytar` for OS keychain integration and encrypted file storage.
 - Main process exposes handlers for Notion operations
 - Renderer process communicates via typed IPC channels
 - State updates flow unidirectionally (renderer → main → storage)
+- Main process pushes onboarding state changes to the renderer for rehydration
 
 ## Future Architecture (Phase 6+)
 
