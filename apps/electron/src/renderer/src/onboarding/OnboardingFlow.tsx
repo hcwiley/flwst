@@ -352,24 +352,6 @@ export function OnboardingFlow({
         const state = await window.api.onboarding.getState();
         if (state) {
           const resumeStep = getResumeStep(state);
-          // DEBUG: notion-onboarding
-          logger.debug('notion-onboarding', {
-            sessionId: 'debug-session',
-            runId: 'pre',
-            hypothesisId: 'H11',
-            location: 'OnboardingFlow.tsx:loadState',
-            message: 'loaded onboarding state from main',
-            data: {
-              resumeStep,
-              notionStatus: state.notion?.status,
-              hasParentPageId: !!state.notion?.parentPageId,
-              hasWorkspaceId: !!state.notion?.workspace?.workspaceId,
-              onboardingCompleted: !!state.onboardingCompleted,
-              needsMigration: state.notion?.statusPropertyNeedsMigration,
-              hasBeenMigrated: state.notion?.statusPropertyHasBeenMigrated,
-            },
-            timestamp: Date.now(),
-          });
           dispatch({ type: 'HYDRATE', payload: { state, step: resumeStep } });
         }
       } catch (error) {
@@ -386,36 +368,9 @@ export function OnboardingFlow({
   useEffect(() => {
     const handleStateChanged = async (): Promise<void> => {
       try {
-        // DEBUG: notion-onboarding
-        logger.debug('notion-onboarding', {
-          sessionId: 'debug-session',
-          runId: 'pre',
-          hypothesisId: 'H13',
-          location: 'OnboardingFlow.tsx:handleStateChanged',
-          message: 'received onboarding state changed event from main',
-          timestamp: Date.now(),
-        });
-
         // Re-fetch state from main and rehydrate
         const latestState = await window.api.onboarding.getState();
         const resumeStep = getResumeStep(latestState);
-
-        // DEBUG: notion-onboarding
-        logger.debug('notion-onboarding', {
-          sessionId: 'debug-session',
-          runId: 'pre',
-          hypothesisId: 'H13',
-          location: 'OnboardingFlow.tsx:handleStateChanged:rehydrate',
-          message: 'rehydrating onboarding state after push event',
-          data: {
-            resumeStep,
-            notionStatus: latestState.notion?.status,
-            needsMigration: latestState.notion?.statusPropertyNeedsMigration,
-            hasBeenMigrated: latestState.notion?.statusPropertyHasBeenMigrated,
-            onboardingCompleted: !!latestState.onboardingCompleted,
-          },
-          timestamp: Date.now(),
-        });
 
         dispatch({
           type: 'HYDRATE',
@@ -450,39 +405,8 @@ export function OnboardingFlow({
     const persistState = async (): Promise<void> => {
       try {
         if (!isHydrated) {
-          // DEBUG: notion-onboarding
-          logger.debug('notion-onboarding', {
-            sessionId: 'debug-session',
-            runId: 'pre',
-            hypothesisId: 'H11',
-            location: 'OnboardingFlow.tsx:persistState:skip',
-            message: 'skipping persist before hydration',
-            data: {
-              step: flowState.step,
-              notionStatus: flowState.onboardingState.notion?.status,
-            },
-            timestamp: Date.now(),
-          });
           return;
         }
-        // DEBUG: notion-onboarding
-        logger.debug('notion-onboarding', {
-          sessionId: 'debug-session',
-          runId: 'pre',
-          hypothesisId: 'H11',
-          location: 'OnboardingFlow.tsx:persistState',
-          message: 'persisting onboarding state from renderer',
-          data: {
-            step: flowState.step,
-            notionStatus: flowState.onboardingState.notion?.status,
-            hasParentPageId: !!flowState.onboardingState.notion?.parentPageId,
-            hasWorkspaceId:
-              !!flowState.onboardingState.notion?.workspace?.workspaceId,
-            onboardingCompleted:
-              !!flowState.onboardingState.onboardingCompleted,
-          },
-          timestamp: Date.now(),
-        });
         await window.api.onboarding.updateState(flowState.onboardingState);
       } catch (error) {
         console.error('Failed to persist onboarding state:', error);

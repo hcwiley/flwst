@@ -109,41 +109,13 @@ async function logDatabaseSchemaByDataSourceId(
       key,
       type: value.type ?? 'unknown',
     }));
-    // DEBUG: notion-onboarding
-    logger.debug('notion-onboarding', {
-      sessionId: 'debug-session',
-      runId: 'pre',
-      hypothesisId: 'H12',
-      location: 'src/main/notion/resources.ts:logDatabaseSchemaByDataSourceId',
-      message: 'data source schema snapshot',
-      data: JSON.stringify(
-        {
-          label,
-          dataSourceId,
-          propertyCount: entries.length,
-          properties: entries,
-        },
-        null,
-        2,
-      ),
-      timestamp: Date.now(),
+    logger.debug('Database schema by data source ID', {
+      dataSourceId,
+      label,
+      entries,
     });
   } catch (error) {
-    // DEBUG: notion-onboarding
-    logger.debug('notion-onboarding', {
-      sessionId: 'debug-session',
-      runId: 'pre',
-      hypothesisId: 'H12',
-      location:
-        'src/main/notion/resources.ts:logDatabaseSchemaByDataSourceId:error',
-      message: 'failed to retrieve data source schema',
-      data: {
-        label,
-        error: error instanceof Error ? error.message : String(error),
-        code: (error as any).code,
-      },
-      timestamp: Date.now(),
-    });
+    logger.error('Failed to log database schema by data source ID', { error });
   }
 }
 
@@ -156,19 +128,6 @@ export async function findExistingResources(
 ): Promise<Partial<CreateResourcesResult>> {
   const result: Partial<CreateResourcesResult> = {};
 
-  // DEBUG: notion-onboarding
-  logger.debug('notion-onboarding', {
-    sessionId: 'debug-session',
-    runId: 'pre',
-    hypothesisId: 'H5',
-    location: 'src/main/notion/resources.ts:findExistingResources:pageSearch',
-    message: 'searching for flow state page',
-    data: {
-      query: FLOW_STATE_PAGE_TITLE,
-      filterValue: 'page',
-    },
-    timestamp: Date.now(),
-  });
   const pageSearch = await notion.search({
     query: FLOW_STATE_PAGE_TITLE,
     filter: { property: 'object', value: 'page' } as any,
@@ -192,19 +151,6 @@ export async function findExistingResources(
     return result;
   }
 
-  // DEBUG: notion-onboarding
-  logger.debug('notion-onboarding', {
-    sessionId: 'debug-session',
-    runId: 'pre',
-    hypothesisId: 'H5',
-    location: 'src/main/notion/resources.ts:findExistingResources:dbSearch',
-    message: 'searching for daily notes database',
-    data: {
-      query: DAILY_NOTES_DB_TITLE,
-      filterValue: 'database',
-    },
-    timestamp: Date.now(),
-  });
   let dbSearch;
   try {
     dbSearch = await notion.search({
@@ -214,19 +160,7 @@ export async function findExistingResources(
       filter: { property: 'object', value: 'data_source' } as any,
     });
   } catch (error) {
-    // DEBUG: notion-onboarding
-    logger.debug('notion-onboarding', {
-      sessionId: 'debug-session',
-      runId: 'pre',
-      hypothesisId: 'H1',
-      location: 'src/main/notion/resources.ts:findExistingResources:dbSearch:error',
-      message: 'daily notes search failed',
-      data: {
-        error: error instanceof Error ? error.message : String(error),
-        code: (error as any).code,
-      },
-      timestamp: Date.now(),
-    });
+    logger.error('Failed to search for daily notes database', { error });
     throw error;
   }
   for (const item of dbSearch.results) {
@@ -249,19 +183,6 @@ export async function findExistingResources(
     }
   }
 
-  // DEBUG: notion-onboarding
-  logger.debug('notion-onboarding', {
-    sessionId: 'debug-session',
-    runId: 'pre',
-    hypothesisId: 'H5',
-    location: 'src/main/notion/resources.ts:findExistingResources:tasksSearch',
-    message: 'searching for tasks database',
-    data: {
-      query: TASKS_DB_TITLE,
-      filterValue: 'database',
-    },
-    timestamp: Date.now(),
-  });
   let tasksSearch;
   try {
     tasksSearch = await notion.search({
@@ -271,19 +192,7 @@ export async function findExistingResources(
       filter: { property: 'object', value: 'data_source' } as any,
     });
   } catch (error) {
-    // DEBUG: notion-onboarding
-    logger.debug('notion-onboarding', {
-      sessionId: 'debug-session',
-      runId: 'pre',
-      hypothesisId: 'H1',
-      location: 'src/main/notion/resources.ts:findExistingResources:tasksSearch:error',
-      message: 'tasks search failed',
-      data: {
-        error: error instanceof Error ? error.message : String(error),
-        code: (error as any).code,
-      },
-      timestamp: Date.now(),
-    });
+    logger.error('Failed to search for tasks database', { error });
     throw error;
   }
   for (const item of tasksSearch.results) {
@@ -333,19 +242,6 @@ export async function createFlowStatePage(
 function ensureDatabaseProperties(
   properties?: NotionDatabaseProperties,
 ): NotionDatabaseProperties {
-  // DEBUG: notion-onboarding
-  logger.debug('notion-onboarding', {
-    sessionId: 'debug-session',
-    runId: 'pre',
-    hypothesisId: 'H5',
-    location: 'src/main/notion/resources.ts:ensureDatabaseProperties',
-    message: 'ensureDatabaseProperties invoked',
-    data: {
-      hasProperties: !!properties,
-      keyCount: properties ? Object.keys(properties).length : 0,
-    },
-    timestamp: Date.now(),
-  });
   if (properties && Object.keys(properties).length > 0) {
     return properties;
   }
@@ -367,49 +263,7 @@ export async function createDailyNotesDatabase(
     title: [{ text: { content: DAILY_NOTES_DB_TITLE } }],
     properties: properties as any,
   };
-  // DEBUG: notion-onboarding
-  logger.debug('notion-onboarding', {
-    sessionId: 'debug-session',
-    runId: 'pre',
-    hypothesisId: 'H3',
-    location: 'src/main/notion/resources.ts:createDailyNotesDatabase:properties',
-    message: 'daily notes properties built',
-    data: {
-      keys: Object.keys(payload.properties),
-      keyCount: Object.keys(payload.properties).length,
-      payloadKeys: Object.keys(payload),
-      payloadHasProperties: payload.properties !== undefined,
-    },
-    timestamp: Date.now(),
-  });
-  // DEBUG: notion-onboarding
-  logger.debug('notion-onboarding', {
-    sessionId: 'debug-session',
-    runId: 'pre',
-    hypothesisId: 'H6',
-    location: 'src/main/notion/resources.ts:createDailyNotesDatabase:call',
-    message: 'calling databases.create for daily notes',
-    data: {
-      parentPageId: normalizeNotionId(flowStatePageId),
-      title: DAILY_NOTES_DB_TITLE,
-      propertyKeys: Object.keys(payload.properties),
-      fullPayload: JSON.stringify(payload),
-    },
-    timestamp: Date.now(),
-  });
   const response = await notion.databases.create(payload);
-  // DEBUG: notion-onboarding
-  logger.debug('notion-onboarding', {
-    sessionId: 'debug-session',
-    runId: 'pre',
-    hypothesisId: 'H6',
-    location: 'src/main/notion/resources.ts:createDailyNotesDatabase:success',
-    message: 'successfully created daily notes database',
-    data: {
-      id: response.id,
-    },
-    timestamp: Date.now(),
-  });
   return response.id;
 }
 
@@ -426,65 +280,11 @@ export async function createTasksDatabase(
     title: [{ text: { content: TASKS_DB_TITLE } }],
     properties: properties as any,
   };
-  // DEBUG: notion-onboarding
-  logger.debug('notion-onboarding', {
-    sessionId: 'debug-session',
-    runId: 'pre',
-    hypothesisId: 'H4',
-    location: 'src/main/notion/resources.ts:createTasksDatabase:properties',
-    message: 'tasks properties built',
-    data: {
-      keys: Object.keys(payload.properties),
-      keyCount: Object.keys(payload.properties).length,
-      payloadKeys: Object.keys(payload),
-      payloadHasProperties: payload.properties !== undefined,
-    },
-    timestamp: Date.now(),
-  });
-  // DEBUG: notion-onboarding
-  logger.debug('notion-onboarding', {
-    sessionId: 'debug-session',
-    runId: 'pre',
-    hypothesisId: 'H7',
-    location: 'src/main/notion/resources.ts:createTasksDatabase:call',
-    message: 'calling databases.create for tasks',
-    data: {
-      parentPageId: normalizeNotionId(flowStatePageId),
-      title: TASKS_DB_TITLE,
-      propertyKeys: Object.keys(payload.properties),
-      fullPayload: JSON.stringify(payload),
-    },
-    timestamp: Date.now(),
-  });
   try {
     const response = await notion.databases.create(payload);
-    // DEBUG: notion-onboarding
-    logger.debug('notion-onboarding', {
-      sessionId: 'debug-session',
-      runId: 'pre',
-      hypothesisId: 'H7',
-      location: 'src/main/notion/resources.ts:createTasksDatabase:success',
-      message: 'successfully created tasks database',
-      data: {
-        id: response.id,
-      },
-      timestamp: Date.now(),
-    });
     return response.id;
   } catch (error) {
-    // DEBUG: notion-onboarding
-    logger.debug('notion-onboarding', {
-      sessionId: 'debug-session',
-      runId: 'pre',
-      hypothesisId: 'H7',
-      location: 'src/main/notion/resources.ts:createTasksDatabase:error',
-      message: 'failed to create tasks database',
-      data: {
-        error: error instanceof Error ? error.message : String(error),
-        code: (error as any).code,
-      },
-      timestamp: Date.now(),
-    });
+    logger.error('Failed to create tasks database', { error });
     throw error;
   }
 }
@@ -508,21 +308,6 @@ export async function addDatabaseProperties(
 
   try {
     const dataSources = getDataSourcesClient(notion);
-    // DEBUG: notion-onboarding
-    logger.debug('notion-onboarding', {
-      sessionId: 'debug-session',
-      runId: 'pre',
-      hypothesisId: 'H12',
-      location: 'src/main/notion/resources.ts:addDatabaseProperties:call',
-      message: 'adding properties after database creation',
-      data: {
-        label,
-        dataSourceId,
-        propertyKeys: Object.keys(propsToAdd),
-        properties: propsToAdd,
-      },
-      timestamp: Date.now(),
-    });
     const updateResponse = (await dataSources.update({
       data_source_id: dataSourceId,
       properties: propsToAdd,
@@ -534,38 +319,8 @@ export async function addDatabaseProperties(
       { type?: string }
     >;
     const addedKeys = Object.keys(responseProperties);
-
-    // DEBUG: notion-onboarding
-    logger.debug('notion-onboarding', {
-      sessionId: 'debug-session',
-      runId: 'pre',
-      hypothesisId: 'H12',
-      location: 'src/main/notion/resources.ts:addDatabaseProperties:success',
-      message: 'successfully added properties',
-      data: {
-        label,
-        requestedKeys: Object.keys(propsToAdd),
-        responseKeys: addedKeys,
-        totalProperties: addedKeys.length,
-      },
-      timestamp: Date.now(),
-    });
   } catch (error) {
-    // DEBUG: notion-onboarding
-    logger.debug('notion-onboarding', {
-      sessionId: 'debug-session',
-      runId: 'pre',
-      hypothesisId: 'H12',
-      location: 'src/main/notion/resources.ts:addDatabaseProperties:error',
-      message: 'failed to add properties',
-      data: {
-        label,
-        error: error instanceof Error ? error.message : String(error),
-        code: (error as any).code,
-        stack: error instanceof Error ? error.stack : undefined,
-      },
-      timestamp: Date.now(),
-    });
+    logger.error('Failed to add database properties', { error });
     throw error;
   }
 }
@@ -589,48 +344,12 @@ export async function ensureDailyNotesRelation(
   };
   try {
     const dataSources = getDataSourcesClient(notion);
-    // DEBUG: notion-onboarding
-    logger.debug('notion-onboarding', {
-      sessionId: 'debug-session',
-      runId: 'pre',
-      hypothesisId: 'H8',
-      location: 'src/main/notion/resources.ts:ensureDailyNotesRelation:call',
-      message: 'calling dataSources.update for daily notes relation',
-      data: {
-        dailyNotesDataSourceId,
-        tasksDataSourceId,
-        propertyKeys: Object.keys(properties),
-        relationConfig: properties.Tasks.relation,
-      },
-      timestamp: Date.now(),
-    });
     await dataSources.update({
       data_source_id: dailyNotesDataSourceId,
       properties,
     });
-    // DEBUG: notion-onboarding
-    logger.debug('notion-onboarding', {
-      sessionId: 'debug-session',
-      runId: 'pre',
-      hypothesisId: 'H8',
-      location: 'src/main/notion/resources.ts:ensureDailyNotesRelation:success',
-      message: 'successfully updated daily notes relation',
-      timestamp: Date.now(),
-    });
   } catch (error) {
-    // DEBUG: notion-onboarding
-    logger.debug('notion-onboarding', {
-      sessionId: 'debug-session',
-      runId: 'pre',
-      hypothesisId: 'H8',
-      location: 'src/main/notion/resources.ts:ensureDailyNotesRelation:error',
-      message: 'failed to update daily notes relation',
-      data: {
-        error: error instanceof Error ? error.message : String(error),
-        code: (error as any).code,
-      },
-      timestamp: Date.now(),
-    });
+    logger.error('Failed to ensure daily notes relation', { error });
     throw error;
   }
 }
@@ -698,35 +417,9 @@ export async function createResourcesInternal(
   parentPageId: string,
   onboardingState?: OnboardingState,
 ): Promise<CreateResourcesResult> {
-  // DEBUG: notion-onboarding
-  logger.debug('notion-onboarding', {
-    sessionId: 'debug-session',
-    runId: 'pre',
-    hypothesisId: 'H1',
-    location: 'src/main/notion/resources.ts:createResourcesInternal:entry',
-    message: 'createResourcesInternal entry',
-    data: {
-      parentPageId,
-      onboardingStatus: onboardingState?.notion?.status,
-      hasWorkspace: !!onboardingState?.notion?.workspace?.workspaceId,
-    },
-    timestamp: Date.now(),
-  });
   const tokensStore = getTokensStore();
   const tokens = await tokensStore.read();
   const accessToken = tokens.notionAccessToken;
-  // DEBUG: notion-onboarding
-  logger.debug('notion-onboarding', {
-    sessionId: 'debug-session',
-    runId: 'pre',
-    hypothesisId: 'H9',
-    location: 'src/main/notion/resources.ts:createResourcesInternal:token',
-    message: 'token presence before create',
-    data: {
-      hasAccessToken: !!accessToken,
-    },
-    timestamp: Date.now(),
-  });
   if (!accessToken) {
     throw new NotionError(
       'NOTION_TOKEN_MISSING',
@@ -741,20 +434,6 @@ export async function createResourcesInternal(
   logger.info('Creating Notion resources', { parentPageId });
 
   const stored = resolveStoredIds(tokens, onboardingState);
-  // DEBUG: notion-onboarding
-  logger.debug('notion-onboarding', {
-    sessionId: 'debug-session',
-    runId: 'pre',
-    hypothesisId: 'H2',
-    location: 'src/main/notion/resources.ts:createResourcesInternal:stored',
-    message: 'stored resource ids resolved',
-    data: {
-      hasFlowStatePageId: !!stored.flowStatePageId,
-      hasDailyNotesDataSourceId: !!stored.dailyNotesDataSourceId,
-      hasTasksDataSourceId: !!stored.tasksDataSourceId,
-    },
-    timestamp: Date.now(),
-  });
   if (
     stored.flowStatePageId &&
     stored.dailyNotesDataSourceId &&
@@ -835,19 +514,6 @@ export async function createResourcesInternal(
     tasksDataSourceId,
   );
 
-  // DEBUG: notion-onboarding
-  logger.debug('notion-onboarding', {
-    sessionId: 'debug-session',
-    runId: 'pre',
-    hypothesisId: 'H12',
-    location: 'src/main/notion/resources.ts:createResourcesInternal:postRelation',
-    message: 'relation update completed, retrieving schemas',
-    data: {
-      dailyNotesDataSourceId,
-      tasksDataSourceId,
-    },
-    timestamp: Date.now(),
-  });
   await logDatabaseSchemaByDataSourceId(
     notion,
     dailyNotesDataSourceId,

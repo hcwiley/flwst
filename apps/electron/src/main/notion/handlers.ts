@@ -22,19 +22,6 @@ async function handleOAuthResult(result: {
   accessToken: string;
   workspace: NotionWorkspaceMetadata;
 }): Promise<void> {
-  // DEBUG: notion-onboarding
-  logger.debug('notion-onboarding', {
-    sessionId: 'debug-session',
-    runId: 'pre',
-    hypothesisId: 'H8',
-    location: 'src/main/notion/handlers.ts:handleOAuthResult:entry',
-    message: 'handleOAuthResult entry',
-    data: {
-      hasAccessToken: !!result.accessToken,
-      hasWorkspaceId: !!result.workspace?.workspaceId,
-    },
-    timestamp: Date.now(),
-  });
   const tokensStore = getTokensStore();
   const currentTokens = await tokensStore.read();
   await tokensStore.write({
@@ -59,19 +46,6 @@ async function handleOAuthResult(result: {
       },
     });
   }
-  // DEBUG: notion-onboarding
-  logger.debug('notion-onboarding', {
-    sessionId: 'debug-session',
-    runId: 'pre',
-    hypothesisId: 'H8',
-    location: 'src/main/notion/handlers.ts:handleOAuthResult:stored',
-    message: 'handleOAuthResult stored tokens and onboarding',
-    data: {
-      hadOnboardingState: !!currentOnboarding,
-      statusSet: currentOnboarding ? 'authed' : 'skipped',
-    },
-    timestamp: Date.now(),
-  });
 }
 
 /**

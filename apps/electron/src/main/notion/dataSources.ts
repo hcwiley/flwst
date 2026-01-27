@@ -37,18 +37,6 @@ export function getDataSourcesClient(notion: Client): {
       }
     | undefined;
   if (!dataSources) {
-    // DEBUG: notion-onboarding
-    logger.debug('notion-onboarding', {
-      sessionId: 'debug-session',
-      runId: 'pre',
-      hypothesisId: 'H12',
-      location: 'src/main/notion/dataSources.ts:getDataSourcesClient:missing',
-      message: 'Notion SDK dataSources client missing',
-      data: {
-        clientKeys: Object.keys(notion as unknown as Record<string, unknown>),
-      },
-      timestamp: Date.now(),
-    });
     throw new NotionError(
       'NOTION_VALIDATION_ERROR',
       'Notion SDK dataSources client missing. Update dependency/build.',
@@ -74,22 +62,6 @@ export async function resolvePrimaryDataSourceId(
     .data_sources;
   const dataSourcesCount = Array.isArray(dataSources) ? dataSources.length : 0;
   const dataSourceId = dataSources?.[0]?.id ?? '';
-  // DEBUG: notion-onboarding
-  logger.debug('notion-onboarding', {
-    sessionId: 'debug-session',
-    runId: 'pre',
-    hypothesisId: 'H12',
-    location: 'src/main/notion/dataSources.ts:resolvePrimaryDataSourceId',
-    message: 'resolved data source id for database',
-    data: {
-      label,
-      databaseId,
-      dataSourcesCount,
-      dataSourceId,
-      responseKeys,
-    },
-    timestamp: Date.now(),
-  });
   if (!dataSourceId) {
     throw new NotionError(
       'NOTION_VALIDATION_ERROR',
@@ -123,44 +95,9 @@ export async function fetchDataSourceSchemaEntries(
     }));
     const objectType = dataSource.object ?? 'unknown';
     const responseKeys = Object.keys(dataSource as Record<string, unknown>);
-    // DEBUG: notion-onboarding
-    logger.debug('notion-onboarding', {
-      sessionId: 'debug-session',
-      runId: 'pre',
-      hypothesisId: 'H12',
-      location: 'src/main/notion/dataSources.ts:fetchDataSourceSchemaEntries',
-      message: 'data source schema snapshot (startup)',
-      data: JSON.stringify(
-        {
-          label,
-          dataSourceId,
-          objectType,
-          responseKeys,
-          propertyCount: entries.length,
-          properties: entries,
-        },
-        null,
-        2,
-      ),
-      timestamp: Date.now(),
-    });
     return entries;
   } catch (error) {
-    // DEBUG: notion-onboarding
-    logger.debug('notion-onboarding', {
-      sessionId: 'debug-session',
-      runId: 'pre',
-      hypothesisId: 'H12',
-      location:
-        'src/main/notion/dataSources.ts:fetchDataSourceSchemaEntries:error',
-      message: 'failed to retrieve data source schema (startup)',
-      data: {
-        label,
-        error: error instanceof Error ? error.message : String(error),
-        code: (error as any).code,
-      },
-      timestamp: Date.now(),
-    });
+    logger.error('Failed to fetch data source schema entries', { error });
     return [];
   }
 }
@@ -181,18 +118,6 @@ export async function fetchDataSourceFullSchema(
     })) as { properties?: Record<string, any> };
     return (dataSource.properties ?? {}) as Record<string, any>;
   } catch (error) {
-    logger.debug('notion-onboarding', {
-      sessionId: 'debug-session',
-      runId: 'pre',
-      hypothesisId: 'H12',
-      location: 'src/main/notion/dataSources.ts:fetchDataSourceFullSchema:error',
-      message: 'failed to retrieve full data source schema',
-      data: {
-        label,
-        error: error instanceof Error ? error.message : String(error),
-      },
-      timestamp: Date.now(),
-    });
     return {};
   }
 }
@@ -313,19 +238,6 @@ export async function ensureDataSourcePropertiesOnStartup(
   const needsOptionUpdateKeys = Object.keys(needsOptionUpdate);
 
   if (missingKeys.length === 0 && needsOptionUpdateKeys.length === 0) {
-    // DEBUG: notion-onboarding
-    logger.debug('notion-onboarding', {
-      sessionId: 'debug-session',
-      runId: 'pre',
-      hypothesisId: 'H12',
-      location:
-        'src/main/notion/dataSources.ts:ensureDataSourcePropertiesOnStartup:skip',
-      message: 'no missing properties or option updates needed on startup',
-      data: {
-        label,
-      },
-      timestamp: Date.now(),
-    });
     return;
   }
 
@@ -340,29 +252,7 @@ export async function ensureDataSourcePropertiesOnStartup(
     const relationProps = Object.entries(propertiesToUpdate).filter(
       ([_, value]) => 'relation' in value,
     );
-
-    // DEBUG: notion-onboarding
-    logger.debug('notion-onboarding', {
-      sessionId: 'debug-session',
-      runId: 'pre',
-      hypothesisId: 'H12',
-      location:
-        'src/main/notion/dataSources.ts:ensureDataSourcePropertiesOnStartup:call',
-      message: 'updating properties on startup',
-      data: {
-        label,
-        dataSourceId,
-        missingKeys,
-        needsOptionUpdateKeys,
-        allUpdateKeys,
-        payloadKeys: Object.keys(propertiesToUpdate),
-        relationProperties: relationProps.map(([key, value]) => ({
-          key,
-          config: 'relation' in value ? value.relation : null,
-        })),
-      },
-      timestamp: Date.now(),
-    });
+    logger.debug('Relation properties before sending', { relationProps });
 
     const updateResponse = (await dataSources.update({
       data_source_id: dataSourceId,
@@ -374,41 +264,9 @@ export async function ensureDataSourcePropertiesOnStartup(
     >;
     const responsePropertyCount = Object.keys(responseProperties).length;
     const responseKeys = Object.keys(updateResponse as Record<string, unknown>);
-    // DEBUG: notion-onboarding
-    logger.debug('notion-onboarding', {
-      sessionId: 'debug-session',
-      runId: 'pre',
-      hypothesisId: 'H12',
-      location:
-        'src/main/notion/dataSources.ts:ensureDataSourcePropertiesOnStartup:success',
-      message: 'updated properties on startup',
-      data: {
-        label,
-        missingKeys,
-        needsOptionUpdateKeys,
-        allUpdateKeys,
-        responsePropertyCount,
-        responseKeys,
-      },
-      timestamp: Date.now(),
-    });
 
     await fetchDataSourceSchemaEntries(notion, dataSourceId, label);
   } catch (error) {
-    // DEBUG: notion-onboarding
-    logger.debug('notion-onboarding', {
-      sessionId: 'debug-session',
-      runId: 'pre',
-      hypothesisId: 'H12',
-      location:
-        'src/main/notion/dataSources.ts:ensureDataSourcePropertiesOnStartup:error',
-      message: 'failed to update properties on startup',
-      data: {
-        label,
-        error: error instanceof Error ? error.message : String(error),
-        code: (error as any).code,
-      },
-      timestamp: Date.now(),
-    });
+    logger.error('Failed to ensure data source properties on startup', { error });
   }
 }

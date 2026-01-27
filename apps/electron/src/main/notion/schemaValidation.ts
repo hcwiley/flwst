@@ -147,37 +147,7 @@ export async function checkNotionSchemasOnStartup(): Promise<void> {
       onboardingState?.notion.tasksDataSourceId ??
       '';
 
-    // DEBUG: notion-onboarding
-    logger.debug('notion-onboarding', {
-      sessionId: 'debug-session',
-      runId: 'pre',
-      hypothesisId: 'H12',
-      location: 'src/main/notion/schemaValidation.ts:checkNotionSchemasOnStartup:entry',
-      message: 'checking notion schemas on startup',
-      data: {
-        hasAccessToken: !!accessToken,
-        hasDailyNotesDataSourceId: !!dailyNotesDataSourceId,
-        hasTasksDataSourceId: !!tasksDataSourceId,
-        notionStatus: onboardingState?.notion.status,
-      },
-      timestamp: Date.now(),
-    });
-
     if (!accessToken || !dailyNotesDataSourceId || !tasksDataSourceId) {
-      // DEBUG: notion-onboarding
-      logger.debug('notion-onboarding', {
-        sessionId: 'debug-session',
-        runId: 'pre',
-        hypothesisId: 'H12',
-        location: 'src/main/notion/schemaValidation.ts:checkNotionSchemasOnStartup:skip',
-        message: 'skipping schema check due to missing data',
-        data: {
-          hasAccessToken: !!accessToken,
-          hasDailyNotesDataSourceId: !!dailyNotesDataSourceId,
-          hasTasksDataSourceId: !!tasksDataSourceId,
-        },
-        timestamp: Date.now(),
-      });
       return;
     }
 
@@ -204,37 +174,8 @@ export async function checkNotionSchemasOnStartup(): Promise<void> {
     const dailyDiff = diffPropertyTypes(expectedTypes.daily, dailySchema);
     const tasksDiff = diffPropertyTypes(expectedTypes.tasks, tasksSchema);
 
-    // DEBUG: notion-onboarding
-    logger.debug('notion-onboarding', {
-      sessionId: 'debug-session',
-      runId: 'pre',
-      hypothesisId: 'H12',
-      location: 'src/main/notion/schemaValidation.ts:checkNotionSchemasOnStartup:diff',
-      message: 'data source schema diff',
-      data: {
-        daily: dailyDiff,
-        tasks: tasksDiff,
-      },
-      timestamp: Date.now(),
-    });
-
     // Detect Status property migration
     const tasksMigrationStatus = detectStatusPropertyMigration(tasksSchema);
-
-    // DEBUG: notion-onboarding
-    logger.debug('notion-onboarding', {
-      sessionId: 'debug-session',
-      runId: 'pre',
-      hypothesisId: 'H12',
-      location: 'src/main/notion/schemaValidation.ts:checkNotionSchemasOnStartup:migration',
-      message: 'status property migration detection',
-      data: {
-        needsMigration: tasksMigrationStatus.needsMigration,
-        hasBeenMigrated: tasksMigrationStatus.hasBeenMigrated,
-        currentFlag: onboardingState?.notion.statusPropertyMigrated,
-      },
-      timestamp: Date.now(),
-    });
 
     // Persist detected migration status for renderer gating.
     if (

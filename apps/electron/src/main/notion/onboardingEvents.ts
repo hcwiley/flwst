@@ -17,18 +17,6 @@ export function emitOnboardingStateChanged(): void {
     BrowserWindow.getAllWindows().forEach((window) => {
       window.webContents.send('onboarding:stateChanged');
     });
-    // DEBUG: notion-onboarding
-    logger.debug('notion-onboarding', {
-      sessionId: 'debug-session',
-      runId: 'pre',
-      hypothesisId: 'H13',
-      location: 'src/main/notion/onboardingEvents.ts:emitOnboardingStateChanged',
-      message: 'emitted onboarding state changed event',
-      data: {
-        windowCount: BrowserWindow.getAllWindows().length,
-      },
-      timestamp: Date.now(),
-    });
   } catch (error) {
     logger.error('Failed to emit onboarding state changed event', { error });
   }

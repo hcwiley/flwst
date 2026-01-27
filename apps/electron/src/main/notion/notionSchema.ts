@@ -144,20 +144,6 @@ export function buildTasksDbProperties(
     };
   }
 
-  // DEBUG: notion-onboarding
-  logger.debug('notion-onboarding', {
-    sessionId: 'debug-session',
-    runId: 'pre',
-    hypothesisId: 'H3',
-    location: 'src/main/notionSchema.ts:buildTasksDbProperties',
-    message: 'built tasks db properties',
-    data: {
-      keyCount: Object.keys(properties).length,
-      hasRelation: !!dailyNotesDataSourceId,
-    },
-    timestamp: Date.now(),
-  });
-
   return properties;
 }
 
@@ -183,20 +169,6 @@ export function buildDailyNotesDbProperties(
       },
     };
   }
-
-  // DEBUG: notion-onboarding
-  logger.debug('notion-onboarding', {
-    sessionId: 'debug-session',
-    runId: 'pre',
-    hypothesisId: 'H3',
-    location: 'src/main/notionSchema.ts:buildDailyNotesDbProperties',
-    message: 'built daily notes db properties',
-    data: {
-      keyCount: Object.keys(properties).length,
-      hasRelation: !!tasksDataSourceId,
-    },
-    timestamp: Date.now(),
-  });
 
   return properties;
 }
