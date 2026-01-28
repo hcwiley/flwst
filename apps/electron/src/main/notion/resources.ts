@@ -289,12 +289,17 @@ export async function createDailyNotesDatabase(
   flowStatePageId: string,
 ): Promise<string> {
   const properties = ensureDatabaseProperties(buildDailyNotesDbProperties());
+  try {
   return createNotionDatabase(
     notion,
     flowStatePageId,
-    DAILY_NOTES_DB_TITLE,
-    properties,
-  );
+      DAILY_NOTES_DB_TITLE,
+      properties,
+    );
+  } catch (error) {
+    logger.error('Failed to create daily notes database', { error });
+    throw error;
+  }
 }
 
 /**
