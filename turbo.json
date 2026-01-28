@@ -3,12 +3,20 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", "build/**"]
+      "outputs": ["dist/**", ".next/**", "build/**"],
+      "env": ["LOG_LEVEL"]
     },
     "dev": {
       "cache": false,
       "persistent": true,
-      "env": ["SENTRY_DSN", "NODE_ENV"]
+      "env": [
+        "SENTRY_DSN",
+        "NODE_ENV",
+        "NOTION_CLIENT_ID",
+        "NOTION_CLIENT_SECRET",
+        "NOTION_REDIRECT_URI",
+        "LOG_LEVEL"
+      ]
     },
     "lint": {
       "dependsOn": ["^lint"]

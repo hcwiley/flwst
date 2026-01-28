@@ -89,6 +89,9 @@ importers:
       '@flwst/ui':
         specifier: workspace:*
         version: link:../../libs/ui
+      '@notionhq/client':
+        specifier: ^5.8.0
+        version: 5.8.0
       '@sentry/electron':
         specifier: ^7.6.0
         version: 7.6.0
@@ -159,6 +162,9 @@ importers:
       react-dom:
         specifier: ^19.2.1
         version: 19.2.3(react@19.2.3)
+      tsx:
+        specifier: ^4.20.6
+        version: 4.21.0
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -2976,6 +2982,13 @@ packages:
         integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==,
       }
     engines: { node: '>= 8' }
+
+  '@notionhq/client@5.8.0':
+    resolution:
+      {
+        integrity: sha512-CcmZ+wVDYVFmfCIjoU50x/9j8uhRPF8u23FbEQJhT1ACwn3dbCl6GRN+JMMyQmuVLJlMF7ckpPehDgmprbFtDw==,
+      }
+    engines: { node: '>=18' }
 
   '@npmcli/agent@3.0.0':
     resolution:
@@ -14413,6 +14426,8 @@ snapshots:
     dependencies:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.20.1
+
+  '@notionhq/client@5.8.0': {}
 
   '@npmcli/agent@3.0.0':
     dependencies:

@@ -4,62 +4,182 @@
 
 This monorepo provides:
 
-- A **macOS Electron client** for pasting transcripts, reviewing outputs, and
-  editing todo metadata.
-- A **reasoning server** that orchestrates local LLM inference + Notion sync.
-- Shared **types** for schema validation and client/server compatibility.
+- An **Electron desktop client** with Notion integration, onboarding, and local
+  encrypted persistence
+- A **Firebase server scaffold** for future server-mediated LLM calls (Phase 6+)
+- Shared **types** and **core utilities** for schema validation, storage, and
+  logging
 
 ## Key Components
 
-- **macOS app**: `apps/macos-electron`
-- **reasoning server**: `servers/reasoning`
-- **shared API schemas**: `types/src/api/reasoning.ts`
+- **Electron app**: `apps/electron` - Desktop client with Notion integration
+- **Firebase server**: `servers/firebase` - Server scaffold for future features
+- **Core utilities**: `libs/core` - Logging, run IDs, encrypted storage
+- **Shared types**: `types` - Zod schemas and TypeScript types
+- **Integrations**: `libs/integrations` - Integration configuration types
+
+## Current Implementation Status
+
+### ✅ Implemented (Phase 1-2)
+
+- Electron desktop app with React UI
+- Notion OAuth flow and token management
+- Notion database creation and schema validation
+- Encrypted local storage (tokens + config)
+- Onboarding flow with state management
+- Sentry crash reporting and logging
+
+### 🚧 Scaffolded (Phase 6+)
+
+- Firebase Functions for server-mediated operations
+- LLM integration via Gemini API
+- Server-side Notion sync
 
 ## Data Flow
 
 ```mermaid
 flowchart TD
-  subgraph App[apps/macos-electron]
-    MacUI[macOS_UI]
+  subgraph App[apps/electron]
+    Renderer[Renderer UI]
+    Main[Main Process]
+    NotionIPC[Notion IPC Handlers]
+    SchemaValidation[Schema Validation]
   end
 
-  subgraph Server[servers/reasoning]
-    ReasoningAPI[Express_API]
+  subgraph Core[libs/core]
+    Stores[Encrypted Stores]
+    Crypto[Crypto Helpers]
+    Logger[Logger]
   end
 
-  subgraph LocalLLM[Local_LLM]
-    Llama[node-llama-cpp]
+  subgraph Types[types]
+    ZodSchemas[Zod Schemas]
+    TypeDefs[TypeScript Types]
   end
 
-  subgraph Notion[Notion]
-    MCP[Notion_MCP]
-    API[Notion_API]
-    TasksDB[Tasks_DB]
-    DailyDB[DailyNotes_DB]
+  subgraph Local[Local Machine]
+    Keychain[OS Keychain]
+    Files[App Data Directory]
   end
 
-  subgraph Shared[Shared]
-    Types[types_api_reasoning]
+  subgraph External[External Services]
+    NotionOAuth[Notion OAuth]
+    NotionAPI[Notion API]
+    SentryAPI[Sentry Cloud]
   end
 
-  MacUI -->|"HTTP (localhost): transcript & todos"| ReasoningAPI
-  ReasoningAPI --> Llama
-  ReasoningAPI --> MCP
-  ReasoningAPI --> API
+  subgraph Firebase[servers/firebase - Future]
+    Functions[Firebase Functions]
+    Gemini[Gemini API]
+  end
 
-  MCP --> TasksDB
-  API --> TasksDB
-  API --> DailyDB
+  Renderer --> Main
+  Renderer --> NotionIPC
+  Main -->|"onboarding:stateChanged"| Renderer
+  Main --> Stores
+  NotionIPC --> NotionAPI
+  NotionIPC -->|OAuth flow| NotionOAuth
+  NotionIPC --> Stores
+  SchemaValidation --> NotionAPI
+  SchemaValidation --> Stores
+  Stores --> Crypto
+  Stores --> ZodSchemas
+  Crypto --> Keychain
+  Crypto --> Files
+  Main --> Logger
+  Main --> SentryAPI
+  Renderer --> SentryAPI
 
-  MacUI --> Types
-  ReasoningAPI --> Types
+  Renderer -.->|"HTTPS (planned)"| Functions
+  Functions -.->|future| Gemini
+  Functions -.->|future| NotionAPI
 ```
 
-## Notes / Constraints
+## Notion Integration Architecture
 
-- **Todo update syncing is in-memory**: the server stores UI edits (status,
-  priority, etc.) in a process-local map. If the server restarts, pending edits
-  are lost.
-- **Notion matching searches only Tasks DB**: search results are filtered to
-  only include pages whose `parent.database_id` matches the configured Tasks
-  database.
+### Resource Model
+
+The app creates three core Notion resources during onboarding:
+
+1. **Flow State Page**: Parent page containing all resources
+2. **Daily Notes Database**: Database for daily note entries
+   - Properties: Name, Date, Summary, Tags, Tasks (relation)
+3. **Tasks Database**: Database for tasks/todos
+   - Properties: Name, Project, Description, Priority, Status, Tags, Due Date,
+     Assignee, Source Run ID, Daily Notes (relation)
+
+### Data Source IDs
+
+The Notion API (2025-09-03 version) manages database schemas through
+`data_source_id` rather than `database_id`:
+
+1. **Database Creation**: `databases.create()` creates a database with only the
+   title property
+2. **Data Source Resolution**: After creation, the primary `data_source_id` is
+   resolved
+3. **Schema Updates**: All property additions/modifications use
+   `dataSources.update()` with `data_source_id`
+4. **Persistence**: `data_source_id`s are stored in encrypted storage for future
+   operations
+
+### Schema Validation
+
+On app startup, the main process automatically:
+
+1. Checks if Notion onboarding is complete (OAuth + resources created)
+2. Retrieves stored `data_source_id`s from encrypted storage
+3. Fetches current schemas from Notion API
+4. Compares expected properties vs actual properties
+5. Automatically adds missing properties via `dataSources.update()`
+
+This ensures databases maintain correct schemas through:
+
+- App updates with new required properties
+- Manual property deletions by users
+- Schema migrations
+
+### Storage Architecture
+
+Two encrypted stores manage state:
+
+#### TokensStore (Sensitive Data)
+
+- `notionAccessToken`: OAuth access token
+- `notionDailyNotesDataSourceId`: Daily Notes data source ID
+- `notionTodosDataSourceId`: Tasks data source ID
+
+#### ConfigStore (Application State)
+
+- `notion.flowStatePageId`: Parent page ID
+- `notion.dailyNotesDataSourceId`: Data source ID
+- `notion.todosDataSourceId`: Data source ID
+- `onboardingState.notion`: Onboarding progress and metadata
+
+Both stores use `keytar` for OS keychain integration and encrypted file storage.
+
+## Development Patterns
+
+### Type Safety
+
+- All data structures defined with Zod schemas in `types` package
+- Runtime validation at storage and API boundaries
+- TypeScript for compile-time type checking
+
+### Error Handling
+
+- Custom `NotionError` class with typed error codes
+- Comprehensive logging via `@flwst/core` logger
+- Sentry integration for crash reporting
+
+### IPC Communication
+
+- Main process exposes handlers for Notion operations
+- Renderer process communicates via typed IPC channels
+- State updates flow unidirectionally (renderer → main → storage)
+- Main process pushes onboarding state changes to the renderer for rehydration
+
+## Future Architecture (Phase 6+)
+
+- **Server-mediated LLM calls**: Move LLM interactions to Firebase Functions
+- **Notion sync**: Server-side Notion database synchronization
+- **Gemini integration**: AI-powered task and note generation

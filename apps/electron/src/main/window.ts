@@ -64,7 +64,7 @@ export function createMainWindow(
   // Log renderer process errors
   mainWindow.webContents.on(
     'did-fail-load',
-    (event, errorCode, errorDescription) => {
+    (_event, errorCode, errorDescription) => {
       getLogger().error('Renderer failed to load', {
         errorCode,
         errorDescription,
@@ -72,7 +72,7 @@ export function createMainWindow(
     },
   );
 
-  mainWindow.webContents.on('crashed', () => {
+  mainWindow.webContents.on('render-process-gone', () => {
     getLogger().error('Renderer process crashed');
   });
 

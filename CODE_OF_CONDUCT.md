@@ -1,6 +1,7 @@
 # Code of Conduct
 
-We follow the spirit of the Contributor Covenant. Be respectful, inclusive, and considerate.
+We follow the spirit of the Contributor Covenant. Be respectful, inclusive, and
+considerate.
 
 ## Our Standards
 
@@ -18,7 +19,8 @@ We follow the spirit of the Contributor Covenant. Be respectful, inclusive, and 
 
 ## Enforcement
 
-- Report incidents to the maintainers (see repository owner profile) or via a private channel.
+- Report incidents to the maintainers (see repository owner profile) or via a
+  private channel.
 - For sensitive issues, prefer private contact rather than public issues.
 - The maintainers will review and take appropriate action.
 

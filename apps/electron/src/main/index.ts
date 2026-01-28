@@ -7,6 +7,8 @@ import {
   enforceSingleInstance,
   registerAppLifecycleHandlers,
 } from './lifecycle';
+import { registerOnboardingHandlers } from './onboarding';
+import { checkNotionSchemasOnStartup, registerNotionHandlers } from './notion';
 import { logger } from '@flwst/core';
 
 // Initialize Sentry as early as possible in main process
@@ -34,6 +36,13 @@ app.whenReady().then(() => {
   // Initialize encrypted storage
   // Stores are now available via getConfigStore() and getTokensStore()
   initializeStorage();
+
+  // Register IPC handlers
+  registerOnboardingHandlers();
+  registerNotionHandlers();
+  checkNotionSchemasOnStartup().catch((error) => {
+    getLogger().error('Notion schema check failed', { error });
+  });
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.

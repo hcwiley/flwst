@@ -2,13 +2,15 @@
 
 ## Overview
 
-This guide documents the correct usage of the `mcp_Notion_notion-create-pages` tool to avoid common errors encountered during development.
+This guide documents the correct usage of the `mcp_Notion_notion-create-pages`
+tool to avoid common errors encountered during development.
 
 ## Common Issues and Solutions
 
 ### Issue 1: Parent Parameter Format
 
-**Error:** `Parameter 'parent' must be one of types [object, object, object], got string`
+**Error:**
+`Parameter 'parent' must be one of types [object, object, object], got string`
 
 **Solution:** Use the correct parent format without the `type` field:
 
@@ -20,7 +22,9 @@ parent = {'data_source_id': 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'}
 parent = {'type': 'data_source_id', 'data_source_id': '...'}  # This causes errors
 ```
 
-**Note:** The data_source_id can be extracted from the `collection://...` URL returned by the `notion-fetch` tool when fetching a database. Replace the example UUID with your actual data source ID.
+**Note:** The data_source_id can be extracted from the `collection://...` URL
+returned by the `notion-fetch` tool when fetching a database. Replace the
+example UUID with your actual data source ID.
 
 ### Issue 2: Tags Property Format
 
@@ -104,13 +108,17 @@ result = mcp_Notion_notion_create_pages(
 ## Key Takeaways
 
 1. **Parent Format:** Use `{'data_source_id': '...'}` without the `type` field
-2. **Tags Format:** Must be a JSON string: `'["tag1", "tag2"]'`, not a Python array
-3. **Date Format:** Use expanded format: `date:Date:start`, `date:Date:is_datetime`
-4. **Content:** Use Notion-flavored Markdown (see Notion MCP documentation for full spec)
+2. **Tags Format:** Must be a JSON string: `'["tag1", "tag2"]'`, not a Python
+   array
+3. **Date Format:** Use expanded format: `date:Date:start`,
+   `date:Date:is_datetime`
+4. **Content:** Use Notion-flavored Markdown (see Notion MCP documentation for
+   full spec)
 
 ## Database Property Names
 
-Always use the exact property names from the database schema. Common property names:
+Always use the exact property names from the database schema. Common property
+names:
 
 - `Name` - Title property (required)
 - `Date` - Date property (use expanded format)
@@ -120,13 +128,15 @@ Always use the exact property names from the database schema. Common property na
 
 ## Debugging Tips
 
-1. **If parent parameter fails:** Try using `database_id` instead of `data_source_id`:
+1. **If parent parameter fails:** Try using `database_id` instead of
+   `data_source_id`:
 
    ```python
    parent = {'database_id': 'aaaaaaaa-bbbb-cccc-dddd-ffffffffffff'}
    ```
 
-2. **If Tags fails:** Ensure it's a valid JSON string. Use `json.dumps()` if needed:
+2. **If Tags fails:** Ensure it's a valid JSON string. Use `json.dumps()` if
+   needed:
 
    ```python
    import json
@@ -134,7 +144,8 @@ Always use the exact property names from the database schema. Common property na
    properties['Tags'] = tags_json
    ```
 
-3. **Check database schema:** Always fetch the database first to see exact property names and types:
+3. **Check database schema:** Always fetch the database first to see exact
+   property names and types:
    ```python
    db_info = mcp_Notion_notion_fetch(id='database-id')
    # Check the schema in the response

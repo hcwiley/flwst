@@ -2,7 +2,6 @@ import './assets/main.css';
 
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { logger } from '@flwst/core';
 import { initSentryRenderer, getLogger } from '../sentry';
 import App from './App';
 

@@ -3,7 +3,9 @@
  */
 
 import { z } from 'zod';
+
 import { PrioritySchema, TaskStatusSchema } from './core';
+import { OnboardingStateSchema } from './onboarding';
 
 /**
  * User configuration schema.
@@ -21,9 +23,10 @@ export const UserConfigSchema = z.object({
   }),
   notion: z.object({
     flowStatePageId: z.string().optional(),
-    dailyNotesDbId: z.string().optional(),
-    todosDbId: z.string().optional(),
+    dailyNotesDataSourceId: z.string().optional(),
+    todosDataSourceId: z.string().optional(),
   }),
+  onboardingState: OnboardingStateSchema.optional(),
 });
 
 export type UserConfig = z.infer<typeof UserConfigSchema>;
@@ -75,8 +78,8 @@ export type AmplitudeConfig = z.infer<typeof AmplitudeConfigSchema>;
 export const TokensSchema = z.object({
   notionAccessToken: z.string().optional(),
   notionPageId: z.string().optional(),
-  notionDailyNotesDbId: z.string().optional(),
-  notionTodosDbId: z.string().optional(),
+  notionDailyNotesDataSourceId: z.string().optional(),
+  notionTodosDataSourceId: z.string().optional(),
 });
 
 export type Tokens = z.infer<typeof TokensSchema>;

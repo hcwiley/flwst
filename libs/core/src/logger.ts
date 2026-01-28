@@ -13,10 +13,22 @@ export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
  * Logger interface for structured logging.
  */
 export interface Logger {
-  debug(message: string, metadata?: Record<string, unknown>): void;
-  info(message: string, metadata?: Record<string, unknown>): void;
-  warn(message: string, metadata?: Record<string, unknown>): void;
-  error(message: string, metadata?: Record<string, unknown>): void;
+  debug(
+    message: string | Record<string, unknown>,
+    metadata?: Record<string, unknown>,
+  ): void;
+  info(
+    message: string | Record<string, unknown>,
+    metadata?: Record<string, unknown>,
+  ): void;
+  warn(
+    message: string | Record<string, unknown>,
+    metadata?: Record<string, unknown>,
+  ): void;
+  error(
+    message: string | Record<string, unknown>,
+    metadata?: Record<string, unknown>,
+  ): void;
 }
 
 /**
@@ -85,20 +97,36 @@ export class ConsoleLogger implements Logger {
     }
   }
 
-  debug(message: string, metadata?: Record<string, unknown>): void {
-    this.log('debug', message, metadata);
+  debug(
+    message: string | Record<string, unknown>,
+    metadata?: Record<string, unknown>,
+  ): void {
+    const msg = typeof message === 'string' ? message : JSON.stringify(message);
+    this.log('debug', msg, metadata);
   }
 
-  info(message: string, metadata?: Record<string, unknown>): void {
-    this.log('info', message, metadata);
+  info(
+    message: string | Record<string, unknown>,
+    metadata?: Record<string, unknown>,
+  ): void {
+    const msg = typeof message === 'string' ? message : JSON.stringify(message);
+    this.log('info', msg, metadata);
   }
 
-  warn(message: string, metadata?: Record<string, unknown>): void {
-    this.log('warn', message, metadata);
+  warn(
+    message: string | Record<string, unknown>,
+    metadata?: Record<string, unknown>,
+  ): void {
+    const msg = typeof message === 'string' ? message : JSON.stringify(message);
+    this.log('warn', msg, metadata);
   }
 
-  error(message: string, metadata?: Record<string, unknown>): void {
-    this.log('error', message, metadata);
+  error(
+    message: string | Record<string, unknown>,
+    metadata?: Record<string, unknown>,
+  ): void {
+    const msg = typeof message === 'string' ? message : JSON.stringify(message);
+    this.log('error', msg, metadata);
   }
 }
 
@@ -110,6 +138,21 @@ export function createLogger(minLevel: LogLevel = 'info'): Logger {
 }
 
 /**
+ * Get initial log level from environment.
+ */
+function getInitialLogLevel(): LogLevel {
+  const envLevel =
+    typeof process !== 'undefined' ? process.env.LOG_LEVEL : undefined;
+  const validLevels: LogLevel[] = ['debug', 'info', 'warn', 'error'];
+  // eslint-disable-next-line no-console
+  console.log(`LOG_LEVEL: ${envLevel}`);
+  if (envLevel && validLevels.includes(envLevel as LogLevel)) {
+    return envLevel as LogLevel;
+  }
+  return 'info';
+}
+
+/**
  * Default logger instance.
  */
-export const logger = createLogger();
+export const logger = createLogger(getInitialLogLevel());

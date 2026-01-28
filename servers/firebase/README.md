@@ -1,6 +1,10 @@
 # Firebase Server for FlowState
 
-Firebase Functions and Hosting setup for the FlowState API server.
+Firebase Functions and Hosting scaffold for the server-mediated API layer.
+
+## Architecture
+
+See `ARCH.md` for the data flow and planned integrations.
 
 ## Manual Setup Steps (Phase 0)
 
@@ -10,7 +14,7 @@ These steps must be completed manually in the Firebase Console:
 
 1. Go to [Firebase Console](https://console.firebase.google.com/)
 2. Click "Add project"
-3. Enter project name (e.g., "flowstate-alpha")
+3. Enter project name (e.g., "Example Project")
 4. Follow the setup wizard
 5. Note your project ID
 
@@ -32,13 +36,15 @@ These steps must be completed manually in the Firebase Console:
 1. In Firebase Console, go to "Functions" > "Configuration"
 2. Add the following environment variables:
    - `GEMINI_API_KEY`: Your Gemini API key (from Google Cloud Console)
-   - `FLOWSTATE_API_KEY`: API key for basic auth (generate a secure random string)
+   - `FLOWSTATE_API_KEY`: API key for basic auth (generate a secure random
+     string)
 
 ### 5. Configure Firebase CLI
 
 1. Install Firebase CLI globally: `npm install -g firebase-tools`
 2. Login: `firebase login`
-3. Initialize (if not done): `firebase init functions` and `firebase init hosting`
+3. Initialize (if not done): `firebase init functions` and
+   `firebase init hosting`
 4. Copy `.firebaserc.example` to `.firebaserc` and update with your project IDs
 
 ### 6. Deploy
@@ -60,10 +66,10 @@ servers/firebase/
 ├── hosting/            # Static hosting files (if needed)
 ├── firebase.json       # Firebase configuration
 ├── .firebaserc.example # Project ID template (copy to .firebaserc)
-└── README.md          # This file
+└── README.md           # This file
 ```
 
-## Phase 1 Status
+## Status
 
 - ✅ Project structure scaffolded
 - ✅ TypeScript configuration
@@ -71,6 +77,15 @@ servers/firebase/
 - ⏳ Firebase Console setup (manual)
 - ⏳ Environment variables (manual)
 - ⏳ API implementation (Phase 6)
+
+## Scripts
+
+Run from `servers/firebase`:
+
+- `pnpm build` - build Firebase Functions
+- `pnpm typecheck` - type check Firebase Functions
+- `pnpm lint` - lint Firebase Functions
+- `pnpm deploy` - deploy Functions and Hosting
 
 ## Notes
 

@@ -11,6 +11,7 @@
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
+    "test": "node --test --import tsx \"src/main/**/*.test.ts\"",
     "start": "electron-vite preview",
     "dev": "electron-vite dev",
     "build": "npm run typecheck && electron-vite build",
@@ -18,7 +19,8 @@
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run build && electron-builder --win",
     "build:mac": "electron-vite build && electron-builder --mac",
-    "build:linux": "electron-vite build && electron-builder --linux"
+    "build:linux": "electron-vite build && electron-builder --linux",
+    "clear:storage": "node scripts/clear-storage.mjs"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
@@ -27,6 +29,7 @@
     "@flwst/integrations": "workspace:*",
     "@flwst/types": "workspace:*",
     "@flwst/ui": "workspace:*",
+    "@notionhq/client": "^5.8.0",
     "@sentry/electron": "^7.6.0",
     "@tamagui/config": "^1.144.3",
     "electron-updater": "^6.3.9",
@@ -52,6 +55,7 @@
     "prettier": "^3.7.4",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
+    "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "vite": "^7.2.6"
   }

@@ -17,23 +17,30 @@ function createSentryExternalLogger(
 ): ExternalLogger {
   const capture = (
     level: SentrySeverity,
-    message: string,
+    message: string | Record<string, unknown>,
     metadata?: Record<string, unknown>,
   ): void => {
     sentry.withScope((scope) => {
       scope.setLevel(level);
+
+      // Handle message as object or string
+      const messageStr =
+        typeof message === 'string'
+          ? message
+          : JSON.stringify(message, null, 2);
+
       if (metadata) {
         scope.setExtras(metadata);
       }
 
       const error = metadata?.error;
       if (error instanceof Error) {
-        scope.setContext('log', { message });
+        scope.setContext('log', { message: messageStr });
         sentry.captureException(error);
         return;
       }
 
-      sentry.captureMessage(message);
+      sentry.captureMessage(messageStr);
     });
   };
 

@@ -4,7 +4,8 @@
 
 - Please do not open public issues with exploitable details.
 - Preferred: open a GitHub Security Advisory for this repository if available.
-- Alternatively, contact the maintainer privately (see repository owner profile) with details.
+- Alternatively, contact the maintainer privately (see repository owner profile)
+  with details.
 - Provide a minimal reproduction and affected versions if possible.
 
 ## Supported Versions

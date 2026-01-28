@@ -135,6 +135,7 @@ export class ConfigStore extends EncryptedStore<UserConfig> {
         taskList: 'Extract tasks from the transcript.',
       },
       notion: {},
+      onboardingState: undefined,
     };
   }
 

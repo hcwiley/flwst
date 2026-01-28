@@ -70,6 +70,7 @@ export default defineConfig({
       'process.env.SENTRY_LOGS_ENABLED': JSON.stringify(
         process.env.SENTRY_LOGS_ENABLED || '',
       ),
+      'process.env.LOG_LEVEL': JSON.stringify(process.env.LOG_LEVEL || 'info'),
     },
     optimizeDeps: {
       // Exclude Sentry from dependency optimization (dynamic imports)
