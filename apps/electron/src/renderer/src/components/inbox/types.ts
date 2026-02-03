@@ -4,7 +4,12 @@
 
 import type { RunId } from '@flwst/types';
 
-export type IngestStatus = 'idle' | 'reading' | 'ingesting' | 'success' | 'error';
+export type IngestStatus =
+  | 'idle'
+  | 'reading'
+  | 'ingesting'
+  | 'success'
+  | 'error';
 
 export interface InboxIngestResult {
   runId: RunId;

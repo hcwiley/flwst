@@ -20,7 +20,7 @@ This monorepo provides:
 
 ## Current Implementation Status
 
-### ✅ Implemented (Phase 1-4)
+### ✅ Implemented (Phase 1-5)
 
 - Electron desktop app with React UI
 - Notion OAuth flow and token management
@@ -30,6 +30,7 @@ This monorepo provides:
 - Sentry crash reporting and logging
 - Config IPC + renderer config UI for preprocess and prompt overrides
 - Default prompt definitions packaged in `@flwst/prompts`
+- Inbox ingestion pipeline with local artifact persistence
 
 ### 🚧 Scaffolded (Phase 6+)
 
@@ -46,6 +47,8 @@ flowchart TD
     Main[Main Process]
     NotionIPC[Notion IPC Handlers]
     ConfigIPC[Config IPC Handlers]
+    InboxIPC[Inbox IPC Handlers]
+    Ingest[Ingest Pipeline]
     SchemaValidation[Schema Validation]
   end
 
@@ -83,6 +86,7 @@ flowchart TD
   Renderer --> Main
   Renderer --> NotionIPC
   Renderer --> ConfigIPC
+  Renderer --> InboxIPC
   Main -->|"onboarding:stateChanged"| Renderer
   Main --> Stores
   NotionIPC --> NotionAPI
@@ -90,6 +94,9 @@ flowchart TD
   NotionIPC --> Stores
   ConfigIPC --> Stores
   ConfigIPC --> PromptDefs
+  InboxIPC --> Ingest
+  Ingest --> Files
+  Ingest --> Stores
   SchemaValidation --> NotionAPI
   SchemaValidation --> Stores
   Stores --> Crypto

@@ -172,7 +172,9 @@ export function InboxPane({ config }: InboxPaneProps): React.JSX.Element {
           size='$4'
           theme='active'
           onPress={handleIngest}
-          disabled={!canIngest || status === 'ingesting' || status === 'reading'}
+          disabled={
+            !canIngest || status === 'ingesting' || status === 'reading'
+          }
         >
           {status === 'ingesting' ? 'Ingesting…' : 'Ingest'}
         </Button>

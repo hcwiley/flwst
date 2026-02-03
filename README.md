@@ -11,7 +11,8 @@ See `ARCH.md` for the current system overview and data flow.
 The Electron onboarding flow uses push-based IPC updates to keep the renderer
 in sync with migration state.
 The Electron client also manages local configuration for preprocess settings and
-prompt overrides, stored in encrypted local storage.
+prompt overrides, stored in encrypted local storage. The client now includes an
+Inbox ingestion flow that writes deterministic artifacts locally.
 
 ## Monorepo Structure
 
@@ -20,7 +21,7 @@ This is a pnpm + Turbo monorepo with the following structure:
 ```
 flwst/
 ├── apps/
-│   ├── electron/          # Electron desktop app (Phase 2 complete)
+│   ├── electron/          # Electron desktop app (Phase 5 in progress)
 │   └── mobile/            # Expo mobile app (stub only)
 ├── libs/
 │   ├── core/              # Core runtime utilities (paths, runIds, logger)

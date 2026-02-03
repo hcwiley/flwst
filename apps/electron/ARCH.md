@@ -11,6 +11,7 @@ reporting with a React renderer that hosts the UI shell and onboarding flow.
 - Bootstrap the Electron lifecycle and window management
 - Initialize encrypted local storage (tokens + config)
 - Serve configuration IPC for preprocess and prompt overrides
+- Ingest transcripts locally and persist run artifacts
 - Handle Notion OAuth flow and manage access tokens
 - Create and validate Notion database schemas (using data sources API)
 - Provide a renderer UI shell for onboarding, prompt editing, and workflow surfaces
@@ -70,8 +71,10 @@ This ensures databases always have the correct schema even if:
 flowchart TD
   subgraph Renderer[Electron Renderer]
     UI[React UI Shell]
+    InboxUI[Inbox Pane]
     Onboarding[Onboarding Flow]
     StatusBar[Onboarding Status Bar]
+    SettingsRail[Settings Rail]
     ConfigUI[Config + Prompt Editor]
   end
 
@@ -79,6 +82,8 @@ flowchart TD
     Lifecycle[App Lifecycle + Window]
     NotionIPC[Notion IPC Handlers]
     ConfigIPC[Config IPC Handlers]
+    InboxIPC[Inbox IPC Handlers]
+    Ingest[Ingest Pipeline]
     Storage[Encrypted Stores]
     SchemaValidation[Schema Validation]
   end
@@ -103,8 +108,10 @@ flowchart TD
   end
 
   UI -->|IPC| Lifecycle
+  InboxUI -->|IPC| InboxIPC
   Onboarding -->|IPC| NotionIPC
   Onboarding --> StatusBar
+  SettingsRail --> ConfigUI
   ConfigUI -->|IPC| ConfigIPC
   NotionIPC -->|"onboarding:stateChanged"| Onboarding
   NotionIPC --> Storage
@@ -112,6 +119,9 @@ flowchart TD
   NotionIPC -->|OAuth flow| NotionOAuth
   ConfigIPC --> Storage
   ConfigIPC --> PromptDefs
+  InboxIPC --> Ingest
+  Ingest --> Storage
+  Ingest --> Files
   SchemaValidation --> NotionAPI
   SchemaValidation --> Storage
   Storage --> CoreLib
