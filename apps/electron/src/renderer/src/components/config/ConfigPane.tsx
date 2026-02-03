@@ -15,7 +15,7 @@ interface ConfigPaneProps {
   defaults: { dailyNote: string; taskDraft: string } | null;
   effective: { dailyNote: string; taskDraft: string } | null;
   onConfigChange: (config: UserConfig) => void;
-  onSelectPrompt?: (key: PromptKey | null) => void;
+  onSelectPrompt: (key: PromptKey | null) => void;
   loadConfig: () => Promise<void>;
 }
 
@@ -25,6 +25,7 @@ export function ConfigPane({
   defaults,
   effective,
   onConfigChange,
+  onSelectPrompt,
   loadConfig,
 }: ConfigPaneProps): React.JSX.Element {
   const [saving, setSaving] = useState(false);
@@ -166,10 +167,39 @@ export function ConfigPane({
           color='$color'
           opacity={0.8}
         >
-          Select a prompt in the sidebar to edit. Effective = override if set,
-          else default.
+          Select a prompt below to edit. Effective = override if set, else
+          default.
         </Text>
       </YStack>
+
+      <Stack
+        flexDirection='row'
+        gap='$2'
+        flexWrap='wrap'
+      >
+        <Button
+          size='$3'
+          theme={selectedPromptKey === 'dailyNote' ? 'active' : 'gray'}
+          onPress={() =>
+            onSelectPrompt(
+              selectedPromptKey === 'dailyNote' ? null : 'dailyNote',
+            )
+          }
+        >
+          Daily Note
+        </Button>
+        <Button
+          size='$3'
+          theme={selectedPromptKey === 'taskDraft' ? 'active' : 'gray'}
+          onPress={() =>
+            onSelectPrompt(
+              selectedPromptKey === 'taskDraft' ? null : 'taskDraft',
+            )
+          }
+        >
+          Task Draft
+        </Button>
+      </Stack>
 
       {selectedPromptKey && (
         <>

@@ -6,11 +6,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Stack } from 'tamagui';
 import { FlowStateTamaguiProvider } from '@flwst/ui';
-import { SideMenu } from '../components/SideMenu';
 import { MainPane } from '../components/MainPane';
 import type { UserConfig } from '@flwst/types';
-
-type PromptKey = 'dailyNote' | 'taskDraft';
+import { InboxPane } from '../components/inbox';
+import { SettingsRail } from '../components/config';
 
 export function MainLayout(): React.JSX.Element {
   const [config, setConfig] = useState<UserConfig | null>(null);
@@ -18,10 +17,6 @@ export function MainLayout(): React.JSX.Element {
     dailyNote: string;
     taskDraft: string;
   } | null>(null);
-  const [selectedPromptKey, setSelectedPromptKey] = useState<PromptKey | null>(
-    null,
-  );
-
   const loadConfig = useCallback(async (): Promise<void> => {
     try {
       const [cfg, defs] = await Promise.all([
@@ -53,19 +48,24 @@ export function MainLayout(): React.JSX.Element {
         flexDirection='row'
         height='100vh'
         width='100vw'
+        backgroundColor='$background'
       >
-        <SideMenu
-          selectedPromptKey={selectedPromptKey}
-          onSelectPrompt={setSelectedPromptKey}
-          config={config}
-        />
-        <MainPane
+        <Stack
+          width={360}
+          borderRightWidth={1}
+          borderColor='$gray4'
+          overflow='hidden'
+        >
+          <InboxPane config={config} />
+        </Stack>
+        <MainPane />
+        {/* Collapsible settings rail on the right (icon-only when collapsed) */}
+        <SettingsRail
+          title='Settings'
           config={config}
           defaults={defaults}
           effective={effective}
-          selectedPromptKey={selectedPromptKey}
           onConfigChange={setConfig}
-          onSelectPrompt={setSelectedPromptKey}
           loadConfig={loadConfig}
         />
       </Stack>
