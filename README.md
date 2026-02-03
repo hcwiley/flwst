@@ -10,6 +10,8 @@ libraries.
 See `ARCH.md` for the current system overview and data flow.
 The Electron onboarding flow uses push-based IPC updates to keep the renderer
 in sync with migration state.
+The Electron client also manages local configuration for preprocess settings and
+prompt overrides, stored in encrypted local storage.
 
 ## Monorepo Structure
 

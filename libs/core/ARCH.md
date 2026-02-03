@@ -11,7 +11,7 @@ keychain and local disk.
 - Provide deterministic run ID generation.
 - Offer structured logging with optional external sinks.
 - Encrypt/decrypt sensitive data at rest.
-- Store config and token data on disk safely.
+- Store config (including prompt overrides) and token data on disk safely.
 
 ## Dependencies
 

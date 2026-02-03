@@ -20,7 +20,7 @@ This monorepo provides:
 
 ## Current Implementation Status
 
-### ✅ Implemented (Phase 1-2)
+### ✅ Implemented (Phase 1-4)
 
 - Electron desktop app with React UI
 - Notion OAuth flow and token management
@@ -28,6 +28,8 @@ This monorepo provides:
 - Encrypted local storage (tokens + config)
 - Onboarding flow with state management
 - Sentry crash reporting and logging
+- Config IPC + renderer config UI for preprocess and prompt overrides
+- Default prompt definitions packaged in `@flwst/prompts`
 
 ### 🚧 Scaffolded (Phase 6+)
 
@@ -43,6 +45,7 @@ flowchart TD
     Renderer[Renderer UI]
     Main[Main Process]
     NotionIPC[Notion IPC Handlers]
+    ConfigIPC[Config IPC Handlers]
     SchemaValidation[Schema Validation]
   end
 
@@ -55,6 +58,10 @@ flowchart TD
   subgraph Types[types]
     ZodSchemas[Zod Schemas]
     TypeDefs[TypeScript Types]
+  end
+
+  subgraph Prompts[libs/prompts]
+    PromptDefs[Default Prompt Definitions]
   end
 
   subgraph Local[Local Machine]
@@ -75,11 +82,14 @@ flowchart TD
 
   Renderer --> Main
   Renderer --> NotionIPC
+  Renderer --> ConfigIPC
   Main -->|"onboarding:stateChanged"| Renderer
   Main --> Stores
   NotionIPC --> NotionAPI
   NotionIPC -->|OAuth flow| NotionOAuth
   NotionIPC --> Stores
+  ConfigIPC --> Stores
+  ConfigIPC --> PromptDefs
   SchemaValidation --> NotionAPI
   SchemaValidation --> Stores
   Stores --> Crypto

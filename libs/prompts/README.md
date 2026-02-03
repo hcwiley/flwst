@@ -9,6 +9,10 @@ truth for `dailyNote` and `taskDraft`; user config stores overrides only.
 - Provide fence-based templates for Daily Note + Task Feed and per-task drafts.
 - No placeholder/templating fields; templates are plain text.
 
+## Architecture
+
+See `ARCH.md` for the prompt definition flow.
+
 ## Structure
 
 - `src/definitions.ts` - `dailyNote` and `taskDraft` definitions
