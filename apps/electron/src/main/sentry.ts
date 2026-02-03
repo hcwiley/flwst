@@ -15,9 +15,11 @@ type SentrySeverity = 'debug' | 'info' | 'warning' | 'error';
 function createSentryExternalLogger(sentry: SentryMainModule): ExternalLogger {
   const capture = (
     level: SentrySeverity,
-    message: string,
+    message: string | Record<string, unknown>,
     metadata?: Record<string, unknown>,
   ): void => {
+    const messageStr =
+      typeof message === 'string' ? message : JSON.stringify(message, null, 2);
     sentry.withScope((scope) => {
       scope.setLevel(level);
       if (metadata) {
@@ -26,12 +28,12 @@ function createSentryExternalLogger(sentry: SentryMainModule): ExternalLogger {
 
       const error = metadata?.error;
       if (error instanceof Error) {
-        scope.setContext('log', { message });
+        scope.setContext('log', { message: messageStr });
         sentry.captureException(error);
         return;
       }
 
-      sentry.captureMessage(message);
+      sentry.captureMessage(messageStr);
     });
   };
 
