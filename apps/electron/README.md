@@ -1,9 +1,9 @@
 # @flwst/electron
 
 Electron + React client for the FlowState alpha. The main process handles window
-lifecycle, encrypted local storage, configuration IPC, and crash reporting, while
-the renderer hosts the UI shell, including prompt overrides and preprocess
-controls.
+lifecycle, encrypted local storage, configuration IPC, inbox ingestion, and
+crash reporting, while the renderer hosts the UI shell, inbox pane, settings
+rail, and prompt/preprocess controls.
 
 ## Key Dependencies
 
@@ -17,6 +17,13 @@ controls.
 ## Architecture
 
 See `ARCH.md` for the data flow and component responsibilities.
+
+## Inbox Ingestion
+
+The renderer collects transcript input (file drop or paste) and sends it to the
+main process via IPC. The main process creates deterministic run IDs, applies
+preprocess transforms (dictionary + ignore list), and persists local artifacts
+(raw transcript, cleaned transcript, logs, bundle).
 
 ## Recommended IDE Setup
 

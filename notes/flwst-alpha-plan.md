@@ -330,7 +330,7 @@ fast feedback, **and secure LLM access via a server-managed architecture**.
 
 # Development Plan
 
-**Current Phase:** Phase 3 — Onboarding Flow + Notion Setup (in progress)
+**Current Phase:** Phase 5 — Inbox Pane + Client Pipeline (completing)
 
 ## **Phase 0 — Prerequisites and Human Setup (Manual)**
 
@@ -436,6 +436,8 @@ Deliverable:
 
 ## **Phase 3 — Onboarding Flow + Notion Setup**
 
+### Status: ✅
+
 **Owner:** Cursor
 
 **Goal:** Complete first-run experience end-to-end.
@@ -500,6 +502,8 @@ Deliverable:
 
 ## **Phase 4 — Config System + Prompt Management**
 
+### Status: ✅
+
 **Owner:** Cursor
 
 **Goal:** Make prompts and preprocess fully transparent and editable.
@@ -527,28 +531,30 @@ Deliverable:
 
 ## **Phase 5 — Inbox Pane + Client Pipeline**
 
+### Status: ✅
+
 **Owner:** Cursor
 
 **Goal:** Process transcripts deterministically on the client.
 
-- Build Pane component
-  - Title bar
-  - Collapse behavior
-  - Configurable scroll behavior
-- Inbox pane
-  - File drop
-  - Transcript ingest
-- Ingest logic
-  - Naming
-  - Timestamps
-  - Idempotent run IDs
-- Preprocess pass
-  - Apply ignore list
-  - Apply dictionary fixes
-- Artifact persistence
-  - Raw transcript
-  - Preprocessed transcript
-  - Logs
+- ✅ Build Pane component
+  - ✅ Title bar
+  - ✅ Collapse behavior (SettingsRail)
+  - ✅ Configurable scroll behavior
+- ✅ Inbox pane
+  - ✅ File drop
+  - ✅ Transcript ingest
+- ✅ Ingest logic
+  - ✅ Naming
+  - ✅ Timestamps
+  - ✅ Idempotent run IDs
+- ✅ Preprocess pass
+  - ✅ Apply ignore list
+  - ✅ Apply dictionary fixes
+- ✅ Artifact persistence
+  - ✅ Raw transcript
+  - ✅ Preprocessed transcript
+  - ✅ Logs
 
 Deliverable:
 

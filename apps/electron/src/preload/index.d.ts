@@ -3,6 +3,7 @@ import type {
   OnboardingState,
   NotionWorkspaceMetadata,
   UserConfig,
+  RunId,
 } from '@flwst/types';
 
 export interface OnboardingAPI {
@@ -36,9 +37,29 @@ export interface NotionAPI {
   }>;
 }
 
+export interface InboxIngestRequest {
+  filename?: string;
+  content: string;
+}
+
+export interface InboxIngestResult {
+  runId: RunId;
+  timestamp: string;
+  filename: string;
+  rawPath: string;
+  cleanPath: string;
+  logsPath: string;
+  bundlePath: string;
+}
+
+export interface InboxAPI {
+  ingestText: (payload: InboxIngestRequest) => Promise<InboxIngestResult>;
+}
+
 export interface AppAPI {
   onboarding: OnboardingAPI;
   config: ConfigAPI;
+  inbox: InboxAPI;
   notion: NotionAPI;
 }
 
