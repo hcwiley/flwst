@@ -3,6 +3,8 @@
  * Collapsed state shows a compact icon-only rail for quick expand.
  */
 
+import type { JSX } from 'react';
+
 import { useCallback, useState } from 'react';
 import { Button, Stack, Text, YStack } from 'tamagui';
 import type { UserConfig } from '@flwst/types';
@@ -30,7 +32,7 @@ export function SettingsRail({
   effective,
   onConfigChange,
   loadConfig,
-}: SettingsRailProps): React.JSX.Element {
+}: SettingsRailProps): JSX.Element {
   const [collapsed, setCollapsed] = useState(true);
   const [selectedPromptKey, setSelectedPromptKey] = useState<PromptKey | null>(
     null,
