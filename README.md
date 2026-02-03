@@ -22,6 +22,7 @@ flwst/
 │   └── mobile/            # Expo mobile app (stub only)
 ├── libs/
 │   ├── core/              # Core runtime utilities (paths, runIds, logger)
+│   ├── prompts/           # Default prompt templates (dailyNote, taskDraft)
 │   ├── ui/                # Tamagui UI configuration (Phase 1: scaffolding)
 │   ├── state/             # Zustand store scaffolding
 │   └── integrations/      # Integration config types (Notion, Firebase, etc.)
@@ -44,6 +45,7 @@ All workspace packages use the `@flwst/*` namespace:
 - `apps/mobile` - Expo stub (`apps/mobile/README.md`)
 - `servers/firebase` - Firebase server scaffold (`servers/firebase/README.md`)
 - `libs/core` - Core utilities (`libs/core/README.md`)
+- `libs/prompts` - Default prompt templates (`libs/prompts/README.md`)
 - `libs/ui` - Tamagui UI config (`libs/ui`)
 - `libs/state` - Zustand store scaffold (`libs/state`)
 - `libs/integrations` - Integration types (`libs/integrations`)
