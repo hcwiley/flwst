@@ -7,6 +7,11 @@ interface EffectivePrompts {
   taskDraft: string;
 }
 
+interface InboxIngestRequest {
+  filename?: string;
+  content: string;
+}
+
 // Custom APIs for renderer
 const api = {
   onboarding: {
@@ -27,6 +32,10 @@ const api = {
       ipcRenderer.invoke('config:getEffectivePrompts'),
     getPromptDefaults: (): Promise<EffectivePrompts> =>
       ipcRenderer.invoke('config:getPromptDefaults'),
+  },
+  inbox: {
+    ingestText: (payload: InboxIngestRequest) =>
+      ipcRenderer.invoke('inbox:ingestText', payload),
   },
   notion: {
     startOAuth: (): Promise<{ authUrl: string }> =>
