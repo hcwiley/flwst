@@ -1,6 +1,11 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { electronAPI } from '@electron-toolkit/preload';
-import type { OnboardingState } from '@flwst/types';
+import type { OnboardingState, UserConfig } from '@flwst/types';
+
+interface EffectivePrompts {
+  dailyNote: string;
+  taskDraft: string;
+}
 
 // Custom APIs for renderer
 const api = {
@@ -9,6 +14,19 @@ const api = {
       ipcRenderer.invoke('onboarding:getState'),
     updateState: (partial: Partial<OnboardingState>): Promise<void> =>
       ipcRenderer.invoke('onboarding:updateState', partial),
+  },
+  config: {
+    read: (): Promise<UserConfig> => ipcRenderer.invoke('config:read'),
+    update: (partial: Partial<UserConfig>): Promise<UserConfig> =>
+      ipcRenderer.invoke('config:update', partial),
+    resetPrompt: (
+      key: 'dailyNote' | 'taskDraft',
+    ): Promise<{ config: UserConfig; effective: EffectivePrompts }> =>
+      ipcRenderer.invoke('config:resetPrompt', key),
+    getEffectivePrompts: (): Promise<EffectivePrompts> =>
+      ipcRenderer.invoke('config:getEffectivePrompts'),
+    getPromptDefaults: (): Promise<EffectivePrompts> =>
+      ipcRenderer.invoke('config:getPromptDefaults'),
   },
   notion: {
     startOAuth: (): Promise<{ authUrl: string }> =>
