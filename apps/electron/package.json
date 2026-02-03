@@ -27,6 +27,7 @@
     "@electron-toolkit/utils": "^4.0.0",
     "@flwst/core": "workspace:*",
     "@flwst/integrations": "workspace:*",
+    "@flwst/prompts": "workspace:*",
     "@flwst/types": "workspace:*",
     "@flwst/ui": "workspace:*",
     "@notionhq/client": "^5.8.0",
