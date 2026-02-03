@@ -7,7 +7,7 @@ deterministic IDs, logging, and encrypted local storage helpers.
 
 - Generate stable run IDs for ingests.
 - Provide a structured logger with optional external sinks.
-- Handle encrypted local storage for config and tokens.
+- Handle encrypted local storage for config, prompt overrides, and tokens.
 - Centralize file path helpers for app storage.
 
 ## Architecture

@@ -64,12 +64,12 @@ flowchart TB
 
     N --> O[Side Menu]
     O --> P[Connections<br/>Notion status + DB links]
-    O --> Q[Config<br/>Cleanup, Ignore List,<br/>Prompt Templates]
+    O --> Q[Config<br/>Preprocess, Ignore List,<br/>Prompt Templates]
     Q --> R[Save Config<br/>Encrypted Local Storage]
 
     N --> S[Inbox Pane<br/>Drop transcript or file]
     S --> T[Ingest<br/>Name, timestamp, idempotent]
-    T --> U[Cleanup Pass Optional<br/>Spelling, Dictionary, Ignore List]
+    T --> U[Preprocess Pass Optional<br/>Spelling, Dictionary, Ignore List]
 
     U --> V[Build API Request<br/>Resolved prompt + transcript]
     V --> FB0 --> FB1 --> GM1 --> FB1 --> V1[Receive Model Output]
@@ -125,7 +125,7 @@ flowchart TB
     direction TB
     IN1[Transcript File<br/>Dropped into Inbox]
     IN2[Audio File<br/>Future]
-    CFG[User Config<br/>Prompts, Ignore List, Dictionary, Cleanup Toggle]
+    CFG[User Config<br/>Prompts, Ignore List, Dictionary, Preprocess Toggle]
   end
 
   %% Local Persistence (Encrypted)
@@ -133,7 +133,7 @@ flowchart TB
     direction TB
     LS1[Tokens and IDs<br/>Notion OAuth token, Notion page and DB IDs]
     LS2[Config Store<br/>Prompt templates and settings]
-    LS3[Artifacts<br/>Raw transcript, Clean transcript, Daily note, Task list, Logs]
+    LS3[Artifacts<br/>Raw transcript, Preprocessed transcript, Daily note, Task list, Logs]
   end
 
   %% UI
@@ -149,9 +149,9 @@ flowchart TB
   subgraph Pipeline
     direction TB
     P0[Ingest<br/>Normalize name and timestamp<br/>Idempotent run id]
-    P1[Cleanup Pass<br/>Spell fix and dictionary<br/>Apply ignore list]
+    P1[Preprocess Pass<br/>Spell fix and dictionary<br/>Apply ignore list]
     P2[Resolve Prompts<br/>Merge templates with config vars]
-    P3[API Request Build<br/>Package clean transcript + resolved prompts]
+    P3[API Request Build<br/>Package preprocessed transcript + resolved prompts]
     P4[Client Validation<br/>Schema or template checks]
   end
 
@@ -264,7 +264,7 @@ fast feedback, **and secure LLM access via a server-managed architecture**.
 - **Gemini (via Firebase)** is the default LLM provider for alpha
 - Model choice is abstracted behind the server and is not client-coupled
 - Client sends to server:
-  - Cleaned transcript
+  - Preprocessed transcript
   - Resolved prompt(s)
   - Minimal run metadata
 - Server returns:
@@ -277,14 +277,14 @@ fast feedback, **and secure LLM access via a server-managed architecture**.
    - Transcript or file dropped into Inbox
    - Deterministic naming + timestamps
    - Idempotent run ID
-2. **Cleanup Pass (Client-Side, Configurable)**
-   - Second-pass transcript cleanup
+2. **Preprocess Pass (Client-Side, Configurable)**
+   - Second-pass transcript preprocess
    - Fix common mistranscriptions
    - Apply ignore / blacklist phrases
-   - Produce clean_transcript
+   - Produce preprocessed_transcript
 3. **LLM Generation (Server-Mediated)**
    - Client resolves prompts locally (after user config)
-   - Client sends clean_transcript + resolved prompts to FlowState API server
+   - Client sends preprocessed_transcript + resolved prompts to FlowState API server
    - Server forwards request to Gemini
    - Server returns model outputs
 4. **Validation**
@@ -502,22 +502,21 @@ Deliverable:
 
 **Owner:** Cursor
 
-**Goal:** Make prompts and cleanup fully transparent and editable.
+**Goal:** Make prompts and preprocess fully transparent and editable.
 
-- Build Config UI
-  - Cleanup toggle
-  - Ignore list editor
-  - User dictionary editor
-- Prompt editors
-  - Daily Note prompt
-  - Task List prompt
-  - Cleanup prompt
-- Show resolved prompts
-- Enforce prompt validation
-  - Required placeholders
-  - Non-empty constraints
-- Save config edits to encrypted local storage
-- Restore defaults functionality
+**Done:**
+
+- **libs/prompts** (`@flwst/prompts`) — source of truth for default prompt templates (dailyNote, taskDraft); templates in code, no runtime .md reads.
+- **Config schema** — preprocess (toggle, ignore list, dictionary); prompts are overrides only (dailyNote?, taskDraft?); defaults live in @flwst/prompts.
+- **ConfigStore** — preprocess + empty prompts by default; parse migrates cleanup→preprocess, taskList→taskDraft.
+- **Config IPC + preload** — config:read, config:update, config:resetPrompt, config:getEffectivePrompts, config:getPromptDefaults; api.config exposed to renderer.
+- **Config UI** — SideMenu: flwst title, Preprocess On/Off, Daily Note / Task Draft selection; MainPane: preprocess toggle, prompt editors (default read-only, effective editable, Reset to default, Save override).
+- **Electron vite** — @flwst/prompts resolved to src (no dist); bundled with main/preload.
+
+**Remaining (optional):**
+
+- Ignore list / Dictionary editors in UI (preprocess toggle only for now).
+- Resolved prompt preview (e.g. with runtime vars) if needed later.
 
 Deliverable:
 
@@ -543,12 +542,12 @@ Deliverable:
   - Naming
   - Timestamps
   - Idempotent run IDs
-- Cleanup pass
+- Preprocess pass
   - Apply ignore list
   - Apply dictionary fixes
 - Artifact persistence
   - Raw transcript
-  - Clean transcript
+  - Preprocessed transcript
   - Logs
 
 Deliverable:

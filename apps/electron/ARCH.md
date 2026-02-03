@@ -10,15 +10,17 @@ reporting with a React renderer that hosts the UI shell and onboarding flow.
 
 - Bootstrap the Electron lifecycle and window management
 - Initialize encrypted local storage (tokens + config)
+- Serve configuration IPC for preprocess and prompt overrides
 - Handle Notion OAuth flow and manage access tokens
 - Create and validate Notion database schemas (using data sources API)
-- Provide a renderer UI shell for onboarding and workflow surfaces
+- Provide a renderer UI shell for onboarding, prompt editing, and workflow surfaces
 - Push onboarding state updates from main to renderer
 - Report crashes and logs to Sentry when configured
 
 ## Dependencies
 
 - `@flwst/core` for logging, run IDs, and encrypted storage utilities
+- `@flwst/prompts` for default prompt definitions
 - `@flwst/types` for shared type definitions and Zod schemas
 - `@notionhq/client` for Notion API interactions
 - `@sentry/electron` for crash reporting
@@ -70,17 +72,23 @@ flowchart TD
     UI[React UI Shell]
     Onboarding[Onboarding Flow]
     StatusBar[Onboarding Status Bar]
+    ConfigUI[Config + Prompt Editor]
   end
 
   subgraph Main[Electron Main Process]
     Lifecycle[App Lifecycle + Window]
     NotionIPC[Notion IPC Handlers]
+    ConfigIPC[Config IPC Handlers]
     Storage[Encrypted Stores]
     SchemaValidation[Schema Validation]
   end
 
   subgraph Core[Shared Core]
     CoreLib["@flwst/core"]
+  end
+
+  subgraph Prompts[Shared Prompts]
+    PromptDefs["@flwst/prompts"]
   end
 
   subgraph OS[Local Machine]
@@ -97,10 +105,13 @@ flowchart TD
   UI -->|IPC| Lifecycle
   Onboarding -->|IPC| NotionIPC
   Onboarding --> StatusBar
+  ConfigUI -->|IPC| ConfigIPC
   NotionIPC -->|"onboarding:stateChanged"| Onboarding
   NotionIPC --> Storage
   NotionIPC --> NotionAPI
   NotionIPC -->|OAuth flow| NotionOAuth
+  ConfigIPC --> Storage
+  ConfigIPC --> PromptDefs
   SchemaValidation --> NotionAPI
   SchemaValidation --> Storage
   Storage --> CoreLib
@@ -175,6 +186,8 @@ Stores application configuration and state:
 - `notion.flowStatePageId`: Parent page ID
 - `notion.dailyNotesDataSourceId`: Data source ID (redundant with tokens)
 - `notion.todosDataSourceId`: Data source ID (redundant with tokens)
+- `preprocess`: Enablement and settings for transcript preprocessing
+- `promptOverrides`: User-specified prompt template overrides
 - `onboardingState.notion`: Onboarding progress and metadata
 
 Both stores use `keytar` for OS keychain integration and encrypted file storage.

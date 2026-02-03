@@ -16,14 +16,26 @@ import {
   TASKS_DB_TITLE,
 } from './constants';
 
+type DatabaseCreatePayload = {
+  parent:
+    | { type: 'page_id'; page_id: string }
+    | { type: 'workspace'; workspace: true };
+  title?: Array<{ type?: string; text?: { content: string } }>;
+  properties?: Record<string, unknown>;
+};
+
 describe('resources helpers', () => {
   describe('createFlowStatePage', () => {
     it('creates a page with correct parent and title', async () => {
+      const pagesCreate = mock.fn(
+        async (_args: CreatePageParameters): Promise<CreatePageResponse> =>
+          ({
+            id: 'page-id-123',
+          }) as CreatePageResponse,
+      );
       const mockNotion = {
         pages: {
-          create: mock.fn(async () => ({
-            id: 'page-id-123',
-          })),
+          create: pagesCreate,
         },
       } as unknown as Client;
 
@@ -31,9 +43,10 @@ describe('resources helpers', () => {
       const result = await createFlowStatePage(mockNotion, parentPageId);
 
       assert.equal(result, 'page-id-123');
-      assert.equal(mockNotion.pages.create.mock.calls.length, 1);
-      const call = mockNotion.pages.create.mock.calls[0];
-      assert.deepEqual(call.arguments[0], {
+      assert.equal(pagesCreate.mock.calls.length, 1);
+      const call = pagesCreate.mock.calls[0];
+      const [payload] = call.arguments;
+      assert.deepEqual(payload, {
         parent: { page_id: parentPageId },
         properties: {
           title: {
@@ -44,11 +57,14 @@ describe('resources helpers', () => {
     });
 
     it('handles API errors', async () => {
+      const pagesCreate = mock.fn(
+        async (_args: CreatePageParameters): Promise<CreatePageResponse> => {
+          throw new Error('Notion API error');
+        },
+      );
       const mockNotion = {
         pages: {
-          create: mock.fn(async () => {
-            throw new Error('Notion API error');
-          }),
+          create: pagesCreate,
         },
       } as unknown as Client;
 
@@ -65,11 +81,17 @@ describe('resources helpers', () => {
 
   describe('createDailyNotesDatabase', () => {
     it('creates a database with correct parent, title, and properties', async () => {
+      const databasesCreate = mock.fn(
+        async (
+          _args: CreateDatabaseParameters,
+        ): Promise<CreateDatabaseResponse> =>
+          ({
+            id: 'db-id-123',
+          }) as CreateDatabaseResponse,
+      );
       const mockNotion = {
         databases: {
-          create: mock.fn(async () => ({
-            id: 'db-id-123',
-          })),
+          create: databasesCreate,
         },
       } as unknown as Client;
 
@@ -80,22 +102,33 @@ describe('resources helpers', () => {
       );
 
       assert.equal(result, 'db-id-123');
-      assert.equal(mockNotion.databases.create.mock.calls.length, 1);
-      const call = mockNotion.databases.create.mock.calls[0];
-      const payload = call.arguments[0];
+      assert.equal(databasesCreate.mock.calls.length, 1);
+      const call = databasesCreate.mock.calls[0];
+      const [payload] = call.arguments as [DatabaseCreatePayload];
       assert.equal(payload.parent.type, 'page_id');
+      if (payload.parent.type !== 'page_id') {
+        throw new Error('Expected page_id parent');
+      }
       assert.equal(payload.parent.page_id, flowStatePageId);
-      assert.equal(payload.title[0].text.content, DAILY_NOTES_DB_TITLE);
+      const titleItem = payload.title?.[0];
+      assert.ok(titleItem?.text?.content);
+      assert.equal(titleItem?.text?.content, DAILY_NOTES_DB_TITLE);
       assert.ok(payload.properties);
-      assert.ok(payload.properties.Name);
+      assert.ok(payload.properties?.Name);
     });
 
     it('normalizes parent page ID', async () => {
+      const databasesCreate = mock.fn(
+        async (
+          _args: CreateDatabaseParameters,
+        ): Promise<CreateDatabaseResponse> =>
+          ({
+            id: 'db-id-123',
+          }) as CreateDatabaseResponse,
+      );
       const mockNotion = {
         databases: {
-          create: mock.fn(async () => ({
-            id: 'db-id-123',
-          })),
+          create: databasesCreate,
         },
       } as unknown as Client;
 
@@ -103,9 +136,13 @@ describe('resources helpers', () => {
       const flowStatePageId = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
       await createDailyNotesDatabase(mockNotion, flowStatePageId);
 
-      const call = mockNotion.databases.create.mock.calls[0];
-      const payload = call.arguments[0];
+      const call = databasesCreate.mock.calls[0];
+      const [payload] = call.arguments as [DatabaseCreatePayload];
       // Should be normalized to hyphenated form
+      assert.equal(payload.parent.type, 'page_id');
+      if (payload.parent.type !== 'page_id') {
+        throw new Error('Expected page_id parent');
+      }
       assert.equal(
         payload.parent.page_id,
         'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
@@ -113,11 +150,16 @@ describe('resources helpers', () => {
     });
 
     it('handles API errors', async () => {
+      const databasesCreate = mock.fn(
+        async (
+          _args: CreateDatabaseParameters,
+        ): Promise<CreateDatabaseResponse> => {
+          throw new Error('Database creation failed');
+        },
+      );
       const mockNotion = {
         databases: {
-          create: mock.fn(async () => {
-            throw new Error('Database creation failed');
-          }),
+          create: databasesCreate,
         },
       } as unknown as Client;
 
@@ -137,11 +179,17 @@ describe('resources helpers', () => {
 
   describe('createTasksDatabase', () => {
     it('creates a database with correct parent, title, and properties', async () => {
+      const databasesCreate = mock.fn(
+        async (
+          _args: CreateDatabaseParameters,
+        ): Promise<CreateDatabaseResponse> =>
+          ({
+            id: 'tasks-db-id-123',
+          }) as CreateDatabaseResponse,
+      );
       const mockNotion = {
         databases: {
-          create: mock.fn(async () => ({
-            id: 'tasks-db-id-123',
-          })),
+          create: databasesCreate,
         },
       } as unknown as Client;
 
@@ -149,24 +197,34 @@ describe('resources helpers', () => {
       const result = await createTasksDatabase(mockNotion, flowStatePageId);
 
       assert.equal(result, 'tasks-db-id-123');
-      assert.equal(mockNotion.databases.create.mock.calls.length, 1);
-      const call = mockNotion.databases.create.mock.calls[0];
-      const payload = call.arguments[0];
+      assert.equal(databasesCreate.mock.calls.length, 1);
+      const call = databasesCreate.mock.calls[0];
+      const [payload] = call.arguments as [DatabaseCreatePayload];
       assert.equal(payload.parent.type, 'page_id');
+      if (payload.parent.type !== 'page_id') {
+        throw new Error('Expected page_id parent');
+      }
       assert.equal(payload.parent.page_id, flowStatePageId);
-      assert.equal(payload.title[0].text.content, TASKS_DB_TITLE);
+      const titleItem = payload.title?.[0];
+      assert.ok(titleItem?.text?.content);
+      assert.equal(titleItem?.text?.content, TASKS_DB_TITLE);
       assert.ok(payload.properties);
-      assert.ok(payload.properties.Name);
-      assert.ok(payload.properties.Status);
-      assert.ok(payload.properties.Priority);
+      assert.ok(payload.properties?.Name);
+      assert.ok(payload.properties?.Status);
+      assert.ok(payload.properties?.Priority);
     });
 
     it('logs and rethrows errors', async () => {
+      const databasesCreate = mock.fn(
+        async (
+          _args: CreateDatabaseParameters,
+        ): Promise<CreateDatabaseResponse> => {
+          throw new Error('Tasks database creation failed');
+        },
+      );
       const mockNotion = {
         databases: {
-          create: mock.fn(async () => {
-            throw new Error('Tasks database creation failed');
-          }),
+          create: databasesCreate,
         },
       } as unknown as Client;
 

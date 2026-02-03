@@ -1,33 +1,48 @@
 /**
- * Main content pane component.
- * Placeholder for future main content areas.
+ * Main content pane: shows config (prompts + preprocess) after onboarding.
  */
 
-import { Stack, Text } from 'tamagui';
+import { Stack } from 'tamagui';
+import { ConfigPane } from './config';
+import type { UserConfig } from '@flwst/types';
 
-export function MainPane(): React.JSX.Element {
+type PromptKey = 'dailyNote' | 'taskDraft';
+
+interface MainPaneProps {
+  config: UserConfig | null;
+  defaults: { dailyNote: string; taskDraft: string } | null;
+  effective: { dailyNote: string; taskDraft: string } | null;
+  selectedPromptKey: PromptKey | null;
+  onConfigChange: (config: UserConfig) => void;
+  onSelectPrompt: (key: PromptKey | null) => void;
+  loadConfig: () => Promise<void>;
+}
+
+export function MainPane({
+  config,
+  defaults,
+  effective,
+  selectedPromptKey,
+  onConfigChange,
+  onSelectPrompt,
+  loadConfig,
+}: MainPaneProps): React.JSX.Element {
   return (
     <Stack
       flexDirection='column'
       flex={1}
-      padding='$4'
       backgroundColor='$background'
+      overflow='hidden'
     >
-      <Text
-        fontSize='$8'
-        fontWeight='bold'
-        marginBottom='$2'
-      >
-        Welcome to FlowState
-      </Text>
-      <Text
-        fontSize='$4'
-        color='$color'
-        opacity={0.8}
-        marginBottom='$4'
-      >
-        Main content area placeholder
-      </Text>
+      <ConfigPane
+        selectedPromptKey={selectedPromptKey}
+        config={config}
+        defaults={defaults}
+        effective={effective}
+        onConfigChange={onConfigChange}
+        onSelectPrompt={onSelectPrompt}
+        loadConfig={loadConfig}
+      />
     </Stack>
   );
 }

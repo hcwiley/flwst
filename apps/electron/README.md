@@ -1,8 +1,9 @@
 # @flwst/electron
 
 Electron + React client for the FlowState alpha. The main process handles window
-lifecycle, encrypted local storage, and crash reporting, while the renderer
-hosts the UI shell.
+lifecycle, encrypted local storage, configuration IPC, and crash reporting, while
+the renderer hosts the UI shell, including prompt overrides and preprocess
+controls.
 
 ## Key Dependencies
 
@@ -10,6 +11,7 @@ hosts the UI shell.
 - React + TypeScript
 - Tamagui (UI primitives)
 - `@flwst/core` (logging, run IDs, encrypted storage)
+- `@flwst/prompts` (default prompt definitions)
 - `@sentry/electron` (crash reporting)
 
 ## Architecture

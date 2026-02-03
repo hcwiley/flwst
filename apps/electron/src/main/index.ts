@@ -8,6 +8,7 @@ import {
   registerAppLifecycleHandlers,
 } from './lifecycle';
 import { registerOnboardingHandlers } from './onboarding';
+import { registerConfigHandlers } from './config';
 import { checkNotionSchemasOnStartup, registerNotionHandlers } from './notion';
 import { logger } from '@flwst/core';
 
@@ -39,6 +40,7 @@ app.whenReady().then(() => {
 
   // Register IPC handlers
   registerOnboardingHandlers();
+  registerConfigHandlers();
   registerNotionHandlers();
   checkNotionSchemasOnStartup().catch((error) => {
     getLogger().error('Notion schema check failed', { error });

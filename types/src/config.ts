@@ -8,19 +8,33 @@ import { PrioritySchema, TaskStatusSchema } from './core';
 import { OnboardingStateSchema } from './onboarding';
 
 /**
+ * Prompt overrides only; defaults live in @flwst/prompts.
+ * When absent, app uses library default for that key.
+ */
+export const PromptOverridesSchema = z.object({
+  dailyNote: z.string().min(1).optional(),
+  taskDraft: z.string().min(1).optional(),
+});
+
+export type PromptOverrides = z.infer<typeof PromptOverridesSchema>;
+
+/**
+ * Preprocess: transcript pre-run step (dictionary + ignore list + optional transforms).
+ */
+export const PreprocessConfigSchema = z.object({
+  enabled: z.boolean(),
+  ignoreList: z.array(z.string()),
+  dictionary: z.record(z.string(), z.string()),
+});
+
+export type PreprocessConfig = z.infer<typeof PreprocessConfigSchema>;
+
+/**
  * User configuration schema.
  */
 export const UserConfigSchema = z.object({
-  cleanup: z.object({
-    enabled: z.boolean(),
-    ignoreList: z.array(z.string()),
-    dictionary: z.record(z.string(), z.string()),
-  }),
-  prompts: z.object({
-    dailyNote: z.string().min(1),
-    taskList: z.string().min(1),
-    cleanup: z.string().optional(),
-  }),
+  preprocess: PreprocessConfigSchema,
+  prompts: PromptOverridesSchema,
   notion: z.object({
     flowStatePageId: z.string().optional(),
     dailyNotesDataSourceId: z.string().optional(),

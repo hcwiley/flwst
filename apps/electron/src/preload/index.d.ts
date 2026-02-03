@@ -1,9 +1,25 @@
 import { ElectronAPI } from '@electron-toolkit/preload';
-import type { OnboardingState, NotionWorkspaceMetadata } from '@flwst/types';
+import type {
+  OnboardingState,
+  NotionWorkspaceMetadata,
+  UserConfig,
+} from '@flwst/types';
 
 export interface OnboardingAPI {
   getState: () => Promise<OnboardingState>;
   updateState: (partial: Partial<OnboardingState>) => Promise<void>;
+}
+
+export type EffectivePrompts = { dailyNote: string; taskDraft: string };
+
+export interface ConfigAPI {
+  read: () => Promise<UserConfig>;
+  update: (partial: Partial<UserConfig>) => Promise<UserConfig>;
+  resetPrompt: (
+    key: 'dailyNote' | 'taskDraft',
+  ) => Promise<{ config: UserConfig; effective: EffectivePrompts }>;
+  getEffectivePrompts: () => Promise<EffectivePrompts>;
+  getPromptDefaults: () => Promise<EffectivePrompts>;
 }
 
 export interface NotionAPI {
@@ -22,6 +38,7 @@ export interface NotionAPI {
 
 export interface AppAPI {
   onboarding: OnboardingAPI;
+  config: ConfigAPI;
   notion: NotionAPI;
 }
 

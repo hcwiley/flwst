@@ -11,6 +11,8 @@ import { NotionError } from './errors';
 
 const logger = getLogger();
 
+const VERY_VERBOSE_LOGGING = false;
+
 export type NotionPropertyEntry = {
   key: string;
   type: string;
@@ -54,6 +56,7 @@ export async function resolvePrimaryDataSourceId(
   databaseId: string,
   label: 'daily_notes' | 'tasks',
 ): Promise<string> {
+  logger.debug('Resolving primary data source ID', { databaseId, label });
   const database = await notion.databases.retrieve({
     database_id: normalizeNotionId(databaseId),
   });
@@ -62,6 +65,15 @@ export async function resolvePrimaryDataSourceId(
     .data_sources;
   const dataSourcesCount = Array.isArray(dataSources) ? dataSources.length : 0;
   const dataSourceId = dataSources?.[0]?.id ?? '';
+  if (VERY_VERBOSE_LOGGING) {
+    logger.debug('Primary data source ID', {
+      databaseId,
+      label,
+      dataSourceId,
+      responseKeys,
+      dataSourcesCount,
+    });
+  }
   if (!dataSourceId) {
     throw new NotionError(
       'NOTION_VALIDATION_ERROR',
@@ -80,6 +92,7 @@ export async function fetchDataSourceSchemaEntries(
   dataSourceId: string,
   label: 'daily_notes' | 'tasks',
 ): Promise<NotionPropertyEntry[]> {
+  logger.debug('Fetching data source schema entries', { dataSourceId, label });
   try {
     const dataSources = getDataSourcesClient(notion);
     const dataSource = (await dataSources.retrieve({
@@ -95,6 +108,13 @@ export async function fetchDataSourceSchemaEntries(
     }));
     const objectType = dataSource.object ?? 'unknown';
     const responseKeys = Object.keys(dataSource as Record<string, unknown>);
+    if (VERY_VERBOSE_LOGGING) {
+      logger.debug('Data source schema entries', {
+        entries,
+        objectType,
+        responseKeys,
+      });
+    }
     return entries;
   } catch (error) {
     logger.error('Failed to fetch data source schema entries', { error });
@@ -111,6 +131,7 @@ export async function fetchDataSourceFullSchema(
   dataSourceId: string,
   label: 'daily_notes' | 'tasks',
 ): Promise<Record<string, any>> {
+  logger.debug('Fetching data source full schema', { dataSourceId, label });
   try {
     const dataSources = getDataSourcesClient(notion);
     const dataSource = (await dataSources.retrieve({
@@ -264,6 +285,15 @@ export async function ensureDataSourcePropertiesOnStartup(
     >;
     const responsePropertyCount = Object.keys(responseProperties).length;
     const responseKeys = Object.keys(updateResponse as Record<string, unknown>);
+
+    if (VERY_VERBOSE_LOGGING) {
+      logger.debug('Data source properties updated', {
+        allUpdateKeys,
+        responseProperties,
+        responsePropertyCount,
+        responseKeys,
+      });
+    }
 
     await fetchDataSourceSchemaEntries(notion, dataSourceId, label);
   } catch (error) {

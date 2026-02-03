@@ -91,6 +91,9 @@ export function normalizeNotionId(id: string): string {
 export function buildTasksDbProperties(
   dailyNotesDataSourceId?: string,
 ): NotionDatabaseProperties {
+  logger.debug('Building tasks database properties', {
+    dailyNotesDataSourceId,
+  });
   const priorityColorMap: Record<string, string> = {
     low: 'gray',
     medium: 'blue',
@@ -153,6 +156,9 @@ export function buildTasksDbProperties(
 export function buildDailyNotesDbProperties(
   tasksDataSourceId?: string,
 ): NotionDatabaseProperties {
+  logger.debug('Building daily notes database properties', {
+    tasksDataSourceId,
+  });
   const properties: NotionDatabaseProperties = {
     Name: { title: {} },
     Date: { date: {} },

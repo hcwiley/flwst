@@ -11,18 +11,19 @@ export default defineConfig({
         // Use source files in dev, not dist
         '@flwst/core': r('../../libs/core/src/index.ts'),
         '@flwst/core/logger': r('../../libs/core/src/logger.ts'),
+        '@flwst/prompts': r('../../libs/prompts/src/index.ts'),
         '@flwst/types': r('../../types/src/index.ts'),
       },
     },
     ssr: {
       // Keep workspace package bundled for SSR builds
-      noExternal: ['@flwst/core', '@flwst/types'],
+      noExternal: ['@flwst/core', '@flwst/types', '@flwst/prompts'],
     },
     build: {
       // electron-vite externalizes deps in main/preload by default.
       // Excluding this workspace package forces it to be bundled instead of `require('@flwst/core')`.
       externalizeDeps: {
-        exclude: ['@flwst/core', '@flwst/types'],
+        exclude: ['@flwst/core', '@flwst/types', '@flwst/prompts'],
       },
     },
   },
@@ -33,16 +34,17 @@ export default defineConfig({
         // Use source files in dev, not dist
         '@flwst/core': r('../../libs/core/src/index.ts'),
         '@flwst/core/logger': r('../../libs/core/src/logger.ts'),
+        '@flwst/prompts': r('../../libs/prompts/src/index.ts'),
         '@flwst/types': r('../../types/src/index.ts'),
       },
     },
     ssr: {
       // Keep workspace package bundled for SSR builds
-      noExternal: ['@flwst/core', '@flwst/types'],
+      noExternal: ['@flwst/core', '@flwst/types', '@flwst/prompts'],
     },
     build: {
       externalizeDeps: {
-        exclude: ['@flwst/core', '@flwst/types'],
+        exclude: ['@flwst/core', '@flwst/types', '@flwst/prompts'],
       },
     },
   },

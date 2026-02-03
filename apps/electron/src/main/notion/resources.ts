@@ -290,9 +290,9 @@ export async function createDailyNotesDatabase(
 ): Promise<string> {
   const properties = ensureDatabaseProperties(buildDailyNotesDbProperties());
   try {
-  return createNotionDatabase(
-    notion,
-    flowStatePageId,
+    return createNotionDatabase(
+      notion,
+      flowStatePageId,
       DAILY_NOTES_DB_TITLE,
       properties,
     );
