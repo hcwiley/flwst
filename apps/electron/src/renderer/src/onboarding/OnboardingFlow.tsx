@@ -11,7 +11,6 @@ import type {
   OnboardingFlowAction,
   OnboardingStep,
 } from './types';
-import { getLogger } from '../../sentry';
 import { getDefaultOnboardingState } from '@flwst/types';
 import { OnboardingStatusBar } from './OnboardingStatusBar';
 import {
@@ -288,7 +287,6 @@ export function OnboardingFlow({
   initialState,
   onComplete,
 }: OnboardingFlowProps): React.JSX.Element {
-  const logger = getLogger();
   const [flowState, dispatch] = useReducer(onboardingReducer, {
     step: 'Welcome',
     onboardingState: initialState || getDefaultOnboardingState(),
