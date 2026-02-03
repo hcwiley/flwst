@@ -125,22 +125,33 @@ export class ConfigStore extends EncryptedStore<UserConfig> {
 
   protected getDefault(): UserConfig {
     return {
-      cleanup: {
+      preprocess: {
         enabled: false,
         ignoreList: [],
         dictionary: {},
       },
-      prompts: {
-        dailyNote: 'Generate a daily note from the transcript.',
-        taskList: 'Extract tasks from the transcript.',
-      },
+      prompts: {},
       notion: {},
       onboardingState: undefined,
     };
   }
 
   protected parse(data: string): UserConfig {
-    const parsed = JSON.parse(data);
+    const parsed = JSON.parse(data) as Record<string, unknown>;
+    // Migrate legacy cleanup → preprocess
+    if (parsed.cleanup != null && parsed.preprocess == null) {
+      parsed.preprocess = parsed.cleanup;
+      delete parsed.cleanup;
+    }
+    // Migrate prompts shape: taskList → taskDraft, drop cleanup prompt
+    if (parsed.prompts != null && typeof parsed.prompts === 'object') {
+      const p = parsed.prompts as Record<string, unknown>;
+      if (p.taskList != null && p.taskDraft == null) {
+        p.taskDraft = p.taskList;
+        delete p.taskList;
+      }
+      delete p.cleanup;
+    }
     return UserConfigSchema.parse(parsed);
   }
 

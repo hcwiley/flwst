@@ -37,14 +37,14 @@ test('ConfigStore writes and reads config round-trip', async () => {
   const store = new ConfigStore(testDir, mockKeytar as any);
 
   const testConfig: UserConfig = {
-    cleanup: {
+    preprocess: {
       enabled: true,
       ignoreList: ['test', 'ignore'],
       dictionary: { test: 'example' },
     },
     prompts: {
       dailyNote: 'test prompt',
-      taskList: 'task prompt',
+      taskDraft: 'task prompt',
     },
     notion: {
       flowStatePageId: 'test-id',
@@ -66,7 +66,7 @@ test('ConfigStore returns default config when file does not exist', async () => 
 
   // Should return a valid default config structure
   assert.equal(typeof config, 'object');
-  assert.equal(typeof config.cleanup, 'object');
+  assert.equal(typeof config.preprocess, 'object');
   assert.equal(typeof config.prompts, 'object');
 
   // Validate it matches the schema
