@@ -8,6 +8,3 @@ typings/
 # Node.js dependency directory
 node_modules/
 *.local
-
-# Copied during predeploy for build; do not commit
-types/
