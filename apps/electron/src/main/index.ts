@@ -12,6 +12,7 @@ import { registerConfigHandlers } from './config';
 import { checkNotionSchemasOnStartup, registerNotionHandlers } from './notion';
 import { logger } from '@flwst/core';
 import { registerInboxHandlers } from './inbox';
+import { registerLlmHandlers } from './llm';
 
 // Initialize Sentry as early as possible in main process
 // In main process, process.env is available
@@ -43,6 +44,7 @@ app.whenReady().then(() => {
   registerOnboardingHandlers();
   registerConfigHandlers();
   registerInboxHandlers();
+  registerLlmHandlers();
   registerNotionHandlers();
   checkNotionSchemasOnStartup().catch((error) => {
     getLogger().error('Notion schema check failed', { error });

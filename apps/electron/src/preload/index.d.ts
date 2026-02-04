@@ -1,5 +1,7 @@
 import { ElectronAPI } from '@electron-toolkit/preload';
 import type {
+  GenerateRequest,
+  GenerateResponse,
   OnboardingState,
   NotionWorkspaceMetadata,
   UserConfig,
@@ -56,10 +58,15 @@ export interface InboxAPI {
   ingestText: (payload: InboxIngestRequest) => Promise<InboxIngestResult>;
 }
 
+export interface LlmAPI {
+  generate: (request: GenerateRequest) => Promise<GenerateResponse>;
+}
+
 export interface AppAPI {
   onboarding: OnboardingAPI;
   config: ConfigAPI;
   inbox: InboxAPI;
+  llm: LlmAPI;
   notion: NotionAPI;
 }
 

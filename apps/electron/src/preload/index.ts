@@ -37,6 +37,10 @@ const api = {
     ingestText: (payload: InboxIngestRequest) =>
       ipcRenderer.invoke('inbox:ingestText', payload),
   },
+  llm: {
+    generate: (request: import('@flwst/types').GenerateRequest) =>
+      ipcRenderer.invoke('llm:generate', request),
+  },
   notion: {
     startOAuth: (): Promise<{ authUrl: string }> =>
       ipcRenderer.invoke('notion:startOAuth'),
