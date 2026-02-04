@@ -66,7 +66,7 @@ export type FirebaseConfig = z.infer<typeof FirebaseConfigSchema>;
 
 export const GeminiConfigSchema = z.object({
   apiKey: z.string(),
-  model: z.string().default('gemini-3-flash-preview'),
+  model: z.string().default('gemini-2.5-flash'),
 });
 
 export type GeminiConfig = z.infer<typeof GeminiConfigSchema>;

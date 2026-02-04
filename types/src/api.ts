@@ -29,6 +29,33 @@ export const GenerateRequestSchema = z.object({
 export type GenerateRequest = z.infer<typeof GenerateRequestSchema>;
 
 /**
+ * Daily note props from [[DAILY_NOTE_PROPS]] block.
+ */
+export const DailyNotePropsSchema = z.object({
+  name: z.string(),
+  date: z.string(),
+  summary: z.string(),
+  tags: z.array(z.string()),
+});
+
+export type DailyNoteProps = z.infer<typeof DailyNotePropsSchema>;
+
+/**
+ * Single task row from [[TASK_FEED_PROPS]] table.
+ */
+export const TaskPropsSchema = z.object({
+  name: z.string(),
+  project: z.string().optional(),
+  description: z.string().optional(),
+  priority: z.string(),
+  status: z.string(),
+  tags: z.array(z.string()),
+  due: z.string().optional(),
+});
+
+export type TaskProps = z.infer<typeof TaskPropsSchema>;
+
+/**
  * Response payload from /generate endpoint to client.
  */
 export const GenerateResponseSchema = z.object({
@@ -36,12 +63,12 @@ export const GenerateResponseSchema = z.object({
   timestamp: TimestampSchema,
   dailyNote: z.object({
     content: z.string(),
-    summary: z.string().optional(),
-    tags: z.array(z.string()).optional(),
+    props: DailyNotePropsSchema,
   }),
   taskFeed: z.object({
     content: z.string(),
     taskCount: z.number(),
+    props: z.array(TaskPropsSchema),
   }),
   metadata: z.object({
     model: z.string(),
