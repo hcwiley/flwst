@@ -67,3 +67,11 @@ node_modules/
 
 # dataconnect generated files
 .dataconnect
+
+# secrets
+secrets/
+secrets/*.json
+.secret.*
+
+# gen ai stuff
+.genkit/
