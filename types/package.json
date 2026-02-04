@@ -13,6 +13,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "build:firebase": "tsc -p tsconfig.firebase.json && node ./scripts/rewrite-extensions.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint ."
   },
