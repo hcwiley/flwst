@@ -8,6 +8,7 @@ import {
   BootstrapMirrorResponse,
   NotionSelectOption,
   NotionTodoCard,
+  RefreshKanbanRequest,
   SubmitResult,
   SubmitSessionRequest,
   SubmitSessionResponse,
@@ -48,6 +49,18 @@ const DEFAULT_DEPS: NotionGatewayDeps = {
 };
 
 /**
+ * Detect if a todo represents a cancel intent.
+ * Checks for cancel-related keywords in text or explicit Cancelled status.
+ */
+function isCancelIntent(draft: TodoDraft): boolean {
+  const normalizedText = draft.text.toLowerCase().trim();
+  const cancelKeywords = ['cancel', 'cancelled', 'canceling', 'cancellation'];
+  const hasCancelKeyword = cancelKeywords.some((keyword) => normalizedText.startsWith(keyword));
+  const hasCancelledStatus = draft.status === 'Cancelled';
+  return hasCancelKeyword || hasCancelledStatus;
+}
+
+/**
  * Decide how a draft todo should be submitted based on match state and flags.
  */
 export function planTodoSubmission(draft: TodoDraft): SubmitPlan {
@@ -68,6 +81,11 @@ export function planTodoSubmission(draft: TodoDraft): SubmitPlan {
       return { action: 'skip', reason: 'missing_notion_target' };
     }
     return { action: 'update' };
+  }
+
+  // Skip creating new tasks for unmatched cancel intents
+  if (isCancelIntent(draft)) {
+    return { action: 'skip', reason: 'unmatched_cancel_intent' };
   }
 
   return { action: 'create' };
@@ -117,13 +135,16 @@ export class NotionGateway {
     };
   }
 
-  async refreshKanban(): Promise<{ kanbanItems: NotionTodoCard[]; lastSyncTime: string }> {
+  async refreshKanban(
+    filters?: RefreshKanbanRequest['filters'],
+  ): Promise<{ kanbanItems: NotionTodoCard[]; lastSyncTime: string }> {
     const tasksDbId = this.deps.notionConfig?.databases?.tasks?.id;
     if (!tasksDbId) {
       throw new Error('Tasks database ID not found in notionConfig');
     }
 
-    const tasks = (await this.deps.notionApiClient.queryDatabase(tasksDbId)) as any;
+    const filter = buildKanbanFilter(filters);
+    const tasks = (await this.deps.notionApiClient.queryDatabase(tasksDbId, filter)) as any;
     const kanbanItems = (tasks.results || []).map((page: any): NotionTodoCard => {
       const props = extractNotionTaskProperties(page);
       return {
@@ -236,6 +257,9 @@ export class NotionGateway {
             errorMessage: 'Missing notionTargetId for matched todo',
           };
         }
+        console.log(
+          `[notion-gateway] Submitting update for "${draft.text}": status=${JSON.stringify(draft.status)}, completed=${JSON.stringify(draft.completed)}, notionId=${notionTargetId}`,
+        );
         await this.deps.notionClient.updateTodo({
           id: draft.localId,
           text: draft.text,
@@ -254,6 +278,9 @@ export class NotionGateway {
         return { localId: draft.localId, status: 'success', notionPageId: notionTargetId };
       }
 
+      console.log(
+        `[notion-gateway] Submitting create for "${draft.text}": status=${JSON.stringify(draft.status)}, completed=${JSON.stringify(draft.completed)}`,
+      );
       const created = await this.deps.notionClient.createTodo(
         {
           id: draft.localId,
@@ -308,4 +335,58 @@ export class NotionGateway {
       weekday: 'long',
     });
   }
+}
+
+function buildKanbanFilter(filters?: RefreshKanbanRequest['filters']): any | undefined {
+  if (!filters) return undefined;
+  const andFilters: any[] = [];
+
+  if (filters.project) {
+    andFilters.push({
+      property: 'Project',
+      select: { equals: filters.project },
+    });
+  }
+
+  if (filters.status) {
+    andFilters.push({
+      property: 'Status',
+      status: { equals: filters.status },
+    });
+  }
+
+  if (filters.dueDateRange?.start || filters.dueDateRange?.end) {
+    const dueFilter: any = {};
+    if (filters.dueDateRange.start) {
+      dueFilter.on_or_after = filters.dueDateRange.start;
+    }
+    if (filters.dueDateRange.end) {
+      dueFilter.on_or_before = filters.dueDateRange.end;
+    }
+    andFilters.push({
+      property: 'Due Date',
+      date: dueFilter,
+    });
+  }
+
+  if (filters.lastModifiedAfter) {
+    andFilters.push({
+      timestamp: 'last_edited_time',
+      last_edited_time: {
+        on_or_after: filters.lastModifiedAfter,
+      },
+    });
+  }
+
+  if (filters.createdAfter) {
+    andFilters.push({
+      timestamp: 'created_time',
+      created_time: {
+        on_or_after: filters.createdAfter,
+      },
+    });
+  }
+
+  if (andFilters.length === 0) return undefined;
+  return { and: andFilters };
 }

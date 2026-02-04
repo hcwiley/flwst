@@ -1,5 +1,2 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
 # Validate Conventional Commit messages before they land in history.
 CI=${CI:-true} pnpm commitlint --edit "$1"

@@ -96,8 +96,12 @@ export interface INotionClient {
 
   /**
    * Match todos to Notion tasks using fuzzy matching
+   * Returns enriched todos and list of unmatched cancel intents
    */
-  matchTodosToNotionTasks(todos: Todo[], notionTasks: any[]): Promise<Todo[]>;
+  matchTodosToNotionTasks(
+    todos: Todo[],
+    notionTasks: any[],
+  ): Promise<{ todos: Todo[]; unmatchedCancels: string[] }>;
 
   /**
    * Fetch page body/description from Notion
@@ -142,6 +146,7 @@ export interface OrchestratorState {
   logs: string[];
   warnings: string[];
   errors: string[];
+  unmatchedCancels: string[];
 }
 
 /**
@@ -161,6 +166,7 @@ export class ReasoningOrchestrator {
   private logs: string[] = [];
   private warnings: string[] = [];
   private errors: string[] = [];
+  private unmatchedCancels: string[] = [];
 
   constructor(
     private llmClient: ILLMClient,
@@ -196,6 +202,7 @@ export class ReasoningOrchestrator {
       logs: this.logs,
       warnings: this.warnings,
       errors: this.errors,
+      unmatchedCancels: this.unmatchedCancels,
     };
   }
 
@@ -214,7 +221,7 @@ export class ReasoningOrchestrator {
     const stateLabel = state || this._state;
     const logEntry = `[${stateLabel}] ${message}`;
     this.logs.push(logEntry);
-    console.log(logEntry);
+    console.error(logEntry);
   }
 
   /**
@@ -242,6 +249,10 @@ export class ReasoningOrchestrator {
     targetState: ReasoningState = ReasoningState.TODOS_MATCHED,
   ): Promise<DailyNoteResponse> {
     try {
+      if (this._state === ReasoningState.ERROR) {
+        throw new Error('Cannot resume orchestrator after ERROR state');
+      }
+
       // Step 0: Ensure Notion context is available
       if (!this.notionContext) {
         try {
@@ -254,19 +265,19 @@ export class ReasoningOrchestrator {
       }
 
       // Step 1: Extract high-level notes
-      if (this.isStateBefore(ReasoningState.DAILY_NOTES_EXTRACTED, targetState)) {
+      if (this.shouldRunStep(ReasoningState.DAILY_NOTES_EXTRACTED, targetState)) {
         await this.extractHighLevelNotes();
       }
       if (targetState === ReasoningState.DAILY_NOTES_EXTRACTED) return this.asResponse();
 
       // Step 2: Generate detailed structured data
-      if (this.isStateBefore(ReasoningState.TODOS_EXTRACTED, targetState)) {
+      if (this.shouldRunStep(ReasoningState.TODOS_EXTRACTED, targetState)) {
         await this.extractTodos();
       }
       if (targetState === ReasoningState.TODOS_EXTRACTED) return this.asResponse();
 
       // Step 3: Match todos to Notion tasks
-      if (this.isStateBefore(ReasoningState.TODOS_MATCHED, targetState)) {
+      if (this.shouldRunStep(ReasoningState.TODOS_MATCHED, targetState)) {
         await this.matchTodos();
       }
       if (targetState === ReasoningState.TODOS_MATCHED) return this.asResponse();
@@ -290,11 +301,50 @@ export class ReasoningOrchestrator {
   }
 
   /**
+   * Check if a state is strictly before another (non-equal).
+   */
+  private isStateStrictlyBefore(state: ReasoningState, target: ReasoningState): boolean {
+    const states = Object.values(ReasoningState);
+    return states.indexOf(state) < states.indexOf(target);
+  }
+
+  /**
+   * Determine whether a step should run given current and target state.
+   */
+  private shouldRunStep(stepState: ReasoningState, targetState: ReasoningState): boolean {
+    return (
+      this.isStateBefore(stepState, targetState) &&
+      this.isStateStrictlyBefore(this._state, stepState)
+    );
+  }
+
+  /**
    * Format current state as DailyNoteResponse
+   * Appends Analysis Metadata section if there are warnings or unmatched cancels
    */
   private asResponse(): DailyNoteResponse {
+    let dailyNote = this.dailyNoteRichMarkdown;
+
+    // Append Analysis Metadata section if there's anything to report
+    if (this.unmatchedCancels.length > 0 || this.warnings.length > 0) {
+      const metadataLines: string[] = ['\n\n## Analysis Metadata\n'];
+      if (this.unmatchedCancels.length > 0) {
+        metadataLines.push('### Unmatched Cancel Attempts');
+        metadataLines.push(
+          ...this.unmatchedCancels.map(
+            (text) => `- Could not find matching task to cancel: "${text}"`,
+          ),
+        );
+      }
+      if (this.warnings.length > 0) {
+        metadataLines.push('### Processing Warnings');
+        metadataLines.push(...this.warnings.map((warning) => `- ${warning}`));
+      }
+      dailyNote = dailyNote + metadataLines.join('\n');
+    }
+
     return {
-      dailyNoteRichMarkdown: this.dailyNoteRichMarkdown,
+      dailyNoteRichMarkdown: dailyNote,
       todos: this.todos,
     };
   }
@@ -375,6 +425,16 @@ export class ReasoningOrchestrator {
           return todo;
         });
       }
+
+      // Map completed: true to status: 'Done' if status is not already set
+      // This ensures that todos marked as completed get the correct status before matching
+      result.todos = result.todos.map((todo) => {
+        if (!todo.status && todo.completed === true) {
+          todo.status = 'Done';
+          this.log(`Mapped completed=true to status='Done' for "${todo.text}"`);
+        }
+        return todo;
+      });
 
       this.todos = result.todos;
       this.transitionTo(ReasoningState.TODOS_EXTRACTED);
@@ -478,7 +538,12 @@ export class ReasoningOrchestrator {
         );
       }
       this.notionTasksSnapshot = allNotionTasks;
-      this.todos = await this.notionClient.matchTodosToNotionTasks(this.todos, allNotionTasks);
+      const matchResult = await this.notionClient.matchTodosToNotionTasks(
+        this.todos,
+        allNotionTasks,
+      );
+      this.todos = matchResult.todos;
+      this.unmatchedCancels = matchResult.unmatchedCancels;
       this.transitionTo(ReasoningState.TODOS_MATCHED);
 
       const matchedCount = this.todos.filter((t) => t.isMatched).length;
@@ -704,6 +769,8 @@ export class ReasoningOrchestrator {
       'her',
       'us',
       'them',
+      'about',
+      'email',
       'check',
       'get',
       'buy',
@@ -712,15 +779,38 @@ export class ReasoningOrchestrator {
       'go',
     ]);
 
-    const words = text
-      .toLowerCase()
-      .split(/[\s/]+/) // Split by space and slash
-      .map((w) => w.replace(/[^\w]/g, ''))
-      .filter((w) => w.length >= 3 && !stopWords.has(w));
+    const rawTokens = text.split(/[\s/]+/);
+    const normalizeToken = (token: string): string => token.toLowerCase().replace(/[^\w]/g, '');
+    const isCandidate = (token: string): boolean => token.length >= 3 && !stopWords.has(token);
+    const isProperNoun = (token: string): boolean =>
+      /^[A-Z][a-z]/.test(token) || /^[A-Z]{2,}/.test(token);
 
-    const sorted = words.sort((a, b) => b.length - a.length);
-    console.debug(`[orchestrator] Extracted keywords for "${text}": ${sorted.join(', ')}`);
-    return sorted;
+    const candidates = rawTokens.map(normalizeToken).filter((token) => isCandidate(token));
+
+    const properNouns = rawTokens
+      .map((token) => ({
+        raw: token,
+        normalized: normalizeToken(token),
+      }))
+      .filter(({ raw, normalized }) => isCandidate(normalized) && isProperNoun(raw))
+      .map(({ normalized }) => normalized);
+
+    const seen = new Set<string>();
+    const prioritized: string[] = [];
+
+    for (const token of properNouns) {
+      if (seen.has(token)) continue;
+      seen.add(token);
+      prioritized.push(token);
+    }
+
+    const sorted = candidates
+      .filter((token) => !seen.has(token))
+      .sort((a, b) => b.length - a.length);
+
+    const keywords = [...prioritized, ...sorted];
+    console.debug(`[orchestrator] Extracted keywords for "${text}": ${keywords.join(', ')}`);
+    return keywords;
   }
 
   /**

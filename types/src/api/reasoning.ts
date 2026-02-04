@@ -141,6 +141,7 @@ export const ProcessTranscriptRequestSchema = z.object({
   transcript: z.string(),
   sessionId: z.string(),
   context: NotionContextResponseSchema.optional(),
+  transcriptType: z.enum(['daily-note', 'update']).optional(),
 });
 
 /**
@@ -150,6 +151,40 @@ export const ProcessTranscriptResponseSchema = z.object({
   dailyNoteDraft: DailyNoteDraftSchema,
   todoDrafts: z.array(TodoDraftSchema),
   matchSuggestions: z.array(MatchSuggestionSchema).optional(),
+});
+
+/**
+ * Async processing job schemas for HTTP polling.
+ */
+export const ProcessTranscriptJobStatusSchema = z.enum([
+  'queued',
+  'running',
+  'succeeded',
+  'failed',
+]);
+
+export const ProcessTranscriptJobPhaseSchema = z.enum([
+  'fetching',
+  'analyzing',
+  'reasoning',
+  'matching',
+  'done',
+  'error',
+]);
+
+export const ProcessTranscriptJobStartResponseSchema = z.object({
+  jobId: z.string(),
+  status: ProcessTranscriptJobStatusSchema,
+});
+
+export const ProcessTranscriptJobResponseSchema = z.object({
+  jobId: z.string(),
+  status: ProcessTranscriptJobStatusSchema,
+  phase: ProcessTranscriptJobPhaseSchema.optional(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  result: ProcessTranscriptResponseSchema.optional(),
+  error: z.string().optional(),
 });
 
 /**
@@ -205,6 +240,7 @@ export const KanbanFilterSchema = z.object({
     })
     .optional(),
   lastModifiedAfter: z.string().optional(),
+  createdAfter: z.string().optional(),
 });
 
 export const RefreshKanbanRequestSchema = z.object({
@@ -255,6 +291,12 @@ export const NotionConnectResponseSchema = z.object({
 
 export type ProcessTranscriptRequest = z.infer<typeof ProcessTranscriptRequestSchema>;
 export type ProcessTranscriptResponse = z.infer<typeof ProcessTranscriptResponseSchema>;
+export type ProcessTranscriptJobStatus = z.infer<typeof ProcessTranscriptJobStatusSchema>;
+export type ProcessTranscriptJobPhase = z.infer<typeof ProcessTranscriptJobPhaseSchema>;
+export type ProcessTranscriptJobStartResponse = z.infer<
+  typeof ProcessTranscriptJobStartResponseSchema
+>;
+export type ProcessTranscriptJobResponse = z.infer<typeof ProcessTranscriptJobResponseSchema>;
 export type NotionMatchRequest = z.infer<typeof NotionMatchRequestSchema>;
 export type NotionMatchResponse = z.infer<typeof NotionMatchResponseSchema>;
 export type NotionSelectOption = z.infer<typeof NotionSelectOptionSchema>;

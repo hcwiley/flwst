@@ -23,6 +23,11 @@ import { notionConfig } from '../../../config/notion.js';
  * Combines MCP for search/fetch with API for create/update operations.
  */
 export class MCPNotionClient implements INotionClient {
+  private tasksDbCache = new Map<string, any>();
+  private tasksDbCacheLoadedAt?: number;
+  private tasksDbCacheIsFull = false;
+  private readonly tasksDbCacheTtlMs = 5 * 60 * 1000;
+
   /**
    * Fetch Notion context (projects, examples, stats)
    */
@@ -56,6 +61,7 @@ export class MCPNotionClient implements INotionClient {
 
     // Fetch tasks to calculate stats and get examples
     const recentTasks = (await notionApiClient.queryDatabase(tasksDbId)) as any;
+    this.updateTasksDbCache(recentTasks.results || [], { isFull: false });
     const examplesByProject = new Map<string, string[]>();
 
     const stats = {
@@ -148,12 +154,26 @@ export class MCPNotionClient implements INotionClient {
         throw new Error('Tasks database ID not found in notionConfig');
       }
 
+      await this.ensureTasksDbCache(tasksDbId);
+
       const tasksDbPages: any[] = [];
       const filteredOutCount = { noParent: 0, wrongDb: 0, wrongParentType: 0 };
+      const recoveredCount = { noParent: 0, wrongDb: 0, wrongParentType: 0 };
 
       for (const page of pages) {
+        const cachedPage = this.getCachedTaskPage(page.id);
+
         // Check if page has a parent property
         if (!page.parent) {
+          if (cachedPage) {
+            recoveredCount.noParent++;
+            const cachedProps = extractNotionTaskProperties(cachedPage);
+            console.debug(
+              `[notion-client] ✓ Reused cached page for "${cachedProps.name || 'unnamed'}": no parent property`,
+            );
+            tasksDbPages.push(cachedPage);
+            continue;
+          }
           filteredOutCount.noParent++;
           const props = extractNotionTaskProperties(page);
           console.debug(
@@ -164,6 +184,15 @@ export class MCPNotionClient implements INotionClient {
 
         // Check if parent is a database (not a page or workspace)
         if (page.parent.type !== 'database_id') {
+          if (cachedPage) {
+            recoveredCount.wrongParentType++;
+            const cachedProps = extractNotionTaskProperties(cachedPage);
+            console.debug(
+              `[notion-client] ✓ Reused cached page for "${cachedProps.name || 'unnamed'}": parent type mismatch`,
+            );
+            tasksDbPages.push(cachedPage);
+            continue;
+          }
           filteredOutCount.wrongParentType++;
           const props = extractNotionTaskProperties(page);
           console.debug(
@@ -179,6 +208,15 @@ export class MCPNotionClient implements INotionClient {
         const expectedDbId = tasksDbId;
 
         if (normalizeDbId(pageDbId) !== normalizeDbId(expectedDbId)) {
+          if (cachedPage) {
+            recoveredCount.wrongDb++;
+            const cachedProps = extractNotionTaskProperties(cachedPage);
+            console.debug(
+              `[notion-client] ✓ Reused cached page for "${cachedProps.name || 'unnamed'}": wrong database in search result`,
+            );
+            tasksDbPages.push(cachedPage);
+            continue;
+          }
           filteredOutCount.wrongDb++;
           const props = extractNotionTaskProperties(page);
           console.debug(
@@ -192,7 +230,7 @@ export class MCPNotionClient implements INotionClient {
       }
 
       console.debug(
-        `[notion-client] Filtered to ${tasksDbPages.length} pages from Tasks database (from ${pages.length} total: ${filteredOutCount.noParent} no parent, ${filteredOutCount.wrongParentType} wrong parent type, ${filteredOutCount.wrongDb} wrong database)`,
+        `[notion-client] Filtered to ${tasksDbPages.length} pages from Tasks database (from ${pages.length} total: ${filteredOutCount.noParent} no parent, ${filteredOutCount.wrongParentType} wrong parent type, ${filteredOutCount.wrongDb} wrong database; recovered ${recoveredCount.noParent} no parent, ${recoveredCount.wrongParentType} parent mismatch, ${recoveredCount.wrongDb} wrong database)`,
       );
 
       if (tasksDbPages.length > 0) {
@@ -245,8 +283,12 @@ export class MCPNotionClient implements INotionClient {
 
   /**
    * Match todos to Notion tasks using fuzzy matching
+   * Returns enriched todos and list of unmatched cancel intents
    */
-  async matchTodosToNotionTasks(todos: Todo[], notionTasks: any[]): Promise<Todo[]> {
+  async matchTodosToNotionTasks(
+    todos: Todo[],
+    notionTasks: any[],
+  ): Promise<{ todos: Todo[]; unmatchedCancels: string[] }> {
     return matchTodosToNotionTasks(todos, notionTasks);
   }
 
@@ -318,6 +360,13 @@ export class MCPNotionClient implements INotionClient {
       // Update Status if provided
       if (todo.status !== undefined) {
         props.Status = { status: { name: todo.status } };
+        console.log(
+          `[notion-client] updateTodo: Setting status="${todo.status}" for todo ${todo.notionId} (completed=${JSON.stringify(todo.completed)})`,
+        );
+      } else {
+        console.log(
+          `[notion-client] updateTodo: No status provided for todo ${todo.notionId} (completed=${JSON.stringify(todo.completed)})`,
+        );
       }
 
       // Update Priority if provided
@@ -358,11 +407,16 @@ export class MCPNotionClient implements INotionClient {
 
       // Update Assignee if provided
       if (todo.assignee !== undefined) {
-        // Note: Assignee requires a person object, this is a simplified version
-        // You may need to fetch the person ID from Notion first
-        props.Assignee = {
-          people: [{ name: todo.assignee }],
-        };
+        const assigneeId = normalizeNotionUserId(todo.assignee);
+        if (assigneeId) {
+          props.Assignee = {
+            people: [{ id: assigneeId }],
+          };
+        } else {
+          console.debug(
+            `[notion-client] Skipping assignee update for ${todo.notionId}: missing user id`,
+          );
+        }
       }
 
       // Only update if there are properties to update
@@ -469,4 +523,64 @@ export class MCPNotionClient implements INotionClient {
       .trim()
       .replace(/\s+/g, ' ');
   }
+
+  private normalizePageId(id: string): string {
+    return id.replace(/-/g, '').toLowerCase();
+  }
+
+  private getCachedTaskPage(pageId?: string): any | undefined {
+    if (!pageId) return undefined;
+    return this.tasksDbCache.get(this.normalizePageId(pageId));
+  }
+
+  private updateTasksDbCache(pages: any[], options: { isFull: boolean }) {
+    if (options.isFull) {
+      this.tasksDbCache.clear();
+    }
+
+    for (const page of pages) {
+      if (!page?.id) continue;
+      this.tasksDbCache.set(this.normalizePageId(page.id), page);
+    }
+
+    this.tasksDbCacheLoadedAt = Date.now();
+    if (options.isFull) {
+      this.tasksDbCacheIsFull = true;
+    }
+  }
+
+  private async ensureTasksDbCache(tasksDbId: string): Promise<void> {
+    if (!notionApiClient.hasToken()) return;
+
+    const cacheIsFresh =
+      this.tasksDbCacheLoadedAt && Date.now() - this.tasksDbCacheLoadedAt < this.tasksDbCacheTtlMs;
+
+    if (this.tasksDbCacheIsFull && cacheIsFresh) {
+      return;
+    }
+
+    try {
+      const response = await notionApiClient.queryDatabaseAll(tasksDbId);
+      this.updateTasksDbCache(response.results || [], { isFull: true });
+    } catch (error) {
+      console.warn('[notion-client] Failed to refresh Tasks database cache:', error);
+    }
+  }
+}
+
+function normalizeNotionUserId(input?: string): string | undefined {
+  if (!input) return undefined;
+  const normalized = input.trim();
+  if (!normalized) return undefined;
+
+  const hex = normalized.replace(/-/g, '');
+  if (!/^[0-9a-fA-F]{32}$/.test(hex)) return undefined;
+
+  return [
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    hex.slice(12, 16),
+    hex.slice(16, 20),
+    hex.slice(20),
+  ].join('-');
 }

@@ -39,7 +39,8 @@ flowchart TD
     DailyDB[DailyNotes_DB]
   end
 
-  UI -->|"POST /api/process"| API
+  UI -->|"POST /process"| API
+  UI -->|"GET /process/:jobId"| API
   UI -->|"POST /api/notion/match"| API
   Cards -->|"POST /api/notion/todos/update"| Store
   UI -->|"POST /api/notion/submit"| API

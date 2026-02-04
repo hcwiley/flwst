@@ -68,9 +68,22 @@ Inside `[[TASK_FEED]]` produce the full TODO table + detail sections that downst
 
 - Priority options: `TOP`, `High`, `Medium`, `Low`, `Back burner`.
 - Status options: `TODO`, `In Progress`, `BLOCKED`, `Done`, `Cancelled`.
-- `due` is optional (YYYY-MM-DD).
+- `due` is optional (YYYY-MM-DD). **CRITICAL: All dates MUST be normalized to ISO-8601 format (YYYY-MM-DD).**
 - Use `Task | Project` naming when a client/project is implied to help deduplication.
 - Note: The `project` column is used to scope Notion deduplication and search. When possible include a `project` value — Notion lookups SHOULD only consider candidate pages whose `Project` property equals the provided `project` (case-insensitive exact match). Within that project scope, name-keyword/fuzzy matching may be applied.
+- **DATE NORMALIZATION RULES:**
+  - If ANY date is mentioned for a task in the transcript (even if the task text does not include it),
+    you MUST set the `due` field. Do NOT omit dates.
+  - For cancel intent sentences that mention multiple dates, split into MULTIPLE todo rows with identical `name`,
+    each with its own normalized `due`.
+  - For CANCEL intents, the `due` field must ALWAYS be present when a date is mentioned.
+  - When a date is mentioned WITHOUT a year (e.g., "November 17th", "Nov 22"):
+    - If the transcript uses PAST TENSE or refers to a date that already occurred, use the MOST RECENT occurrence in the past
+    - If the transcript says "this [month]" or "next [month]", use the UPCOMING occurrence
+    - If the current month is BEFORE the mentioned month, use the UPCOMING date in the current year
+    - Otherwise, use the MOST RECENT PAST date
+  - For CANCEL intents, preserve ALL date information from the transcript in the `due` field to enable matching with existing Notion tasks
+  - If multiple dates are mentioned for cancellation (e.g., "November 22nd, 23rd, and 17th"), create separate todo rows for each date
 
 For every table row, create a `### {name}` section containing:
 

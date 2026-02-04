@@ -176,7 +176,16 @@ RULES:
 1. List EVERY actionable task mentioned in the transcript.
 2. CRITICAL: Provide detailed, descriptive text for each task. Do NOT just use the project name.
 3. CRITICAL: Do not combine different tasks. If the transcript mentions "task A" and "task B", create TWO separate items.
-4. For each task, set "context" to the name of the section header it was found under (e.g., "Flow State Overhaul").
+4. CRITICAL: If a task is described as already completed, extract the underlying task itself (what was done) rather than meta status phrases like "call that to-do done".
+5. For each task, set "context" to the name of the section header it was found under (e.g., "Flow State Overhaul").
+6. CRITICAL: MULTI-DATE LIST HANDLING - If a sentence lists multiple dates for a single task (e.g., "cancel X for November 22nd, November 23rd, and November 17th"), you MUST create MULTIPLE separate task entries, one for each date. Include the specific date in each task's text to preserve the date information.
+   - Example input: "The Instagram post for Example Project for November 22nd, November 23rd, and November 17th can all be cancelled."
+   - Example output: [
+       {"text": "Cancel Instagram post for Example Project for November 22nd", "context": "Tasks"},
+       {"text": "Cancel Instagram post for Example Project for November 23rd", "context": "Tasks"},
+       {"text": "Cancel Instagram post for Example Project for November 17th", "context": "Tasks"}
+     ]
+   - This applies to ANY task mentioning multiple dates, not just cancel intents.
 ${blacklistInstructions}
 ${projectsList}
 
@@ -337,12 +346,27 @@ Respond with ONLY the markdown content. No JSON wrapper, no code blocks, no prea
         ? `\nVALID NOTION PROJECTS (MANDATORY: Use these exact strings for the "project" field):\n- ${allowedProjects.join('\n- ')}\n`
         : '';
 
+    // Get current date for date normalization context
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1; // 1-12
+    const currentDay = now.getDate();
+    const currentDateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}`;
+
     const prompt = `You are an expert Task Extraction Agent. Convert the following extracted tasks into a structured JSON array of "todos".
 
 TASKS TO CONVERT:
 ${highLevelNotes.potentialTodos.map((t, i) => `${i + 1}. "${t.text}" (Context: ${t.context})`).join('\n')}
 
+TRANSCRIPT (use for completion status):
+"""
+${transcript}
+"""
+
 ${projectsContext}
+
+CURRENT DATE CONTEXT:
+Today is ${currentDateStr} (Year: ${currentYear}, Month: ${currentMonth}, Day: ${currentDay})
 
 JSON SCHEMA:
 {
@@ -358,15 +382,34 @@ JSON SCHEMA:
     }
   ]
 }
-
 RULES:
 1. Extract EVERY task listed above into the "todos" array.
 2. DO NOT DUPLICATE TASKS.
 3. Use the EXACT text provided in TASKS TO CONVERT for the "text" field.
 4. Assign each task a unique "id".
 5. Match the "project" field to VALID NOTION PROJECTS.
-6. Set "completed" to false.
+6. Set "completed" to true ONLY when the transcript explicitly indicates the task is already done; otherwise set it to false.
 7. DO NOT RETURN NULL OR EMPTY STRINGS: Omit any fields that are unknown. Do not set fields to "" or null.
+8. DATE NORMALIZATION (CRITICAL for matching existing tasks):
+   - ALL dates in "dueDate" MUST be in ISO-8601 format: YYYY-MM-DD
+   - If ANY date is mentioned for a task (in the task text from TASKS TO CONVERT, in the transcript, or in the context),
+     you MUST extract it and set "dueDate" for that todo. Do NOT omit dates.
+   - When the task text contains a date (e.g., "Cancel Instagram post for Example Project for November 22nd"),
+     extract that date from the task text, normalize it to ISO format, and set it as "dueDate".
+   - For cancel intents, the "dueDate" must ALWAYS be present when a date is mentioned in the task text or transcript.
+   - When a date is mentioned WITHOUT a year (e.g., "November 17th", "Nov 22"):
+     a) If the transcript uses PAST TENSE or refers to a date that already occurred, use the MOST RECENT occurrence in the past
+     b) If the transcript says "this [month]" or "next [month]", use the UPCOMING occurrence
+     c) If the current month is BEFORE the mentioned month (e.g., it's January and transcript says "November"), use the UPCOMING date in the current year
+     d) Otherwise, use the MOST RECENT PAST date
+   - Examples (assuming current date is ${currentDateStr}):
+     * "November 17th" (past tense) → "2025-11-17" (most recent past occurrence)
+     * "this November" → "2026-11-01" (upcoming occurrence)
+     * "next November" → "2026-11-01" (upcoming occurrence)
+     * "November 22nd" (if current month is before November) → "${currentYear}-11-22" (upcoming in current year)
+     * "November 22nd" (if current month is after November) → "${currentYear - 1}-11-22" (most recent past)
+   - For CANCEL intents, preserve ALL date information from the transcript in the "dueDate" field to enable matching with existing Notion tasks
+   - If multiple dates are mentioned (e.g., "November 22nd, 23rd, and 17th"), extract each as a separate todo with the appropriate date
 
 Respond with ONLY the JSON object.`;
 
@@ -402,11 +445,19 @@ Respond with ONLY the JSON object.`;
         return cleaned;
       });
 
+      const todosWithStatus = applyContextStatusHints(extractedTodos, highLevelNotes);
+
       console.log('[llm-client] Step 2 extracted todos count:', extractedTodos.length);
+      // Log status/completed for each todo after extraction
+      todosWithStatus.forEach((todo, idx) => {
+        console.log(
+          `[llm-client] Todo ${idx + 1} status tracking: text="${todo.text}", status=${JSON.stringify(todo.status)}, completed=${JSON.stringify(todo.completed)}`,
+        );
+      });
 
       const result = {
         dailyNoteRichMarkdown: highLevelNotes.dailyNoteRichMarkdown,
-        todos: extractedTodos,
+        todos: todosWithStatus,
       };
 
       const validated = DailyNoteSchema.parse(result);
@@ -576,4 +627,114 @@ Respond with a JSON object.`;
       await freshContext.dispose();
     }
   }
+}
+
+type ExtractedTodo = {
+  text?: string;
+  status?: string;
+} & Record<string, unknown>;
+
+// Apply status inference from high-level context when LLM omits status.
+export function applyContextStatusHints(
+  todos: ExtractedTodo[],
+  highLevelNotes: HighLevelNotes,
+): ExtractedTodo[] {
+  const contextByText = new Map<string, string>();
+  for (const item of highLevelNotes.potentialTodos) {
+    const normalizedText = normalizeTodoText(item.text);
+    if (!normalizedText) continue;
+    contextByText.set(normalizedText, item.context ?? '');
+    const strippedText = stripStatusSuffix(normalizedText);
+    if (strippedText && strippedText !== normalizedText) {
+      contextByText.set(strippedText, item.context ?? '');
+    }
+  }
+
+  return todos.map((todo) => {
+    const textKey = normalizeTodoText(todo.text ?? '');
+    if (!textKey) return todo;
+    const context = contextByText.get(textKey) ?? contextByText.get(stripStatusSuffix(textKey));
+    const inferredStatus = context ? inferStatusFromContext(context) : undefined;
+    if (!inferredStatus) return todo;
+    const currentStatus = normalizeStatusForCompare(todo.status);
+    if (currentStatus === inferredStatus) return todo;
+    return { ...todo, status: inferredStatus };
+  });
+}
+
+// Infer status from section headers like "Done" or "In Progress".
+export function inferStatusFromContext(context: string): Todo['status'] | undefined {
+  const normalized = context.toLowerCase();
+
+  if (matchesAny(normalized, ['cancelled', 'canceled', "won't do", 'wont do', 'dropped'])) {
+    return 'Cancelled';
+  }
+  if (matchesAny(normalized, ['blocked', 'stuck', 'waiting', 'paused'])) {
+    return 'BLOCKED';
+  }
+  if (matchesAny(normalized, ['done', 'complete', 'completed', 'finished', 'shipped'])) {
+    return 'Done';
+  }
+  if (matchesAny(normalized, ['in progress', 'in-progress', 'doing', 'working on'])) {
+    return 'In Progress';
+  }
+  if (matchesAny(normalized, ['on deck', 'next up', 'next'])) {
+    return 'On Deck';
+  }
+  if (matchesAny(normalized, ['todo', 'to-do', 'to do', 'backlog'])) {
+    return 'TODO';
+  }
+
+  return undefined;
+}
+
+function matchesAny(text: string, phrases: string[]): boolean {
+  return phrases.some((phrase) => text.includes(phrase));
+}
+
+function normalizeTodoText(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s]/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
+function stripStatusSuffix(text: string): string {
+  const suffixes = [
+    ' done',
+    ' completed',
+    ' complete',
+    ' finished',
+    ' shipped',
+    ' in progress',
+    ' in-progress',
+    ' on deck',
+    ' todo',
+    ' blocked',
+    ' cancelled',
+    ' canceled',
+    " won't do",
+    ' wont do',
+  ];
+  for (const suffix of suffixes) {
+    if (text.endsWith(suffix)) {
+      return text.slice(0, -suffix.length).trim();
+    }
+  }
+  return text;
+}
+
+function normalizeStatusForCompare(status?: string): Todo['status'] | undefined {
+  if (!status) return undefined;
+  const normalized = status.trim().toLowerCase();
+  const mapping: Record<string, Todo['status']> = {
+    todo: 'TODO',
+    'on deck': 'On Deck',
+    'in progress': 'In Progress',
+    blocked: 'BLOCKED',
+    done: 'Done',
+    cancelled: 'Cancelled',
+  };
+  return mapping[normalized];
 }

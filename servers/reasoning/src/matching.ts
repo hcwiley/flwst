@@ -17,6 +17,46 @@ function normalizeString(str: string): string {
 }
 
 /**
+ * Detect if a todo represents a cancel intent.
+ * Checks for cancel-related keywords in text or explicit Cancelled status.
+ */
+function isCancelIntent(todo: Todo): boolean {
+  const normalizedText = normalizeString(todo.text);
+  const cancelKeywords = ['cancel', 'cancelled', 'canceling', 'cancellation'];
+  const hasCancelKeyword = cancelKeywords.some((keyword) => normalizedText.startsWith(keyword));
+  const hasCancelledStatus = todo.status === 'Cancelled';
+  return hasCancelKeyword || hasCancelledStatus;
+}
+
+/**
+ * Normalize todo text for matching by removing cancel-related prefixes.
+ * This allows "Cancel Instagram post" to match "Instagram post".
+ */
+function normalizeTextForMatching(text: string, isCancel: boolean): string {
+  if (!isCancel) {
+    return text;
+  }
+  // Remove common cancel prefixes
+  const normalized = normalizeString(text);
+  const cancelPrefixes = [
+    'cancel ',
+    'cancelled ',
+    'canceling ',
+    'cancellation ',
+    'cancel post for ',
+    'cancel post ',
+  ];
+  let cleaned = normalized;
+  for (const prefix of cancelPrefixes) {
+    if (cleaned.startsWith(prefix)) {
+      cleaned = cleaned.substring(prefix.length).trim();
+      break;
+    }
+  }
+  return cleaned;
+}
+
+/**
  * Check if two task names are similar using fuzzy matching.
  * Returns true if the names share significant keywords.
  */
@@ -74,6 +114,11 @@ function isSimilarTaskName(name1: string, name2: string): boolean {
 
   // If at least 40% of words match, consider it similar (relaxed from 50%)
   return isMatch;
+}
+
+// Keep transcript-derived values when provided.
+function preferExisting<T>(current: T | undefined, incoming: T | undefined): T | undefined {
+  return current ?? incoming;
 }
 
 /**
@@ -283,12 +328,12 @@ export function extractNotionTaskProperties(notionPage: any): NotionTaskProperti
     props.url = notionPage.url;
   }
 
-  console.debug(`[matching] Extracted properties for "${props.name || 'unnamed'}":`, {
-    id: props.id,
-    project: props.project,
-    status: props.status,
-    priority: props.priority,
-  });
+  // console.debug(`[matching] Extracted properties for "${props.name || 'unnamed'}":`, {
+  //   id: props.id,
+  //   project: props.project,
+  //   status: props.status,
+  //   priority: props.priority,
+  // });
 
   return props;
 }
@@ -301,8 +346,12 @@ export function extractNotionTaskProperties(notionPage: any): NotionTaskProperti
  * @param notionTasks - Array of Notion task pages (from search)
  * @returns Array of enriched todos with Notion data merged in
  */
-export async function matchTodosToNotionTasks(todos: Todo[], notionTasks: any[]): Promise<Todo[]> {
+export async function matchTodosToNotionTasks(
+  todos: Todo[],
+  notionTasks: any[],
+): Promise<{ todos: Todo[]; unmatchedCancels: string[] }> {
   const enrichedTodos: Todo[] = [];
+  const unmatchedCancels: string[] = [];
 
   console.debug(
     `[matching] Starting matching for ${todos.length} todos against ${notionTasks.length} Notion candidates`,
@@ -311,9 +360,10 @@ export async function matchTodosToNotionTasks(todos: Todo[], notionTasks: any[])
   for (const todo of todos) {
     let matched = false;
     let bestMatch: any = null;
+    const isCancel = isCancelIntent(todo);
 
     console.debug(
-      `[matching] Processing todo: "${todo.text}" (project: ${todo.project || 'none'})`,
+      `[matching] Processing todo: "${todo.text}" (project: ${todo.project || 'none'}, cancel intent: ${isCancel})`,
     );
 
     // Filter Notion tasks by project if todo has a project
@@ -347,8 +397,10 @@ export async function matchTodosToNotionTasks(todos: Todo[], notionTasks: any[])
     }
 
     // Try to match by name within the filtered candidates
+    // For cancel intents, normalize the text by removing cancel prefixes
+    const textForMatching = normalizeTextForMatching(todo.text, isCancel);
     console.debug(
-      `[matching] Evaluating ${candidateTasks.length} candidate tasks for "${todo.text}"`,
+      `[matching] Evaluating ${candidateTasks.length} candidate tasks for "${todo.text}" (normalized for matching: "${textForMatching}")`,
     );
     for (const notionTask of candidateTasks) {
       const props = extractNotionTaskProperties(notionTask);
@@ -358,8 +410,8 @@ export async function matchTodosToNotionTasks(todos: Todo[], notionTasks: any[])
         `[matching] Evaluating candidate: "${taskName}" (project: ${props.project || 'none'}, id: ${props.id || 'none'})`,
       );
 
-      // Match by task name (fuzzy matching)
-      if (taskName && isSimilarTaskName(todo.text, taskName)) {
+      // Match by task name (fuzzy matching) - use normalized text for cancel intents
+      if (taskName && isSimilarTaskName(textForMatching, taskName)) {
         // Safety validation: Ensure the matched page is from the Tasks database
         const tasksDbId = notionConfig?.databases?.tasks?.id;
         if (tasksDbId) {
@@ -408,6 +460,11 @@ export async function matchTodosToNotionTasks(todos: Todo[], notionTasks: any[])
 
     if (!matched) {
       console.debug(`[matching] NO MATCH found for "${todo.text}"`);
+      // Track unmatched cancel intents for metadata
+      if (isCancel) {
+        unmatchedCancels.push(todo.text);
+        console.debug(`[matching] Unmatched cancel intent: "${todo.text}"`);
+      }
     }
 
     // Create enriched todo
@@ -417,29 +474,41 @@ export async function matchTodosToNotionTasks(todos: Todo[], notionTasks: any[])
     };
 
     if (matched && bestMatch) {
-      // Merge Notion properties into todo
+      // Merge Notion properties into todo, but keep transcript-driven updates.
       const { props } = bestMatch;
 
       if (props.priority) {
-        enrichedTodo.priority = props.priority as any;
+        enrichedTodo.priority = preferExisting(enrichedTodo.priority, props.priority as any);
       }
-      if (props.status) {
-        enrichedTodo.status = props.status as any;
+      // For cancel intents, always set status to Cancelled when matched
+      if (isCancel) {
+        enrichedTodo.status = 'Cancelled';
+        console.debug(
+          `[matching] Set status to Cancelled for matched cancel intent: "${todo.text}"`,
+        );
+      } else if (props.status) {
+        const beforeStatus = enrichedTodo.status;
+        enrichedTodo.status = preferExisting(enrichedTodo.status, props.status as any);
+        if (beforeStatus !== enrichedTodo.status) {
+          console.log(
+            `[matching] Status merge for "${todo.text}": transcript=${JSON.stringify(beforeStatus)}, notion=${JSON.stringify(props.status)}, result=${JSON.stringify(enrichedTodo.status)}`,
+          );
+        }
       }
       if (props.project) {
-        enrichedTodo.project = props.project;
+        enrichedTodo.project = preferExisting(enrichedTodo.project, props.project);
       }
       if (props.description) {
-        enrichedTodo.description = props.description;
+        enrichedTodo.description = preferExisting(enrichedTodo.description, props.description);
       }
       if (props.dueDate) {
-        enrichedTodo.dueDate = props.dueDate;
+        enrichedTodo.dueDate = preferExisting(enrichedTodo.dueDate, props.dueDate);
       }
       if (props.tags) {
-        enrichedTodo.tags = props.tags;
+        enrichedTodo.tags = preferExisting(enrichedTodo.tags, props.tags);
       }
       if (props.assignee) {
-        enrichedTodo.assignee = props.assignee;
+        enrichedTodo.assignee = preferExisting(enrichedTodo.assignee, props.assignee);
       }
       if (props.id) {
         enrichedTodo.notionId = props.id;
@@ -452,5 +521,5 @@ export async function matchTodosToNotionTasks(todos: Todo[], notionTasks: any[])
     enrichedTodos.push(enrichedTodo);
   }
 
-  return enrichedTodos;
+  return { todos: enrichedTodos, unmatchedCancels };
 }

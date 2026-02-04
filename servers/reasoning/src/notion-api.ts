@@ -122,6 +122,48 @@ class NotionApiClient {
   }
 
   async queryDatabase(databaseId: string, filter?: any) {
+    return this.queryDatabasePage(databaseId, { filter });
+  }
+
+  /**
+   * Fetch all pages from a database with pagination.
+   */
+  async queryDatabaseAll(databaseId: string, filter?: any, pageSize: number = 100) {
+    const results: any[] = [];
+    let cursor: string | null | undefined = undefined;
+    let lastResponse: any = null;
+
+    while (true) {
+      const response = await this.queryDatabasePage(databaseId, {
+        filter,
+        startCursor: cursor ?? undefined,
+        pageSize,
+      });
+      results.push(...(response.results ?? []));
+      lastResponse = response;
+
+      if (!response.has_more || !response.next_cursor) {
+        break;
+      }
+      cursor = response.next_cursor;
+    }
+
+    return {
+      ...lastResponse,
+      results,
+      has_more: false,
+      next_cursor: null,
+    };
+  }
+
+  private async queryDatabasePage(
+    databaseId: string,
+    options: {
+      filter?: any;
+      startCursor?: string;
+      pageSize?: number;
+    },
+  ) {
     if (!this.accessToken) {
       throw new Error('Notion API access token not set. Please connect first.');
     }
@@ -134,8 +176,9 @@ class NotionApiClient {
         Authorization: `Bearer ${this.accessToken}`,
       },
       body: JSON.stringify({
-        filter,
-        page_size: 100,
+        filter: options.filter,
+        page_size: options.pageSize ?? 100,
+        start_cursor: options.startCursor,
       }),
     });
 

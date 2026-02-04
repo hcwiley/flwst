@@ -8,6 +8,8 @@ import { create } from 'zustand';
 import type {
   DailyNoteDraft,
   MatchSuggestion,
+  ProcessTranscriptJobPhase,
+  ProcessTranscriptJobStatus,
   ProcessTranscriptResponse,
   SubmitResult,
   TodoDraft,
@@ -118,23 +120,44 @@ export const createAppStore = (api: AppApi = appApi) =>
           draftTodos: [],
           error: undefined,
           warning: undefined,
-          processingPhase: 'reasoning',
+          processingPhase: 'fetching',
         },
       }));
 
       try {
-        const response = await api.processTranscript({
-          transcript,
-          sessionId,
-          context,
-        });
+        const response = await api.processTranscript(
+          {
+            transcript,
+            sessionId,
+            context,
+          },
+          {
+            onProgress: (progress) => {
+              const normalized = progress.result ? applyMatchDefaults(progress.result) : undefined;
+              set((state) => ({
+                session: {
+                  ...state.session,
+                  processingPhase: mapJobProgressToPhase(progress),
+                  draftDailyNote:
+                    normalized && !state.session.draftDailyNote
+                      ? normalized.dailyNoteDraft
+                      : state.session.draftDailyNote,
+                  draftTodos:
+                    normalized && normalized.todoDrafts.length > 0
+                      ? mergeDraftTodos(state.session.draftTodos, normalized.todoDrafts)
+                      : state.session.draftTodos,
+                },
+              }));
+            },
+          },
+        );
         const normalized = applyMatchDefaults(response);
 
         set((state) => ({
           session: {
             ...state.session,
-            draftDailyNote: normalized.dailyNoteDraft,
-            draftTodos: normalized.todoDrafts,
+            draftDailyNote: state.session.draftDailyNote ?? normalized.dailyNoteDraft,
+            draftTodos: mergeDraftTodos(state.session.draftTodos, normalized.todoDrafts),
             processingPhase: 'done',
           },
         }));
@@ -149,14 +172,24 @@ export const createAppStore = (api: AppApi = appApi) =>
       }
     },
     updateDraftTodo: (localId: string, patch: Partial<TodoDraft>) => {
-      set((state) => ({
-        session: {
-          ...state.session,
-          draftTodos: state.session.draftTodos.map((todo) =>
-            todo.localId === localId ? { ...todo, ...patch } : todo,
-          ),
-        },
-      }));
+      set((state) => {
+        const updatedTodos = state.session.draftTodos.map((todo) => {
+          if (todo.localId === localId) {
+            const updated = { ...todo, ...patch };
+            console.log(
+              `[appStore] updateDraftTodo for "${todo.text}": patch=${JSON.stringify(patch)}, resulting status=${JSON.stringify(updated.status)}, completed=${JSON.stringify(updated.completed)}`,
+            );
+            return updated;
+          }
+          return todo;
+        });
+        return {
+          session: {
+            ...state.session,
+            draftTodos: updatedTodos,
+          },
+        };
+      });
     },
     updateDailyNote: (patch: Partial<DailyNoteDraft>) => {
       set((state) => ({
@@ -268,6 +301,16 @@ export const createAppStore = (api: AppApi = appApi) =>
         },
       }));
     },
+    resetSession: () => {
+      set((state) => ({
+        session: {
+          draftTodos: [],
+          processingPhase: 'idle',
+          error: undefined,
+          warning: undefined,
+        },
+      }));
+    },
   }));
 
 export const useAppStore = createAppStore();
@@ -296,6 +339,86 @@ function applyMatchDefaults(response: ProcessTranscriptResponse): ProcessTranscr
       };
     }),
   };
+}
+
+type JobProgress = {
+  status: ProcessTranscriptJobStatus;
+  phase?: ProcessTranscriptJobPhase;
+};
+
+function mergeDraftTodos(existing: TodoDraft[], incoming: TodoDraft[]): TodoDraft[] {
+  // Merge server progress with any local edits already applied.
+  const existingById = new Map(existing.map((todo) => [todo.localId, todo]));
+
+  return incoming.map((todo) => {
+    const current = existingById.get(todo.localId);
+    if (!current) {
+      console.log(
+        `[appStore] Merge: new todo "${todo.text}" status=${JSON.stringify(todo.status)}, completed=${JSON.stringify(todo.completed)}`,
+      );
+      return todo;
+    }
+
+    const mergedStatus = preferExisting(current.status, todo.status);
+    const mergedCompleted = preferExisting(current.completed, todo.completed);
+    const statusChanged = current.status !== mergedStatus;
+    const completedChanged = current.completed !== mergedCompleted;
+
+    if (statusChanged || completedChanged) {
+      console.log(
+        `[appStore] Merge status change for "${todo.text}": status ${JSON.stringify(current.status)} -> ${JSON.stringify(mergedStatus)}, completed ${JSON.stringify(current.completed)} -> ${JSON.stringify(mergedCompleted)}`,
+      );
+    }
+
+    return {
+      ...todo,
+      text: preferExisting(current.text, todo.text),
+      completed: mergedCompleted,
+      priority: preferExisting(current.priority, todo.priority),
+      status: mergedStatus,
+      project: preferExisting(current.project, todo.project),
+      description: preferExisting(current.description, todo.description),
+      dueDate: preferExisting(current.dueDate, todo.dueDate),
+      tags: preferExisting(current.tags, todo.tags),
+      assignee: preferExisting(current.assignee, todo.assignee),
+      source: preferExisting(current.source, todo.source),
+      includeInSubmit: preferExisting(current.includeInSubmit, todo.includeInSubmit),
+      submitState: preferExisting(current.submitState, todo.submitState),
+      error: preferExisting(current.error, todo.error),
+      // Always trust matching updates from the server.
+      isMatched: todo.isMatched,
+      matchState: todo.matchState,
+      notionTargetId: todo.notionTargetId,
+      notionId: todo.notionId,
+      notionUrl: todo.notionUrl,
+    };
+  });
+}
+
+// Prefer user edits when available, fall back to server values.
+function preferExisting<T>(current: T | undefined, incoming: T): T {
+  return current ?? incoming;
+}
+
+function mapJobProgressToPhase(progress: JobProgress): AppState['session']['processingPhase'] {
+  if (progress.phase) {
+    if (progress.phase === 'done') return 'done';
+    if (progress.phase === 'error') return 'error';
+    return progress.phase;
+  }
+
+  switch (progress.status) {
+    case 'queued':
+      return 'fetching';
+    case 'running':
+      return 'reasoning';
+    case 'succeeded':
+      return 'done';
+    case 'failed':
+      return 'error';
+    default:
+      return 'reasoning';
+  }
 }
 
 function applySubmitResults(results: SessionSubmitResult, setState: SetState) {

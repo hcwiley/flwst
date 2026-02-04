@@ -1,9 +1,10 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, shell } from 'electron';
 // import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { registerIpcHandlers } from './ipc-handlers.js';
 import { loadEnv } from './env.js';
+import { ReasoningServerManager } from './reasoning-server.js';
 import { KeytarTokenStore } from './notion-token-store.js';
 import { notionApiClient } from '../../../servers/reasoning/src/notion-api.js';
 
@@ -34,6 +35,7 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
   : RENDERER_DIST;
 
 let win: BrowserWindow | null;
+const reasoningServer = new ReasoningServerManager();
 
 function createWindow() {
   win = new BrowserWindow({
@@ -41,6 +43,11 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
     },
+  });
+
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    void shell.openExternal(url);
+    return { action: 'deny' };
   });
 
   // Test active push message to Renderer-process.
@@ -74,7 +81,12 @@ app.on('activate', () => {
   }
 });
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  await reasoningServer.start();
   registerIpcHandlers();
   createWindow();
+});
+
+app.on('before-quit', () => {
+  reasoningServer.stop();
 });

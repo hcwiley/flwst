@@ -146,7 +146,8 @@ notionRouter.post('/match', async (req, res) => {
       }
     }
 
-    const enrichedTodos = await notionClient.matchTodosToNotionTasks(todos, allNotionTasks);
+    const matchResult = await notionClient.matchTodosToNotionTasks(todos, allNotionTasks);
+    const enrichedTodos = matchResult.todos;
 
     // Include a warning in the response if connection errors were detected
     const response: any = { todos: enrichedTodos };
