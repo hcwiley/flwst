@@ -10,6 +10,11 @@ import { MainPane } from '../components/MainPane';
 import type { UserConfig } from '@flwst/types';
 import { InboxPane } from '../components/inbox';
 import { SettingsRail } from '../components/config';
+import { StatusPane } from '../components/status';
+import type {
+  InboxIngestResult,
+  IngestStatus,
+} from '../components/inbox/types';
 
 export function MainLayout(): React.JSX.Element {
   const [config, setConfig] = useState<UserConfig | null>(null);
@@ -17,6 +22,12 @@ export function MainLayout(): React.JSX.Element {
     dailyNote: string;
     taskDraft: string;
   } | null>(null);
+
+  // Run status state (lifted from InboxPane)
+  const [runStatus, setRunStatus] = useState<IngestStatus>('idle');
+  const [lastRun, setLastRun] = useState<InboxIngestResult | null>(null);
+  const [runError, setRunError] = useState<string | null>(null);
+
   const loadConfig = useCallback(async (): Promise<void> => {
     try {
       const [cfg, defs] = await Promise.all([
@@ -45,28 +56,46 @@ export function MainLayout(): React.JSX.Element {
   return (
     <FlowStateTamaguiProvider defaultTheme='light'>
       <Stack
-        flexDirection='row'
+        flexDirection='column'
         height='100vh'
         width='100vw'
         backgroundColor='$background'
       >
+        {/* Main content row */}
         <Stack
-          width={360}
-          borderRightWidth={1}
-          borderColor='$gray4'
+          flexDirection='row'
+          flex={1}
           overflow='hidden'
         >
-          <InboxPane config={config} />
+          <Stack
+            width={360}
+            borderRightWidth={1}
+            borderColor='$gray4'
+            overflow='hidden'
+          >
+            <InboxPane
+              config={config}
+              onStatusChange={setRunStatus}
+              onRunComplete={setLastRun}
+              onError={setRunError}
+            />
+          </Stack>
+          <MainPane />
+          <SettingsRail
+            title='Settings'
+            config={config}
+            defaults={defaults}
+            effective={effective}
+            onConfigChange={setConfig}
+            loadConfig={loadConfig}
+          />
         </Stack>
-        <MainPane />
-        {/* Collapsible settings rail on the right (icon-only when collapsed) */}
-        <SettingsRail
-          title='Settings'
-          config={config}
-          defaults={defaults}
-          effective={effective}
-          onConfigChange={setConfig}
-          loadConfig={loadConfig}
+
+        {/* Status pane at bottom */}
+        <StatusPane
+          status={runStatus}
+          lastRun={lastRun}
+          error={runError}
         />
       </Stack>
     </FlowStateTamaguiProvider>

@@ -8,6 +8,7 @@ export type IngestStatus =
   | 'idle'
   | 'reading'
   | 'ingesting'
+  | 'generating'
   | 'success'
   | 'error';
 
@@ -19,4 +20,12 @@ export interface InboxIngestResult {
   cleanPath: string;
   logsPath: string;
   bundlePath: string;
+  // LLM output paths
+  llmRawPath: string;
+  dailyNotePath: string;
+  taskFeedPath: string;
+  // LLM metadata
+  llmDurationMs: number;
+  llmSuccess: boolean;
+  llmError?: string;
 }

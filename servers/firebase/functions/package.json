@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@flwst/types": "file:./types",
+    "@genkit-ai/firebase": "^1.28.0",
     "@google/genai": "^1.0.0",
     "firebase-admin": "^13.6.0",
     "firebase-functions": "^7.0.0",

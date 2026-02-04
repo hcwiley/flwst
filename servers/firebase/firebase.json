@@ -18,12 +18,18 @@
         "cd \"$RESOURCE_DIR\" && npm install",
         "npm --prefix \"$RESOURCE_DIR\" run build"
       ],
-      "postdeploy": ["rm -rf \"$RESOURCE_DIR\"/types"],
+      "postdeploy": [
+        "rm -rf \"$RESOURCE_DIR\"/types"
+      ],
       "source": "functions"
     }
   ],
   "hosting": {
     "public": "hosting/public",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
   }
 }

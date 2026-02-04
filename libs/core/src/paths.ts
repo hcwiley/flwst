@@ -72,6 +72,20 @@ export function getDailyNotePath(runId: string): string {
 }
 
 /**
+ * Get the path for raw LLM output artifact.
+ */
+export function getLlmRawOutputPath(runId: string): string {
+  return join(getArtifactsDir(), runId, 'llm-output.md');
+}
+
+/**
+ * Get the path for task feed markdown artifact.
+ */
+export function getTaskFeedPath(runId: string): string {
+  return join(getArtifactsDir(), runId, 'task-feed.md');
+}
+
+/**
  * Get the path for task list artifact.
  */
 export function getTaskListPath(runId: string): string {

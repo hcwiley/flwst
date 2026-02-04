@@ -11,8 +11,15 @@ import { generateContent } from './services/gemini';
 import { parseGenerationOutput } from './services/parser';
 import { logRequest, logResponse } from './utils/logger';
 import { validateRequest, ValidationError } from './utils/validation';
+import { enableFirebaseTelemetry } from '@genkit-ai/firebase';
 
+enableFirebaseTelemetry();
 const MODEL_ID = 'gemini-3-flash';
+
+logger.info('Vertex enabled:', process.env.GOOGLE_GENAI_USE_VERTEXAI);
+logger.info('Cloud location:', process.env.GOOGLE_CLOUD_LOCATION);
+logger.info('Cloud project:', process.env.GOOGLE_CLOUD_PROJECT);
+logger.info('Model ID:', MODEL_ID);
 
 /**
  * FlowState generate endpoint.

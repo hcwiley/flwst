@@ -9,12 +9,17 @@ import {
   createRunIdFromFilename,
   getArtifactBundlePath,
   getCleanTranscriptPath,
+  getDailyNotePath,
+  getLlmRawOutputPath,
   getLogsPath,
   getRawTranscriptPath,
+  getTaskFeedPath,
 } from '@flwst/core';
 import type {
   ArtifactBundle,
   CleanTranscript,
+  GenerateRequest,
+  GenerateResponse,
   LogEntry,
   RawTranscript,
   RunId,
@@ -27,6 +32,17 @@ import {
 import { getLogger } from './sentry';
 import { getConfigStore } from './storage';
 import { applyPreprocess } from './preprocess';
+import { FlwstApiClient } from './api/flwstApi';
+import { getEffectivePrompts } from './config';
+
+const API_BASE_URL =
+  process.env.FLWST_API_URL ??
+  'https://us-central1-flwst-dev.cloudfunctions.net';
+
+const llmClient = new FlwstApiClient({
+  baseUrl: API_BASE_URL,
+  timeout: 120_000,
+});
 
 export interface InboxIngestRequest {
   filename?: string;
@@ -41,6 +57,14 @@ export interface InboxIngestResult {
   cleanPath: string;
   logsPath: string;
   bundlePath: string;
+  // LLM output paths
+  llmRawPath: string;
+  dailyNotePath: string;
+  taskFeedPath: string;
+  // LLM metadata
+  llmDurationMs: number;
+  llmSuccess: boolean;
+  llmError?: string;
 }
 
 function createLog(
@@ -95,6 +119,47 @@ export async function ingestTranscript(
     }),
   );
 
+  // === LLM GENERATION STEP ===
+  logs.push(createLog('info', 'LLM generation started'));
+  const llmStartTime = Date.now();
+
+  const resolvedPrompts = getEffectivePrompts(config.prompts);
+
+  const generateRequest: GenerateRequest = {
+    runId,
+    timestamp: timestamp.toISOString(),
+    preprocessedTranscript: cleanContent,
+    resolvedPrompts: {
+      dailyNote: resolvedPrompts.dailyNote,
+      taskDraft: resolvedPrompts.taskDraft,
+    },
+    metadata: {
+      appVersion: '0.1.0',
+      preprocessEnabled: preprocess.enabled,
+    },
+  };
+
+  let llmResponse: GenerateResponse | null = null;
+  let llmError: string | undefined;
+  let llmSuccess = false;
+
+  try {
+    llmResponse = await llmClient.generate(generateRequest);
+    llmSuccess = true;
+    logs.push(
+      createLog('info', 'LLM generation completed', {
+        model: llmResponse.metadata.model,
+        durationMs: llmResponse.metadata.durationMs,
+        taskCount: llmResponse.taskFeed.taskCount,
+      }),
+    );
+  } catch (error) {
+    llmError = error instanceof Error ? error.message : 'LLM generation failed';
+    logs.push(createLog('error', 'LLM generation failed', { error: llmError }));
+  }
+
+  const llmDurationMs = Date.now() - llmStartTime;
+
   const rawTranscript: RawTranscript = RawTranscriptSchema.parse({
     runId,
     timestamp: timestamp.toISOString(),
@@ -114,6 +179,9 @@ export async function ingestTranscript(
   const cleanPath = getCleanTranscriptPath(runId);
   const logsPath = getLogsPath(runId);
   const bundlePath = getArtifactBundlePath(runId);
+  const llmRawPath = getLlmRawOutputPath(runId);
+  const dailyNotePath = getDailyNotePath(runId);
+  const taskFeedPath = getTaskFeedPath(runId);
   const runDir = dirname(rawPath);
 
   await ensureDir(runDir);
@@ -129,6 +197,18 @@ export async function ingestTranscript(
   await Promise.all([
     writeFile(rawPath, rawTranscript.content, 'utf8'),
     writeFile(cleanPath, cleanTranscript.content, 'utf8'),
+    // LLM artifacts (only write if successful)
+    ...(llmResponse
+      ? [
+          writeFile(
+            llmRawPath,
+            `# Raw LLM Output\n\n${llmResponse.dailyNote.content}\n\n---\n\n${llmResponse.taskFeed.content}`,
+            'utf8',
+          ),
+          writeFile(dailyNotePath, llmResponse.dailyNote.content, 'utf8'),
+          writeFile(taskFeedPath, llmResponse.taskFeed.content, 'utf8'),
+        ]
+      : []),
     writeFile(logsPath, JSON.stringify(logs, null, 2), 'utf8'),
     writeFile(bundlePath, JSON.stringify(bundle, null, 2), 'utf8'),
   ]);
@@ -150,5 +230,11 @@ export async function ingestTranscript(
     cleanPath,
     logsPath,
     bundlePath,
+    llmRawPath,
+    dailyNotePath,
+    taskFeedPath,
+    llmDurationMs,
+    llmSuccess,
+    llmError,
   };
 }

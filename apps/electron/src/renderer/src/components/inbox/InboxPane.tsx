@@ -10,6 +10,9 @@ import type { InboxIngestResult, IngestStatus } from './types';
 
 interface InboxPaneProps {
   config: UserConfig | null;
+  onStatusChange: (status: IngestStatus) => void;
+  onRunComplete: (result: InboxIngestResult) => void;
+  onError: (error: string | null) => void;
 }
 
 const ALLOWED_EXTENSIONS = ['.txt', '.md'];
@@ -20,13 +23,16 @@ function isAllowedTextFile(filename: string): boolean {
   return ALLOWED_EXTENSIONS.some((ext) => lower.endsWith(ext));
 }
 
-export function InboxPane({ config }: InboxPaneProps): React.JSX.Element {
+export function InboxPane({
+  config,
+  onStatusChange,
+  onRunComplete,
+  onError,
+}: InboxPaneProps): React.JSX.Element {
   const [content, setContent] = useState('');
   const [filename, setFilename] = useState<string | null>(null);
-  const [status, setStatus] = useState<IngestStatus>('idle');
-  const [error, setError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [lastRun, setLastRun] = useState<InboxIngestResult | null>(null);
 
   const preprocessEnabled = !!config?.preprocess.enabled;
 
@@ -41,63 +47,84 @@ export function InboxPane({ config }: InboxPaneProps): React.JSX.Element {
     setIsDragging(false);
   }, []);
 
-  const handleDrop = useCallback(async (event: React.DragEvent) => {
-    event.preventDefault();
-    setIsDragging(false);
-    setError(null);
+  const handleDrop = useCallback(
+    async (event: React.DragEvent) => {
+      event.preventDefault();
+      setIsDragging(false);
+      onError(null);
 
-    const file = event.dataTransfer.files?.[0];
-    if (!file) return;
+      const file = event.dataTransfer.files?.[0];
+      if (!file) return;
 
-    if (!isAllowedTextFile(file.name)) {
-      setError('Only .txt or .md files are supported.');
-      return;
-    }
+      if (!isAllowedTextFile(file.name)) {
+        onError('Only .txt or .md files are supported.');
+        return;
+      }
 
-    try {
-      setStatus('reading');
-      const text = await file.text();
-      setContent(text);
-      setFilename(file.name);
-      setStatus('idle');
-    } catch (readError) {
-      setStatus('error');
-      setError(
-        readError instanceof Error ? readError.message : 'Failed to read file',
-      );
-    }
-  }, []);
+      try {
+        onStatusChange('reading');
+        const text = await file.text();
+        setContent(text);
+        setFilename(file.name);
+        onStatusChange('idle');
+      } catch (readError) {
+        onStatusChange('error');
+        onError(
+          readError instanceof Error
+            ? readError.message
+            : 'Failed to read file',
+        );
+      }
+    },
+    [onError, onStatusChange],
+  );
 
   const handleClear = useCallback(() => {
     setContent('');
     setFilename(null);
-    setError(null);
-    setStatus('idle');
-  }, []);
+    onError(null);
+    onStatusChange('idle');
+  }, [onError, onStatusChange]);
 
   const handleIngest = useCallback(async () => {
-    if (!canIngest) {
-      setError('Paste content or drop a text file before ingesting.');
+    if (!canIngest || isProcessing) {
+      if (!canIngest) {
+        onError('Paste content or drop a text file before ingesting.');
+      }
       return;
     }
 
-    setStatus('ingesting');
-    setError(null);
+    setIsProcessing(true);
+    onStatusChange('ingesting');
+    onError(null);
 
     try {
       const result = await window.api.inbox.ingestText({
         filename: filename ?? DEFAULT_FILENAME,
         content,
       });
-      setLastRun(result);
-      setStatus('success');
+      onRunComplete(result);
+      onStatusChange(result.llmSuccess ? 'success' : 'error');
+      if (!result.llmSuccess && result.llmError) {
+        onError(result.llmError);
+      }
     } catch (ingestError) {
-      setStatus('error');
-      setError(
+      onStatusChange('error');
+      onError(
         ingestError instanceof Error ? ingestError.message : 'Ingest failed',
       );
+    } finally {
+      setIsProcessing(false);
     }
-  }, [canIngest, content, filename]);
+  }, [
+    canIngest,
+    isProcessing,
+    content,
+    filename,
+    onStatusChange,
+    onRunComplete,
+    onError,
+  ]);
 
   return (
     <Stack
@@ -119,31 +146,37 @@ export function InboxPane({ config }: InboxPaneProps): React.JSX.Element {
         Drop a transcript file or paste text below to ingest.
       </Text>
 
-      {/* Drop zone for text files */}
+      {/* Drop zone for text files (div for DOM drag events in Electron renderer) */}
       <Stack
         padding='$3'
         borderWidth={1}
         borderColor={isDragging ? '$blue8' : '$gray5'}
         backgroundColor={isDragging ? '$blue1' : '$gray2'}
         borderRadius='$3'
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
       >
-        <Text
-          fontSize='$3'
-          opacity={0.9}
+        <div
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          style={{ minHeight: 44 }}
         >
-          {isDragging ? 'Release to load file' : 'Drag and drop a .txt or .md'}
-        </Text>
-        {filename && (
           <Text
             fontSize='$3'
-            opacity={0.7}
+            opacity={0.9}
           >
-            Loaded: {filename}
+            {isDragging
+              ? 'Release to load file'
+              : 'Drag and drop a .txt or .md'}
           </Text>
-        )}
+          {filename && (
+            <Text
+              fontSize='$3'
+              opacity={0.7}
+            >
+              Loaded: {filename}
+            </Text>
+          )}
+        </div>
       </Stack>
 
       <YStack gap='$2'>
@@ -172,23 +205,19 @@ export function InboxPane({ config }: InboxPaneProps): React.JSX.Element {
           size='$4'
           theme='active'
           onPress={handleIngest}
-          disabled={
-            !canIngest || status === 'ingesting' || status === 'reading'
-          }
+          disabled={!canIngest || isProcessing}
         >
-          {status === 'ingesting' ? 'Ingesting…' : 'Ingest'}
+          {isProcessing ? 'Ingesting…' : 'Ingest'}
         </Button>
         <Button
           size='$4'
           theme='gray'
           onPress={handleClear}
-          disabled={status === 'ingesting' || status === 'reading'}
+          disabled={isProcessing}
         >
           Clear
         </Button>
-        {(status === 'ingesting' || status === 'reading') && (
-          <Spinner size='small' />
-        )}
+        {isProcessing && <Spinner size='small' />}
       </Stack>
 
       <Text
@@ -197,35 +226,6 @@ export function InboxPane({ config }: InboxPaneProps): React.JSX.Element {
       >
         Preprocess: {preprocessEnabled ? 'On' : 'Off'}
       </Text>
-
-      {lastRun && (
-        <Stack
-          padding='$3'
-          borderWidth={1}
-          borderColor='$gray4'
-          borderRadius='$3'
-          gap='$1'
-        >
-          <Text
-            fontSize='$4'
-            fontWeight='600'
-          >
-            Last run
-          </Text>
-          <Text fontSize='$3'>Run ID: {lastRun.runId}</Text>
-          <Text fontSize='$3'>Timestamp: {lastRun.timestamp}</Text>
-          <Text fontSize='$3'>Filename: {lastRun.filename}</Text>
-        </Stack>
-      )}
-
-      {error && (
-        <Text
-          color='$red10'
-          fontSize='$3'
-        >
-          {error}
-        </Text>
-      )}
     </Stack>
   );
 }
