@@ -80,7 +80,7 @@ export function MainLayout(): React.JSX.Element {
               onError={setRunError}
             />
           </Stack>
-          <MainPane />
+          <MainPane lastRun={lastRun} />
           <SettingsRail
             title='Settings'
             config={config}
