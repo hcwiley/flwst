@@ -62,6 +62,7 @@ firebase deploy --only functions,hosting
 servers/firebase/
 ├── functions/          # Firebase Functions source
 │   └── src/
+│       ├── genkit-sample.ts # Sample Genkit flow + callable export
 │       └── index.ts   # Functions entry point
 ├── hosting/            # Static hosting files (if needed)
 ├── firebase.json       # Firebase configuration
@@ -86,6 +87,7 @@ Run from `servers/firebase`:
 - `pnpm typecheck` - type check Firebase Functions
 - `pnpm lint` - lint Firebase Functions
 - `pnpm deploy` - deploy Functions and Hosting
+- `cd functions && npm run genkit:start` - start the Genkit dev UI
 
 ## Notes
 
