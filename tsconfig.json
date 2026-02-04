@@ -9,15 +9,5 @@
     }
   },
   "include": ["**/*.ts"],
-  "exclude": ["node_modules", "dist", "apps", "libs", "types", "servers"],
-  "references": [
-    { "path": "./types" },
-    { "path": "./libs/core" },
-    { "path": "./libs/ui" },
-    { "path": "./libs/state" },
-    { "path": "./libs/integrations" },
-    { "path": "./apps/electron" },
-    { "path": "./apps/mobile" },
-    { "path": "./servers/firebase" }
-  ]
+  "exclude": ["node_modules", "dist", "apps", "libs", "types", "servers"]
 }
