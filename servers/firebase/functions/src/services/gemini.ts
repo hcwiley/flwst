@@ -4,9 +4,11 @@
  */
 
 import { GoogleGenAI } from '@google/genai';
+import { enableFirebaseTelemetry } from '@genkit-ai/firebase';
 
-/** Vertex AI model ID (verify in Vertex model list for your project). */
-const MODEL = 'gemini-3-flash';
+enableFirebaseTelemetry();
+/** Vertex AI model ID (hard-coded for now). */
+export const MODEL_ID = 'gemini-2.5-flash';
 
 /**
  * Result of a single generateContent call.
@@ -42,13 +44,12 @@ function createClient(): GoogleGenAI {
 export async function generateContent(
   prompt: string,
   transcript: string,
-  modelId: string = MODEL,
 ): Promise<GeminiGenerateResult> {
   const ai = createClient();
   const input = `${prompt}\n\n---\n\n${transcript}`;
 
   const response = await ai.models.generateContent({
-    model: modelId,
+    model: MODEL_ID,
     contents: input,
     config: {
       temperature: 0.2,

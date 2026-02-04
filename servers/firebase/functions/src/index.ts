@@ -9,13 +9,12 @@ import { onRequest } from 'firebase-functions/v2/https';
 
 import { enableFirebaseTelemetry } from '@genkit-ai/firebase';
 
-import { generateContent } from './services/gemini';
+import { generateContent, MODEL_ID } from './services/gemini';
 import { parseGenerationOutput } from './services/parser';
 import { logRequest, logResponse } from './utils/logger';
 import { validateRequest, ValidationError } from './utils/validation';
 
 enableFirebaseTelemetry();
-const MODEL_ID = 'gemini-3-flash';
 
 logger.info('Vertex enabled:', process.env.GOOGLE_GENAI_USE_VERTEXAI);
 logger.info('Cloud location:', process.env.GOOGLE_CLOUD_LOCATION);
@@ -62,7 +61,6 @@ export const generate = onRequest(
       const result = await generateContent(
         payload.resolvedPrompts.dailyNote,
         payload.preprocessedTranscript,
-        MODEL_ID,
       );
 
       const parsed = parseGenerationOutput(result.content);
