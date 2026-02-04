@@ -55,7 +55,9 @@ export interface InboxIngestResult {
   // LLM output paths
   llmRawPath: string;
   dailyNotePath: string;
+  dailyNotePropsPath: string;
   taskFeedPath: string;
+  taskFeedPropsPath: string;
   // LLM metadata
   llmDurationMs: number;
   llmSuccess: boolean;
@@ -70,11 +72,16 @@ export interface LlmAPI {
   generate: (request: GenerateRequest) => Promise<GenerateResponse>;
 }
 
+export interface ArtifactsAPI {
+  readTextFile: (filePath: string) => Promise<string>;
+}
+
 export interface AppAPI {
   onboarding: OnboardingAPI;
   config: ConfigAPI;
   inbox: InboxAPI;
   llm: LlmAPI;
+  artifacts: ArtifactsAPI;
   notion: NotionAPI;
 }
 
