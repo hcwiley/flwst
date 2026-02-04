@@ -8,13 +8,15 @@
     "lint": "eslint src",
     "build": "tsc",
     "build:watch": "tsc --watch",
+    "clean": "rm -rf lib tsconfig.tsbuildinfo",
     "typecheck": "tsc --noEmit",
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log",
-    "genkit:start": "genkit start -- tsx --watch src/genkit-sample.ts"
+    "genkit:start": "genkit start -- tsx --watch src/genkit-sample.ts",
+    "dev": "npm run build && genkit start -- firebase emulators:start --inspect-functions"
   },
   "engines": {
     "node": "22"
