@@ -589,6 +589,24 @@ Deliverable:
 
 ---
 
+## **Phase 6.b — Client LLM Wiring**
+
+**Owner:** Cursor
+
+**Goal:** Connect the client pipeline to the deployed FlowState API.
+
+- Add LLM call step after preprocess in client pipeline
+- Send preprocessed transcript + resolved prompts to server
+- Store returned outputs as artifacts
+- Surface run status and failures in UI
+
+Deliverable:
+
+- Client can call server endpoint and receive outputs
+- End-to-end run completes without manual steps
+
+---
+
 ## **Phase 7 — Validation, Review, and Publish**
 
 **Owner:** Cursor

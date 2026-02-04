@@ -52,6 +52,7 @@
     "lint-staged": "^16.2.6",
     "markdownlint-cli2": "^0.18.1",
     "prettier": "^3.6.2",
+    "tsc": "^2.0.4",
     "tsx": "^4.20.6",
     "turbo": "^2.3.3",
     "typescript": "^5.9.3",
