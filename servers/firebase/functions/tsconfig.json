@@ -1,18 +1,18 @@
 {
+  "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
-    "module": "commonjs",
+    "module": "CommonJS",
+    "moduleResolution": "node",
     "esModuleInterop": true,
-    "moduleResolution": "nodenext",
     "noImplicitReturns": true,
     "noUnusedLocals": true,
     "outDir": "lib",
+    "rootDir": "src",
     "sourceMap": true,
     "strict": true,
-    "target": "es2017",
-    "skipLibCheck": true
+    "target": "ES2022"
   },
   "compileOnSave": true,
-  "include": [
-    "src"
-  ]
+  "include": ["src/**/*"],
+  "references": [{ "path": "../../../types" }]
 }

@@ -72,6 +72,13 @@ export function getDailyNotePath(runId: string): string {
 }
 
 /**
+ * Get the path for daily note props artifact.
+ */
+export function getDailyNotePropsPath(runId: string): string {
+  return join(getArtifactsDir(), runId, 'daily-note-props.json');
+}
+
+/**
  * Get the path for raw LLM output artifact.
  */
 export function getLlmRawOutputPath(runId: string): string {
@@ -83,6 +90,13 @@ export function getLlmRawOutputPath(runId: string): string {
  */
 export function getTaskFeedPath(runId: string): string {
   return join(getArtifactsDir(), runId, 'task-feed.md');
+}
+
+/**
+ * Get the path for task feed props artifact.
+ */
+export function getTaskFeedPropsPath(runId: string): string {
+  return join(getArtifactsDir(), runId, 'task-feed-props.json');
 }
 
 /**

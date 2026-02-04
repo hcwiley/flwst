@@ -10,21 +10,20 @@
         "*.local"
       ],
       "predeploy": [
-        "npm --prefix \"$RESOURCE_DIR\" run lint",
+        "cd ../.. && pnpm --filter ./types build:firebase",
+        "echo go into resource directory: \"$RESOURCE_DIR\"",
+        "cp -r ../../types \"$RESOURCE_DIR\"/types",
+        "rm -rf \"$RESOURCE_DIR\"/types/dist",
+        "cp -r ../../types/dist-firebase \"$RESOURCE_DIR\"/types/dist",
+        "cd \"$RESOURCE_DIR\" && npm install",
         "npm --prefix \"$RESOURCE_DIR\" run build"
       ],
-      "postdeploy": [
-        "rm -rf \"$RESOURCE_DIR\"/types"
-      ],
+      "postdeploy": ["rm -rf \"$RESOURCE_DIR\"/types"],
       "source": "functions"
     }
   ],
   "hosting": {
     "public": "hosting/public",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ]
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
   }
 }

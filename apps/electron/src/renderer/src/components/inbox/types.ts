@@ -23,7 +23,9 @@ export interface InboxIngestResult {
   // LLM output paths
   llmRawPath: string;
   dailyNotePath: string;
+  dailyNotePropsPath: string;
   taskFeedPath: string;
+  taskFeedPropsPath: string;
   // LLM metadata
   llmDurationMs: number;
   llmSuccess: boolean;

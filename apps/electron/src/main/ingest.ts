@@ -3,17 +3,20 @@
  * Responsible for deterministic run IDs, preprocess transforms, and artifact writes.
  */
 
-import { mkdir, writeFile } from 'node:fs/promises';
-import { dirname } from 'node:path';
+import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 import {
   createRunIdFromFilename,
   getArtifactBundlePath,
+  getArtifactsDir,
   getCleanTranscriptPath,
   getDailyNotePath,
+  getDailyNotePropsPath,
   getLlmRawOutputPath,
   getLogsPath,
   getRawTranscriptPath,
   getTaskFeedPath,
+  getTaskFeedPropsPath,
 } from '@flwst/core';
 import type {
   ArtifactBundle,
@@ -39,10 +42,123 @@ const API_BASE_URL =
   process.env.FLWST_API_URL ??
   'https://us-central1-flwst-dev.cloudfunctions.net';
 
+const REUSE_LLM_OUTPUT =
+  process.env.NODE_ENV === 'development' &&
+  process.env.FLWST_REUSE_LLM_OUTPUT === 'true';
+
+const logger = getLogger();
+logger.info('Ingest configuration', {
+  REUSE_LLM_OUTPUT,
+  NODE_ENV: process.env.NODE_ENV,
+  FLWST_REUSE_LLM_OUTPUT: process.env.FLWST_REUSE_LLM_OUTPUT,
+});
+
 const llmClient = new FlwstApiClient({
   baseUrl: API_BASE_URL,
   timeout: 120_000,
 });
+
+interface CachedLlmOutput {
+  runId: RunId;
+  dailyNote: string;
+  dailyNoteProps?: {
+    name: string;
+    date: string;
+    summary: string;
+    tags: string[];
+  };
+  taskFeed: string;
+  taskFeedProps?: {
+    name: string;
+    project?: string;
+    description?: string;
+    priority: string;
+    status: string;
+    tags: string[];
+    due?: string;
+  }[];
+}
+
+/**
+ * Load the latest cached LLM artifacts for dev-mode reuse.
+ */
+async function loadLatestLlmOutput(): Promise<CachedLlmOutput | null> {
+  try {
+    const artifactsDir = getArtifactsDir();
+    const entries = await readdir(artifactsDir, { withFileTypes: true });
+    const runDirs = entries.filter((entry) => entry.isDirectory());
+
+    let latest: { runId: RunId; mtimeMs: number } | null = null;
+
+    for (const entry of runDirs) {
+      const dailyNotePath = join(artifactsDir, entry.name, 'daily-note.md');
+      const taskFeedPath = join(artifactsDir, entry.name, 'task-feed.md');
+      try {
+        const [dailyNoteStat, taskFeedStat] = await Promise.all([
+          stat(dailyNotePath),
+          stat(taskFeedPath),
+        ]);
+        const latestMtime = Math.max(
+          dailyNoteStat.mtimeMs,
+          taskFeedStat.mtimeMs,
+        );
+        if (!latest || latestMtime > latest.mtimeMs) {
+          latest = { runId: entry.name as RunId, mtimeMs: latestMtime };
+        }
+      } catch {
+        // Ignore incomplete runs without both artifacts.
+      }
+    }
+
+    if (!latest) return null;
+
+    const dailyNotePath = join(artifactsDir, latest.runId, 'daily-note.md');
+    const dailyNotePropsPath = join(
+      artifactsDir,
+      latest.runId,
+      'daily-note-props.json',
+    );
+    const taskFeedPath = join(artifactsDir, latest.runId, 'task-feed.md');
+    const taskFeedPropsPath = join(
+      artifactsDir,
+      latest.runId,
+      'task-feed-props.json',
+    );
+
+    const [dailyNote, taskFeed, dailyNotePropsRaw, taskFeedPropsRaw] =
+      await Promise.all([
+        readFile(dailyNotePath, 'utf8'),
+        readFile(taskFeedPath, 'utf8'),
+        readFile(dailyNotePropsPath, 'utf8').catch(() => ''),
+        readFile(taskFeedPropsPath, 'utf8').catch(() => ''),
+      ]);
+
+    const dailyNoteProps = dailyNotePropsRaw
+      ? (JSON.parse(dailyNotePropsRaw) as CachedLlmOutput['dailyNoteProps'])
+      : undefined;
+    const taskFeedProps = taskFeedPropsRaw
+      ? (JSON.parse(taskFeedPropsRaw) as CachedLlmOutput['taskFeedProps'])
+      : undefined;
+
+    return {
+      runId: latest.runId,
+      dailyNote,
+      dailyNoteProps,
+      taskFeed,
+      taskFeedProps,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Count task rows from the markdown task feed table.
+ */
+function countTaskRows(markdown: string): number {
+  const rows = markdown.match(/^\|[^|]+\|/gm) ?? [];
+  return Math.max(0, rows.length - 1);
+}
 
 export interface InboxIngestRequest {
   filename?: string;
@@ -60,7 +176,9 @@ export interface InboxIngestResult {
   // LLM output paths
   llmRawPath: string;
   dailyNotePath: string;
+  dailyNotePropsPath: string;
   taskFeedPath: string;
+  taskFeedPropsPath: string;
   // LLM metadata
   llmDurationMs: number;
   llmSuccess: boolean;
@@ -144,15 +262,55 @@ export async function ingestTranscript(
   let llmSuccess = false;
 
   try {
-    llmResponse = await llmClient.generate(generateRequest);
-    llmSuccess = true;
-    logs.push(
-      createLog('info', 'LLM generation completed', {
-        model: llmResponse.metadata.model,
-        durationMs: llmResponse.metadata.durationMs,
-        taskCount: llmResponse.taskFeed.taskCount,
-      }),
-    );
+    if (REUSE_LLM_OUTPUT) {
+      const cached = await loadLatestLlmOutput();
+      if (cached) {
+        llmResponse = {
+          runId,
+          timestamp: timestamp.toISOString(),
+          dailyNote: {
+            content: cached.dailyNote,
+            props: {
+              name: cached.dailyNoteProps?.name ?? '',
+              date: cached.dailyNoteProps?.date ?? '',
+              summary: cached.dailyNoteProps?.summary ?? '',
+              tags: cached.dailyNoteProps?.tags ?? [],
+            },
+          },
+          taskFeed: {
+            content: cached.taskFeed,
+            taskCount: countTaskRows(cached.taskFeed),
+            props: cached.taskFeedProps ?? [],
+          },
+          metadata: {
+            model: 'cached',
+            durationMs: 0,
+          },
+        };
+        llmSuccess = true;
+        logs.push(
+          createLog('info', 'LLM generation reused', {
+            sourceRunId: cached.runId,
+          }),
+        );
+      } else {
+        logs.push(
+          createLog('info', 'LLM reuse requested but no cached output found'),
+        );
+      }
+    }
+
+    if (!llmResponse) {
+      llmResponse = await llmClient.generate(generateRequest);
+      llmSuccess = true;
+      logs.push(
+        createLog('info', 'LLM generation completed', {
+          model: llmResponse.metadata.model,
+          durationMs: llmResponse.metadata.durationMs,
+          taskCount: llmResponse.taskFeed.taskCount,
+        }),
+      );
+    }
   } catch (error) {
     llmError = error instanceof Error ? error.message : 'LLM generation failed';
     logs.push(createLog('error', 'LLM generation failed', { error: llmError }));
@@ -181,7 +339,9 @@ export async function ingestTranscript(
   const bundlePath = getArtifactBundlePath(runId);
   const llmRawPath = getLlmRawOutputPath(runId);
   const dailyNotePath = getDailyNotePath(runId);
+  const dailyNotePropsPath = getDailyNotePropsPath(runId);
   const taskFeedPath = getTaskFeedPath(runId);
+  const taskFeedPropsPath = getTaskFeedPropsPath(runId);
   const runDir = dirname(rawPath);
 
   await ensureDir(runDir);
@@ -206,7 +366,17 @@ export async function ingestTranscript(
             'utf8',
           ),
           writeFile(dailyNotePath, llmResponse.dailyNote.content, 'utf8'),
+          writeFile(
+            dailyNotePropsPath,
+            JSON.stringify(llmResponse.dailyNote.props, null, 2),
+            'utf8',
+          ),
           writeFile(taskFeedPath, llmResponse.taskFeed.content, 'utf8'),
+          writeFile(
+            taskFeedPropsPath,
+            JSON.stringify(llmResponse.taskFeed.props, null, 2),
+            'utf8',
+          ),
         ]
       : []),
     writeFile(logsPath, JSON.stringify(logs, null, 2), 'utf8'),
@@ -232,7 +402,9 @@ export async function ingestTranscript(
     bundlePath,
     llmRawPath,
     dailyNotePath,
+    dailyNotePropsPath,
     taskFeedPath,
+    taskFeedPropsPath,
     llmDurationMs,
     llmSuccess,
     llmError,

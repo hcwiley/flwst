@@ -41,6 +41,10 @@ const api = {
     generate: (request: import('@flwst/types').GenerateRequest) =>
       ipcRenderer.invoke('llm:generate', request),
   },
+  artifacts: {
+    readTextFile: (filePath: string): Promise<string> =>
+      ipcRenderer.invoke('artifacts:readTextFile', filePath),
+  },
   notion: {
     startOAuth: (): Promise<{ authUrl: string }> =>
       ipcRenderer.invoke('notion:startOAuth'),

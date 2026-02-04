@@ -3,6 +3,7 @@
  * Calls Firebase Functions /generate endpoint.
  */
 
+import { logger } from '@flwst/core';
 import type { ApiError, GenerateRequest, GenerateResponse } from '@flwst/types';
 
 const DEFAULT_TIMEOUT_MS = 120_000;
@@ -37,6 +38,7 @@ export class FlwstApiClient {
   constructor(config: FlwstApiClientConfig) {
     this.baseUrl = config.baseUrl.replace(/\/$/, '');
     this.timeout = config.timeout ?? DEFAULT_TIMEOUT_MS;
+    logger.info('FlwstApiClient initialized', { baseUrl: this.baseUrl, timeout: this.timeout });
   }
 
   /**
