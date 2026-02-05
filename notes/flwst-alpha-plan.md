@@ -615,53 +615,270 @@ Deliverable:
 
 ---
 
-## **Phase 7 — Validation, Review, and Publish**
+## **Phase 7 — Notion Sync + Dedup Gate (Pre-Publish)**
 
-**Owner:** Cursor
+Owner: Cursor
 
-**Goal:** Turn model output into trusted user-facing data.
+Goal: Make Notion the system of record inside the app: pull Tasks + Daily Notes into local state on launch and via Sync, then use a DB-scoped dedup gate (API snapshot + MCP) before creating/updating tasks.
 
-- Client-side validation
-  - Zod schema checks
-- Review UI
-  - Preview Daily Note
-  - Preview Tasks
-  - Edit before publish
-- Show resolved prompts used
-- Publish to Notion
-  - Create/update Daily Notes
-  - Create/update To-Dos
-- Sync refresh after publish
+7.0 Guardrails (pulled from PR #2, adapted)
 
-Deliverable:
+DB-scoped only (hard requirement)
+Any “search-like” result must be filtered to pages whose parent.type === 'database_id' and whose parent.database_id matches the configured Tasks DB. PR #2 had to harden this because Notion search/MCP results can return pages without parent or with unexpected parent types, and it used cached API pages to recover when results were missing parent metadata. ￼
 
-- Safe write path into Notion
-- User trust preserved
+Policy:
+• Only trust:
+• pages fetched directly from databases.query(tasksDbId) (canonical snapshot)
+• MCP results only if they can be reconciled against the canonical snapshot (same page id)
+• Never allow workspace-wide MCP search (even accidentally)
 
----
+7.1 Bootstrap Sync on App Launch
 
-## **Phase 8 — Kanban Pane + Sync**
+When: App launches and notion.status === 'ready'
 
-**Owner:** Cursor
+What:
+• databases.query(DailyNotesDbId) → hydrate daily notes store
+• databases.query(TasksDbId) → hydrate tasks store
+• Persist minimal sync metadata:
+• lastSyncAt
+• counts (tasks/notes)
+• lastError (optional)
+• (optional later) ETag-ish “since” state if you move to incremental
 
-**Goal:** Make FlowState usable day-to-day.
+State shape (example):
 
-- Build Kanban Pane
-- Fetch tasks via Notion API
-- Render columns
-- Column visibility toggles
-- Horizontal scroll
-- Sorting
-  - Priority
-  - Last updated
-- “View in Notion” links
+type NotionSyncState = {
+lastSyncAt?: string; // ISO
+isSyncing: boolean;
+lastError?: { message: string; at: string } | null;
 
-Deliverable:
+tasksById: Record<string, NotionTask>;
+notesById: Record<string, NotionDailyNote>;
+};
 
-- Functional task board
-- Clear picture of work state
+7.2 Manual Sync Button (Top Right)
 
----
+Add a dedicated Sync button (top right) that:
+• disables while in-flight
+• shows a clear “syncing…” state
+• updates lastSyncAt on success
+• surfaces errors without crashing the app
+
+PR #2 used the same basic UI pattern for “Refresh Kanban” and disabled it while refresh was running; copy the interaction model. ￼
+
+UI contract (example):
+
+async function syncNow(): Promise<void> {
+if (syncState.isSyncing) return;
+setSyncState((s) => ({ ...s, isSyncing: true, lastError: null }));
+
+try {
+const [tasks, notes] = await Promise.all([fetchTasksDb(), fetchNotesDb()]);
+hydrateStores({ tasks, notes });
+setSyncState((s) => ({ ...s, isSyncing: false, lastSyncAt: new Date().toISOString() }));
+} catch (err) {
+setSyncState((s) => ({
+...s,
+isSyncing: false,
+lastError: { message: String(err), at: new Date().toISOString() },
+}));
+}
+}
+
+7.3 Normalize Notion ↔ Local Enums (avoid mismatch bugs)
+
+PR #2 added defensive normalization for status/priority before validation because Notion values (and model outputs) drift (“todo” vs “TODO”, “in progress” vs “In Progress”, etc.). Use this in both directions:
+• when ingesting model output into drafts
+• when reading Notion tasks into local state
+• when preparing payloads for Notion writes
+
+Example normalization (adapted from PR #2): ￼
+
+function normalizeStatus(status?: string): string | undefined {
+if (!status) return undefined;
+const normalized = status.trim().toLowerCase();
+const mapping: Record<string, string> = {
+todo: 'TODO',
+'on deck': 'On Deck',
+'in progress': 'In Progress',
+blocked: 'BLOCKED',
+done: 'Done',
+cancelled: 'Cancelled',
+};
+return mapping[normalized];
+}
+
+function normalizePriority(priority?: string): string | undefined {
+if (!priority) return undefined;
+const normalized = priority.trim().toLowerCase();
+const mapping: Record<string, string> = {
+top: 'TOP',
+high: 'High',
+medium: 'Medium',
+low: 'Low',
+'back burner': 'Back burner',
+};
+return mapping[normalized];
+}
+
+7.4 Dedup Gate After Ingest (Before Any Write)
+
+Trigger: After ingest produces a Daily Note artifact + extracted task drafts.
+
+Inputs:
+• newDraftTasks[] (from ingestion)
+• tasksSnapshot[] (from Notion API sync; canonical)
+
+Outputs (per draft):
+• action: 'create' | 'update' | 'skip'
+• matchedTaskId?: string
+• reason: string (short, deterministic)
+
+Pipeline: 1. Ensure tasks snapshot is present (force tasks-only sync if stale or missing) 2. For each draft task:
+• Build a small, targeted candidate set from the snapshot (cheap local heuristics)
+• Use MCP to validate overlap only within Tasks DB
+• Reconcile MCP “hits” against snapshot by id
+• Decide create/update/skip
+
+⸻
+
+7.5 Candidate Prefilter + Query Keyword Hygiene (improves matching reliability)
+
+PR #2 improved matching by prioritizing proper nouns and removing noisy tokens when building search queries. Use this idea to:
+• prefilter snapshot candidates
+• seed MCP calls with compact keywords
+• reduce false positives
+
+Example tokenization / keyword selection (adapted from PR #2): ￼
+
+const stopWords = new Set([
+'the','a','an','and','or','but','to','of','for','with','on','in','at','from','by',
+]);
+
+function buildQueryTokens(text: string): string[] {
+const rawTokens = text.split(/[\s/]+/);
+const normalize = (t: string) => t.toLowerCase().replace(/[^\w]/g, '');
+const isCandidate = (t: string) => t.length >= 3 && !stopWords.has(t);
+
+const isProperNoun = (raw: string) => /^[A-Z][a-z]+/.test(raw);
+
+const proper = rawTokens
+.map((raw) => ({ raw, norm: normalize(raw) }))
+.filter(({ raw, norm }) => isCandidate(norm) && isProperNoun(raw))
+.map(({ norm }) => norm);
+
+const general = rawTokens
+.map(normalize)
+.filter(isCandidate);
+
+// Proper nouns first, then unique general tokens.
+const seen = new Set<string>();
+const out: string[] = [];
+for (const t of [...proper, ...general]) {
+if (!seen.has(t)) out.push(t), seen.add(t);
+}
+return out.slice(0, 12);
+}
+
+7.6 DB-Scoped Reconciliation Pattern (MCP results must map to snapshot)
+
+PR #2 explicitly handled cases where search-like results lacked parent or had wrong parents and “recovered” by reusing cached API pages by id. Use the same concept, but invert it for your architecture:
+• The snapshot is the authoritative cache (tasksById)
+• MCP can return candidate ids, but you only accept them if tasksById[id] exists
+• If MCP returns pages missing parent fields, you still accept only if the id is in snapshot
+
+DB-scoping/recovery concept reference: ￼
+
+Example reconciliation:
+
+function reconcileMcpIdsToSnapshot(
+mcpResultIds: string[],
+tasksById: Record<string, NotionTask>,
+): NotionTask[] {
+const out: NotionTask[] = [];
+for (const id of mcpResultIds) {
+const t = tasksById[id];
+if (t) out.push(t); // DB-scoped by construction (from tasks snapshot)
+}
+return out;
+}
+
+7.7 Write Safety: Guard Assignee Updates (avoid invalid payloads)
+
+PR #2 added a guard to only send Notion people: [{ id }] when the input can be normalized into a Notion user id (32 hex chars, hyphens allowed). Use the same guardrail in your Notion write layer. ￼
+
+function normalizeNotionUserId(input?: string): string | undefined {
+if (!input) return undefined;
+const normalized = input.trim();
+if (!normalized) return undefined;
+
+const hex = normalized.replace(/-/g, '');
+if (!/^[0-9a-fA-F]{32}$/.test(hex)) return undefined;
+
+// Notion accepts both hyphenated and non-hyphenated; choose one format consistently.
+return hex;
+}
+
+function maybeAddAssignee(props: any, assignee?: string) {
+if (assignee === undefined) return;
+
+const assigneeId = normalizeNotionUserId(assignee);
+if (!assigneeId) {
+// Log + skip; do not send invalid person payloads.
+return;
+}
+
+props.Assignee = { people: [{ id: assigneeId }] };
+}
+
+Deliverable (Phase 7)
+• App launch performs Tasks + Daily Notes sync into local state
+• Sync button refreshes state with safe UI behavior
+• Canonical tasks snapshot exists in-memory and drives:
+• dedup gating
+• Kanban rendering
+• Dedup gate uses:
+• DB-scoped snapshot + MCP assistance (DB-scoped + reconciled by id)
+• keyword hygiene for targeted matching
+• Write layer normalizes enums and guards assignee updates
+
+## **Phase 8 — Kanban + Sync-Driven Rendering (No Writes Required)**
+
+Owner: Cursor
+
+Goal: Make FlowState usable daily by rendering Kanban purely from the synced snapshot and wiring refresh behaviors tightly.
+
+8.1 Render Kanban from Synced Tasks Snapshot
+• Source of truth: tasksById (from Phase 7 sync)
+• Group into columns by normalized status
+• Keep rendering independent of ingest/publish path (Kanban works even if user never runs the LLM)
+
+8.2 Column Controls + Sorting
+• Column visibility toggles
+• Horizontal scroll
+• Sorting:
+• Priority (normalized)
+• Last updated (last_edited_time)
+
+8.3 Refresh UX Patterns (pulled from PR #2)
+
+PR #2 added a “Refresh Kanban” button and disabled it while a refresh was active, plus a loading overlay state; reuse that exact interaction model, but back it with the unified Sync button. ￼
+
+Rule:
+• If syncState.isSyncing === true:
+• disable column controls that would produce inconsistent state
+• show a small refresh indicator (non-blocking if possible)
+
+8.4 “View in Notion” Link Behavior
+• Kanban cards include a “View” action that opens the Notion URL externally
+• Must not open in a new Electron window; always route through the safe external opener
+• (Implementation detail) guard shell availability and fallback cleanly (PR #2 hardened this path)
+
+Deliverable (Phase 8)
+• Kanban board renders from synced tasks snapshot
+• Controls: column visibility + sorting
+• Sync button refreshes Kanban deterministically
+• External Notion links open safely outside the app
 
 ## **Phase 9 — Analytics, Polish, and Alpha Hardening**
 
