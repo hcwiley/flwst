@@ -7,5 +7,5 @@
     "rootDir": "./functions/src",
     "target": "ES2022"
   },
-  "include": ["functions/src/**/*"],
+  "include": ["functions/src/**/*"]
 }
