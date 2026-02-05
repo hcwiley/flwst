@@ -23,7 +23,11 @@ export interface GeminiGenerateResult {
  * Create a Vertex AI client using environment variables.
  * Requires: GOOGLE_CLOUD_PROJECT, GOOGLE_CLOUD_LOCATION, GOOGLE_GENAI_USE_VERTEXAI.
  */
-export function createGenAiClient(project: string, location: string = 'global', useVertexAI: boolean = true): GoogleGenAI {
+export function createGenAiClient(
+  project: string,
+  location: string = 'global',
+  useVertexAI: boolean = true,
+): GoogleGenAI {
   if (!project) {
     logger.error('GOOGLE_CLOUD_PROJECT is required for Vertex AI');
     return null as unknown as GoogleGenAI;
