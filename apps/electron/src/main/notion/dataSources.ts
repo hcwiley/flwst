@@ -18,6 +18,21 @@ export type NotionPropertyEntry = {
   type: string;
 };
 
+/** Data source query params (SDK v5 data_sources/:id/query). */
+export type DataSourcesQueryParams = {
+  data_source_id: string;
+  start_cursor?: string;
+  page_size?: number;
+  filter?: unknown;
+  sorts?: unknown;
+};
+
+/** Data source query response (pages in the data source). */
+export type DataSourcesQueryResponse = {
+  results?: unknown[];
+  next_cursor?: string | null;
+};
+
 /**
  * Get the dataSources client from Notion SDK.
  * Throws if dataSources client is not available.
@@ -28,6 +43,7 @@ export function getDataSourcesClient(notion: Client): {
     data_source_id: string;
     properties: NotionDatabaseProperties;
   }) => Promise<unknown>;
+  query: (params: DataSourcesQueryParams) => Promise<DataSourcesQueryResponse>;
 } {
   const dataSources = (notion as { dataSources?: unknown }).dataSources as
     | {
@@ -36,12 +52,15 @@ export function getDataSourcesClient(notion: Client): {
           data_source_id: string;
           properties: NotionDatabaseProperties;
         }) => Promise<unknown>;
+        query: (
+          params: DataSourcesQueryParams,
+        ) => Promise<DataSourcesQueryResponse>;
       }
     | undefined;
-  if (!dataSources) {
+  if (!dataSources || typeof dataSources.query !== 'function') {
     throw new NotionError(
       'NOTION_VALIDATION_ERROR',
-      'Notion SDK dataSources client missing. Update dependency/build.',
+      'Notion SDK dataSources client or dataSources.query missing. Update dependency/build.',
     );
   }
   return dataSources;

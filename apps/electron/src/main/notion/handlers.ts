@@ -3,7 +3,7 @@
  * Registers all Electron IPC handlers for Notion integration.
  */
 
-import { ipcMain, shell } from 'electron';
+import { ipcMain, shell, BrowserWindow } from 'electron';
 import type { NotionWorkspaceMetadata } from '@flwst/types';
 import { getLogger } from '../sentry';
 import { getConfigStore, getTokensStore } from '../storage';
@@ -12,6 +12,7 @@ import { normalizeNotionId } from './notionSchema';
 import { toNotionError } from './errors';
 import { getOrCreateResources } from './resources';
 import { NotionError } from './errors';
+import { runSync, runTasksSync } from './sync';
 
 const logger = getLogger();
 
@@ -211,6 +212,48 @@ export function registerNotionHandlers(): void {
       }
     },
   );
+
+  // Full sync: tasks + daily notes
+  ipcMain.handle('notion:sync', async () => {
+    try {
+      const result = await runSync();
+      BrowserWindow.getAllWindows().forEach((win) => {
+        win.webContents.send('notion:syncComplete', {
+          success: true,
+          tasks: result.tasks,
+          notes: result.notes,
+        });
+      });
+      return result;
+    } catch (error) {
+      const notionError = toNotionError(error);
+      logger.error('Notion sync failed', {
+        code: notionError.code,
+        message: notionError.message,
+      });
+      BrowserWindow.getAllWindows().forEach((win) => {
+        win.webContents.send('notion:syncComplete', {
+          success: false,
+          error: notionError.message,
+        });
+      });
+      throw notionError;
+    }
+  });
+
+  // Tasks-only sync (e.g. for dedup gate)
+  ipcMain.handle('notion:syncTasks', async () => {
+    try {
+      return await runTasksSync();
+    } catch (error) {
+      const notionError = toNotionError(error);
+      logger.error('Notion sync tasks failed', {
+        code: notionError.code,
+        message: notionError.message,
+      });
+      throw notionError;
+    }
+  });
 
   // Confirm status property migration
   ipcMain.handle('notion:confirmStatusMigration', async (): Promise<void> => {
