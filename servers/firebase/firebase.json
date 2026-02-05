@@ -10,9 +10,12 @@
         "*.local"
       ],
       "predeploy": [
-        "cd ../../.. && pnpm --filter @flwst/types build",
+        "cd ../.. && pnpm --filter ./types build:firebase",
         "echo go into resource directory: \"$RESOURCE_DIR\"",
-        "cp -r ../../types \"$RESOURCE_DIR\"/types",
+        "rm -rf \"$RESOURCE_DIR\"/types/ \"$RESOURCE_DIR\"/lib/",
+        "mkdir -p \"$RESOURCE_DIR\"/types/",
+        "cp -r ../../types/*.json \"$RESOURCE_DIR\"/types/",
+        "cp -r ../../types/dist-firebase \"$RESOURCE_DIR\"/types/dist",
         "cd \"$RESOURCE_DIR\" && npm install",
         "npm --prefix \"$RESOURCE_DIR\" run build"
       ],

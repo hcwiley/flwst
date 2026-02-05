@@ -31,9 +31,18 @@ You MUST NOT output anything outside the required fenced blocks.
 
 The fence tokens MUST appear alone on their own lines.
 
+
+[[DAILY_NOTE_PROPS]]
+...content...
+[[END_DAILY_NOTE_PROPS]]
+
 [[DAILY_NOTE]]
 ...content...
 [[END_DAILY_NOTE]]
+
+[[TASK_FEED_PROPS]]
+...content...
+[[END_TASK_FEED_PROPS]]
 
 [[TASK_FEED]]
 ...content...
@@ -63,7 +72,7 @@ If no corrections or negative rules are provided, proceed normally and DO NOT me
 
 The Daily Note is intended for publishing into a structured database system.
 
-Populate content so it supports the following properties:
+Inside [[DAILY_NOTE_PROPS]], populate content so it supports the following properties:
 	•	Name: human-readable date (e.g., Sep 30, 2025)
 	•	Date: ISO date (e.g., 2025-09-30)
 	•	Notes Summary: 1–2 sentence recap highlighting outcomes and general tone
@@ -102,7 +111,7 @@ References / Links
 
 <task_feed_section>
 
-Inside [[TASK_FEED]], produce a structured TODO table followed by detailed task sections.
+Inside [[TASK_FEED_PROPS]], produce a structured TODO table followed by detailed task sections in [[TASK_FEED]].
 
 This block must be complete and self-contained.
 
@@ -112,8 +121,7 @@ TODOs
 
 table
 
-name	project	description	priority	status	tags	due
-
+|name |project |description |priority |status |tags |due |
 
 Rules:
 	•	Priority must be one of: TOP, High, Medium, Low, Back burner
@@ -121,6 +129,8 @@ Rules:
 	•	due is optional and must be YYYY-MM-DD if present.
 	•	Use Task | Project naming when appropriate to improve clarity.
 	•	Default missing priority/status to Medium / TODO
+
+Inside [[TASK_FEED]], produce detailed task sections.
 
 For EACH table row, produce a matching detail section using this format:
 

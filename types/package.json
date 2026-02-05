@@ -1,18 +1,20 @@
 {
   "name": "@flwst/types",
-  "version": "0.1.0",
-  "private": true,
-  "type": "module",
+  "type": "commonjs",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "default": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
     }
   },
+  "version": "0.1.0",
+  "private": true,
   "scripts": {
-    "build": "tsc",
+    "build": "rm -rf dist && tsc",
+    "build:firebase": "tsc -p tsconfig.firebase.json && node ./scripts/rewrite-extensions.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint ."
   },

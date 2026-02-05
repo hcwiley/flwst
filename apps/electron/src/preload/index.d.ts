@@ -1,5 +1,7 @@
 import { ElectronAPI } from '@electron-toolkit/preload';
 import type {
+  GenerateRequest,
+  GenerateResponse,
   OnboardingState,
   NotionWorkspaceMetadata,
   UserConfig,
@@ -50,16 +52,36 @@ export interface InboxIngestResult {
   cleanPath: string;
   logsPath: string;
   bundlePath: string;
+  // LLM output paths
+  llmRawPath: string;
+  dailyNotePath: string;
+  dailyNotePropsPath: string;
+  taskFeedPath: string;
+  taskFeedPropsPath: string;
+  // LLM metadata
+  llmDurationMs: number;
+  llmSuccess: boolean;
+  llmError?: string;
 }
 
 export interface InboxAPI {
   ingestText: (payload: InboxIngestRequest) => Promise<InboxIngestResult>;
 }
 
+export interface LlmAPI {
+  generate: (request: GenerateRequest) => Promise<GenerateResponse>;
+}
+
+export interface ArtifactsAPI {
+  readTextFile: (filePath: string) => Promise<string>;
+}
+
 export interface AppAPI {
   onboarding: OnboardingAPI;
   config: ConfigAPI;
   inbox: InboxAPI;
+  llm: LlmAPI;
+  artifacts: ArtifactsAPI;
   notion: NotionAPI;
 }
 

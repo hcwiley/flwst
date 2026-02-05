@@ -8,20 +8,28 @@
     "lint": "eslint src",
     "build": "tsc",
     "build:watch": "tsc --watch",
+    "clean": "rm -rf lib tsconfig.tsbuildinfo",
     "typecheck": "tsc --noEmit",
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
-    "logs": "firebase functions:log"
+    "logs": "firebase functions:log",
+    "genkit:start": "genkit start -- tsx --watch src/genkit-sample.ts",
+    "dev": "npm run build && genkit start -- firebase emulators:start --inspect-functions"
   },
   "engines": {
     "node": "22"
   },
   "dependencies": {
     "@flwst/types": "file:./types",
+    "@genkit-ai/firebase": "^1.28.0",
+    "@genkit-ai/google-genai": "^1.28.0",
+    "@google/genai": "^1.0.0",
     "firebase-admin": "^13.6.0",
-    "firebase-functions": "^7.0.0"
+    "firebase-functions": "^7.0.0",
+    "genkit": "^1.28.0",
+    "zod": "^3.23.0"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
@@ -32,6 +40,8 @@
     "eslint-config-google": "^0.14.0",
     "eslint-plugin-import": "^2.25.4",
     "firebase-functions-test": "^3.4.1",
+    "genkit-cli": "^1.28.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   }
 }

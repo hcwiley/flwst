@@ -6,7 +6,13 @@
     "build": "cd functions && npm run build",
     "typecheck": "cd functions && npm run typecheck",
     "lint": "cd functions && npm run lint",
-    "deploy": "firebase deploy --only functions,hosting"
+    "dev:functions": "cd functions && genkit start -- firebase emulators:start --inspect-functions",
+    "deploy": "firebase deploy --only functions,hosting",
+    "deploy:functions": "firebase deploy --only functions",
+    "deploy:hosting": "firebase deploy --only hosting",
+    "logs": "firebase functions:log",
+    "logs:functions": "firebase functions:log",
+    "logs:hosting": "firebase hosting:log"
   },
   "devDependencies": {
     "tsc": "^2.0.4"

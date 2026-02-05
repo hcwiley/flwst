@@ -10,6 +10,8 @@
       "cache": false,
       "persistent": true,
       "env": [
+        "FLWST_API_URL",
+        "FLWST_REUSE_LLM_OUTPUT",
         "SENTRY_DSN",
         "NODE_ENV",
         "NOTION_CLIENT_ID",
@@ -25,7 +27,7 @@
       "dependsOn": ["^typecheck"]
     },
     "test": {
-      "dependsOn": ["^build"]
+      "dependsOn": []
     }
   }
 }

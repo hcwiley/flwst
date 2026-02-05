@@ -6,14 +6,14 @@ This monorepo provides:
 
 - An **Electron desktop client** with Notion integration, onboarding, and local
   encrypted persistence
-- A **Firebase server scaffold** for future server-mediated LLM calls (Phase 6+)
+- A **Firebase server** with a `/generate` endpoint for server-mediated LLM calls (Phase 6)
 - Shared **types** and **core utilities** for schema validation, storage, and
   logging
 
 ## Key Components
 
 - **Electron app**: `apps/electron` - Desktop client with Notion integration
-- **Firebase server**: `servers/firebase` - Server scaffold for future features
+- **Firebase server**: `servers/firebase` - Functions with `/generate` API (Gemini + parser)
 - **Core utilities**: `libs/core` - Logging, run IDs, encrypted storage
 - **Shared types**: `types` - Zod schemas and TypeScript types
 - **Integrations**: `libs/integrations` - Integration configuration types
@@ -32,10 +32,15 @@ This monorepo provides:
 - Default prompt definitions packaged in `@flwst/prompts`
 - Inbox ingestion pipeline with local artifact persistence
 
-### 🚧 Scaffolded (Phase 6+)
+### ✅ Implemented (Phase 6)
 
-- Firebase Functions for server-mediated operations
-- LLM integration via Gemini API
+- Firebase Functions: POST `/generate` endpoint
+- Request validation with `GenerateRequestSchema`, response with `GenerateResponseSchema`
+- Vertex AI Gemini integration; fenced-block parser for daily note and task feed
+- Request/response logging and token usage in metadata
+
+### 🚧 Planned (Phase 7+)
+
 - Server-side Notion sync
 
 ## Data Flow
@@ -78,8 +83,12 @@ flowchart TD
     SentryAPI[Sentry Cloud]
   end
 
-  subgraph Firebase[servers/firebase - Future]
+  subgraph Firebase[servers/firebase]
     Functions[Firebase Functions]
+    GeminiService[Gemini Service]
+  end
+
+  subgraph VertexAI[Vertex AI]
     Gemini[Gemini API]
   end
 
@@ -107,9 +116,10 @@ flowchart TD
   Main --> SentryAPI
   Renderer --> SentryAPI
 
-  Renderer -.->|"HTTPS (planned)"| Functions
-  Functions -.->|future| Gemini
-  Functions -.->|future| NotionAPI
+  Renderer -->|HTTPS POST /generate| Functions
+  Functions --> GeminiService
+  GeminiService --> Gemini
+  Functions -.->|planned| NotionAPI
 ```
 
 ## Notion Integration Architecture
@@ -195,8 +205,7 @@ Both stores use `keytar` for OS keychain integration and encrypted file storage.
 - State updates flow unidirectionally (renderer → main → storage)
 - Main process pushes onboarding state changes to the renderer for rehydration
 
-## Future Architecture (Phase 6+)
+## Future Architecture (Phase 7+)
 
-- **Server-mediated LLM calls**: Move LLM interactions to Firebase Functions
-- **Notion sync**: Server-side Notion database synchronization
-- **Gemini integration**: AI-powered task and note generation
+- **Notion sync**: Server-side Notion database synchronization (client currently
+  uses Notion API directly)

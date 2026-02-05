@@ -1,95 +1,82 @@
 # Firebase Server for FlowState
 
-Firebase Functions and Hosting scaffold for the server-mediated API layer.
+Firebase Functions and Hosting for the server-mediated API layer. Provides a
+POST `/generate` endpoint that accepts a preprocessed transcript and resolved
+prompts, calls Vertex AI Gemini, and returns a daily note plus task feed.
 
 ## Architecture
 
-See `ARCH.md` for the data flow and planned integrations.
+See `ARCH.md` for the data flow and integrations.
 
-## Manual Setup Steps (Phase 0)
+## API (Phase 6)
 
-These steps must be completed manually in the Firebase Console:
+- **POST `/generate`** – Accepts `GenerateRequest` (runId, timestamp,
+  preprocessedTranscript, resolvedPrompts.dailyNote / taskDraft, optional
+  metadata). Validates with `@flwst/types` schemas, calls Gemini with the daily
+  note prompt and transcript, parses fenced output blocks, and returns
+  `GenerateResponse` (runId, timestamp, dailyNote, taskFeed, metadata including
+  model and tokenUsage).
 
-### 1. Create Firebase Project
+## Deploy
 
-1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Click "Add project"
-3. Enter project name (e.g., "Example Project")
-4. Follow the setup wizard
-5. Note your project ID
-
-### 2. Enable Firebase Functions
-
-1. In Firebase Console, go to "Functions"
-2. Click "Get started" if prompted
-3. Enable billing (required for Functions)
-4. Note: Functions will be deployed from this directory
-
-### 3. Enable Firebase Hosting
-
-1. In Firebase Console, go to "Hosting"
-2. Click "Get started"
-3. Follow the initial setup (you can skip the initial deploy)
-
-### 4. Set Environment Variables
-
-1. In Firebase Console, go to "Functions" > "Configuration"
-2. Add the following environment variables:
-   - `GEMINI_API_KEY`: Your Gemini API key (from Google Cloud Console)
-   - `FLOWSTATE_API_KEY`: API key for basic auth (generate a secure random
-     string)
-
-### 5. Configure Firebase CLI
-
-1. Install Firebase CLI globally: `npm install -g firebase-tools`
-2. Login: `firebase login`
-3. Initialize (if not done): `firebase init functions` and
-   `firebase init hosting`
-4. Copy `.firebaserc.example` to `.firebaserc` and update with your project IDs
-
-### 6. Deploy
-
-After Phase 6 implementation:
+Deploy the functions and hosting:
 
 ```bash
 cd servers/firebase
-firebase deploy --only functions,hosting
+pnpm deploy
+# or just functions:
+pnpm deploy:functions
+# or just hosting:
+pnpm deploy:hosting
 ```
 
 ## Structure
 
 ```
 servers/firebase/
-├── functions/          # Firebase Functions source
+├── functions/              # Firebase Functions source
 │   └── src/
-│       └── index.ts   # Functions entry point
-├── hosting/            # Static hosting files (if needed)
-├── firebase.json       # Firebase configuration
-├── .firebaserc.example # Project ID template (copy to .firebaserc)
-└── README.md           # This file
+│       ├── index.ts       # Entry point: generate, helloWorld, generatePoem
+│       ├── genkit-sample.ts  # Sample Genkit flow + callable export
+│       ├── services/
+│       │   ├── gemini.ts  # Vertex AI Gemini client and generateContent
+│       │   └── parser.ts  # Parse [[DAILY_NOTE*]] / [[TASK_FEED*]] blocks
+│       └── utils/
+│           ├── logger.ts  # Request/response logging
+│           └── validation.ts  # GenerateRequestSchema validation
+├── firebase.json
+├── .firebaserc.example    # Project ID template (copy to .firebaserc)
+└── README.md
 ```
+
+## Environment
+
+- **GOOGLE_CLOUD_PROJECT** (or GCLOUD_PROJECT / FIREBASE_CONFIG) – Project ID.
+- **GOOGLE_CLOUD_LOCATION** – Optional; defaults to `global`.
+- **GOOGLE_GENAI_USE_VERTEXAI** – Set to `true` for Vertex AI (recommended).
+
+Secrets and credentials live in Firebase environment/config, not in code.
 
 ## Status
 
-- ✅ Project structure scaffolded
-- ✅ TypeScript configuration
-- ✅ Placeholder function
-- ⏳ Firebase Console setup (manual)
-- ⏳ Environment variables (manual)
-- ⏳ API implementation (Phase 6)
+- ✅ Project structure and TypeScript
+- ✅ Generate endpoint (Phase 6): validation, Gemini, parser, response
+- ✅ Genkit sample flow and callable
+- ✅ Health check and CORS
+- ⏳ Firebase Console and env setup (manual per project)
 
 ## Scripts
 
 Run from `servers/firebase`:
 
-- `pnpm build` - build Firebase Functions
-- `pnpm typecheck` - type check Firebase Functions
-- `pnpm lint` - lint Firebase Functions
-- `pnpm deploy` - deploy Functions and Hosting
+- `pnpm build` – build Firebase Functions
+- `pnpm typecheck` – type check Firebase Functions
+- `pnpm lint` – lint Firebase Functions
+- `pnpm deploy` – deploy Functions and Hosting
+- `cd functions && npm run genkit:start` – Genkit dev UI (optional)
 
-## Notes
+## Integration
 
-- All credentials are stored in Firebase environment variables, not in code
-- `.firebaserc` should not be committed (add to `.gitignore`)
-- Functions use CommonJS module system
-- API endpoint will be available at: `https://your-project-id.web.app/api/*`
+The Electron app (or any client) can POST to the deployed function URL (e.g.
+`https://your-project-id.web.app/generate`) with a validated `GenerateRequest`
+body. Responses follow `GenerateResponse` from `@flwst/types`.

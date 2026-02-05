@@ -18,7 +18,9 @@ export type EffectivePrompts = {
 /**
  * Resolve effective prompt: override if present, else library default.
  */
-function getEffectivePrompts(overrides: PromptOverrides): EffectivePrompts {
+export function getEffectivePrompts(
+  overrides: PromptOverrides,
+): EffectivePrompts {
   return {
     dailyNote: overrides.dailyNote ?? defaultPrompts.dailyNote.template,
     taskDraft: overrides.taskDraft ?? defaultPrompts.taskDraft.template,

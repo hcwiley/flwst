@@ -1,84 +1,101 @@
 import { resolve } from 'path';
 import { defineConfig } from 'electron-vite';
 import react from '@vitejs/plugin-react';
+import { loadEnv } from 'vite';
 
 const r = (...parts: string[]) => resolve(__dirname, ...parts);
 
-export default defineConfig({
-  main: {
-    resolve: {
-      alias: {
-        // Use source files in dev, not dist
-        '@flwst/core': r('../../libs/core/src/index.ts'),
-        '@flwst/core/logger': r('../../libs/core/src/logger.ts'),
-        '@flwst/prompts': r('../../libs/prompts/src/index.ts'),
-        '@flwst/types': r('../../types/src/index.ts'),
-      },
-    },
-    ssr: {
-      // Keep workspace package bundled for SSR builds
-      noExternal: ['@flwst/core', '@flwst/types', '@flwst/prompts'],
-    },
-    build: {
-      // electron-vite externalizes deps in main/preload by default.
-      // Excluding this workspace package forces it to be bundled instead of `require('@flwst/core')`.
-      externalizeDeps: {
-        exclude: ['@flwst/core', '@flwst/types', '@flwst/prompts'],
-      },
-    },
-  },
+export default defineConfig(({ mode }) => {
+  // Load monorepo root .env so FLWST_API_URL etc. are available to main process
+  const rootEnv = loadEnv(mode, r('../../'), '');
+  const flwstApiUrl = rootEnv.FLWST_API_URL ?? process.env.FLWST_API_URL ?? '';
+  const reuseLlmOutput =
+    rootEnv.FLWST_REUSE_LLM_OUTPUT ?? process.env.FLWST_REUSE_LLM_OUTPUT ?? '';
 
-  preload: {
-    resolve: {
-      alias: {
-        // Use source files in dev, not dist
-        '@flwst/core': r('../../libs/core/src/index.ts'),
-        '@flwst/core/logger': r('../../libs/core/src/logger.ts'),
-        '@flwst/prompts': r('../../libs/prompts/src/index.ts'),
-        '@flwst/types': r('../../types/src/index.ts'),
+  return {
+    main: {
+      define: {
+        'process.env.FLWST_API_URL': JSON.stringify(flwstApiUrl),
+        'process.env.FLWST_REUSE_LLM_OUTPUT': JSON.stringify(reuseLlmOutput),
+      },
+      resolve: {
+        alias: {
+          // Use source files in dev, not dist
+          '@flwst/core': r('../../libs/core/src/index.ts'),
+          '@flwst/core/logger': r('../../libs/core/src/logger.ts'),
+          '@flwst/prompts': r('../../libs/prompts/src/index.ts'),
+          '@flwst/types': r('../../types/src/index.ts'),
+        },
+      },
+      ssr: {
+        // Keep workspace package bundled for SSR builds
+        noExternal: ['@flwst/core', '@flwst/types', '@flwst/prompts'],
+      },
+      build: {
+        // electron-vite externalizes deps in main/preload by default.
+        // Excluding this workspace package forces it to be bundled instead of `require('@flwst/core')`.
+        externalizeDeps: {
+          exclude: ['@flwst/core', '@flwst/types', '@flwst/prompts'],
+        },
       },
     },
-    ssr: {
-      // Keep workspace package bundled for SSR builds
-      noExternal: ['@flwst/core', '@flwst/types', '@flwst/prompts'],
-    },
-    build: {
-      externalizeDeps: {
-        exclude: ['@flwst/core', '@flwst/types', '@flwst/prompts'],
-      },
-    },
-  },
 
-  renderer: {
-    resolve: {
-      alias: {
-        '@renderer': r('src/renderer/src'),
-        // Use source files in dev, not dist
-        '@flwst/ui': r('../../libs/ui/src'),
-        // Alias for subpath imports (e.g., @flwst/core/logger)
-        '@flwst/core/logger': r('../../libs/core/src/logger.ts'),
-        // Use browser-safe exports for renderer (excludes Node.js modules like paths)
-        '@flwst/core': r('../../libs/core/src/index.browser.ts'),
-        '@flwst/types': r('../../types/src/index.ts'),
+    preload: {
+      resolve: {
+        alias: {
+          // Use source files in dev, not dist
+          '@flwst/core': r('../../libs/core/src/index.ts'),
+          '@flwst/core/logger': r('../../libs/core/src/logger.ts'),
+          '@flwst/prompts': r('../../libs/prompts/src/index.ts'),
+          '@flwst/types': r('../../types/src/index.ts'),
+        },
+      },
+      ssr: {
+        // Keep workspace package bundled for SSR builds
+        noExternal: ['@flwst/core', '@flwst/types', '@flwst/prompts'],
+      },
+      build: {
+        externalizeDeps: {
+          exclude: ['@flwst/core', '@flwst/types', '@flwst/prompts'],
+        },
       },
     },
-    plugins: [react()],
-    define: {
-      // Make process.env available in renderer for compatibility
-      'process.env.NODE_ENV': JSON.stringify(
-        process.env.NODE_ENV || 'development',
-      ),
-      'process.env.SENTRY_DSN': JSON.stringify(process.env.SENTRY_DSN || ''),
-      'process.env.SENTRY_LOGS_ENABLED': JSON.stringify(
-        process.env.SENTRY_LOGS_ENABLED || '',
-      ),
-      'process.env.LOG_LEVEL': JSON.stringify(process.env.LOG_LEVEL || 'info'),
+
+    renderer: {
+      resolve: {
+        alias: {
+          '@renderer': r('src/renderer/src'),
+          // Use source files in dev, not dist
+          '@flwst/ui': r('../../libs/ui/src'),
+          // Alias for subpath imports (e.g., @flwst/core/logger)
+          '@flwst/core/logger': r('../../libs/core/src/logger.ts'),
+          // Use browser-safe exports for renderer (excludes Node.js modules like paths)
+          '@flwst/core': r('../../libs/core/src/index.browser.ts'),
+          '@flwst/types': r('../../types/src/index.ts'),
+        },
+      },
+      plugins: [react()],
+      define: {
+        // Make process.env available in renderer for compatibility
+        'process.env.NODE_ENV': JSON.stringify(
+          process.env.NODE_ENV || 'development',
+        ),
+        'process.env.SENTRY_DSN': JSON.stringify(process.env.SENTRY_DSN || ''),
+        'process.env.SENTRY_LOGS_ENABLED': JSON.stringify(
+          process.env.SENTRY_LOGS_ENABLED || '',
+        ),
+        'process.env.LOG_LEVEL': JSON.stringify(
+          process.env.LOG_LEVEL || 'info',
+        ),
+        'process.env.FLWST_API_URL': JSON.stringify(flwstApiUrl),
+        'process.env.FLWST_REUSE_LLM_OUTPUT': JSON.stringify(reuseLlmOutput),
+      },
+      optimizeDeps: {
+        // Exclude Sentry from dependency optimization (dynamic imports)
+        exclude: ['@sentry/electron/renderer'],
+        // Include Tamagui packages for optimization
+        include: ['tamagui', '@tamagui/config'],
+      },
     },
-    optimizeDeps: {
-      // Exclude Sentry from dependency optimization (dynamic imports)
-      exclude: ['@sentry/electron/renderer'],
-      // Include Tamagui packages for optimization
-      include: ['tamagui', '@tamagui/config'],
-    },
-  },
+  };
 });

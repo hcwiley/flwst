@@ -7,6 +7,35 @@ body {
   user-select: none;
 }
 
+.markdown-preview {
+  color: var(--color-text);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.markdown-preview h1,
+.markdown-preview h2,
+.markdown-preview h3 {
+  margin: 0 0 12px;
+}
+
+.markdown-preview p {
+  margin: 0 0 12px;
+}
+
+.markdown-preview ul,
+.markdown-preview ol {
+  margin: 0 0 12px 20px;
+  padding: 0;
+}
+
+.markdown-preview code {
+  background: var(--color-background-mute);
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 0.95em;
+}
+
 code {
   font-weight: 600;
   padding: 3px 5px;
