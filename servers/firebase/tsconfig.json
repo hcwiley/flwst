@@ -8,5 +8,4 @@
     "target": "ES2022"
   },
   "include": ["functions/src/**/*"],
-  "references": [{ "path": "../../types" }]
 }

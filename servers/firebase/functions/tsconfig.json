@@ -13,6 +13,5 @@
     "target": "ES2022"
   },
   "compileOnSave": true,
-  "include": ["src/**/*"],
-  "references": [{ "path": "../../../types" }]
+  "include": ["src/**/*", "types/**/*"],
 }

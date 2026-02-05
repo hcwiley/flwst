@@ -569,18 +569,24 @@ Deliverable:
 
 **Goal:** Secure, server-mediated LLM calls.
 
-- Create Firebase Functions project
-- Implement FlowState API endpoint
-  - Accept transcript + resolved prompts
-  - Validate payload
-- Integrate Gemini API
-- Return structured outputs
-- Implement server-side logging
-  - Timing
-  - Success/failure
-- Ensure no raw content persistence
-- Deploy to Firebase Hosting
-- Configure app to call server endpoint
+### Status: ⚠️ Needs env vars + redeploy
+
+- ✅ Create Firebase Functions project
+- ✅ Implement FlowState API endpoint
+  - ✅ Accept transcript + resolved prompts
+  - ✅ Validate payload
+- ✅ Integrate Gemini API (Vertex AI)
+- ✅ Return structured outputs
+- ✅ Implement server-side logging
+  - ✅ Timing
+  - ✅ Success/failure
+- ✅ Ensure no raw content persistence
+- ✅ Deploy to Firebase Hosting
+- ✅ Configure app to call server endpoint
+- ⚠️ Set runtime env vars in Functions and redeploy:
+  - `GOOGLE_CLOUD_PROJECT`
+  - `GOOGLE_CLOUD_LOCATION=global`
+  - `GOOGLE_GENAI_USE_VERTEXAI=true`
 
 Deliverable:
 
@@ -595,10 +601,12 @@ Deliverable:
 
 **Goal:** Connect the client pipeline to the deployed FlowState API.
 
-- Add LLM call step after preprocess in client pipeline
-- Send preprocessed transcript + resolved prompts to server
-- Store returned outputs as artifacts
-- Surface run status and failures in UI
+### Status: ✅
+
+- ✅ Add LLM call step after preprocess in client pipeline
+- ✅ Send preprocessed transcript + resolved prompts to server
+- ✅ Store returned outputs as artifacts
+- ✅ Surface run status and failures in UI
 
 Deliverable:
 

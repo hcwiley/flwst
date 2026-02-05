@@ -9,17 +9,46 @@ import { onRequest } from 'firebase-functions/v2/https';
 
 import { enableFirebaseTelemetry } from '@genkit-ai/firebase';
 
-import { generateContent, MODEL_ID } from './services/gemini';
+import {
+  createGenAiClient,
+  generateContent,
+  MODEL_ID,
+} from './services/gemini';
 import { parseGenerationOutput } from './services/parser';
 import { logRequest, logResponse } from './utils/logger';
 import { validateRequest, ValidationError } from './utils/validation';
 
 enableFirebaseTelemetry();
 
-logger.info('Vertex enabled:', process.env.GOOGLE_GENAI_USE_VERTEXAI);
-logger.info('Cloud location:', process.env.GOOGLE_CLOUD_LOCATION);
-logger.info('Cloud project:', process.env.GOOGLE_CLOUD_PROJECT);
-logger.info('Model ID:', MODEL_ID);
+const getProjectId = (): string => {
+  if (process.env.GCLOUD_PROJECT) {
+    return process.env.GCLOUD_PROJECT;
+  }
+
+  if (process.env.GOOGLE_CLOUD_PROJECT) {
+    return process.env.GOOGLE_CLOUD_PROJECT;
+  }
+
+  if (process.env.FIREBASE_CONFIG) {
+    return JSON.parse(process.env.FIREBASE_CONFIG).projectId;
+  }
+
+  throw new Error('Unable to determine project ID');
+};
+
+const getGenAiClient = () => {
+  const useVertexAI =
+    process.env.GOOGLE_GENAI_USE_VERTEXAI?.toLowerCase() === 'true';
+  const project = getProjectId();
+  const location = process.env.GOOGLE_CLOUD_LOCATION || 'global';
+
+  logger.info('Vertex enabled:', useVertexAI);
+  logger.info('Cloud location:', location);
+  logger.info('Cloud project:', project);
+  logger.info('Model ID:', MODEL_ID);
+
+  return createGenAiClient(project, location, useVertexAI);
+};
 
 /**
  * FlowState generate endpoint.
@@ -32,6 +61,14 @@ export const generate = onRequest(
     timeoutSeconds: 120,
   },
   async (request: Request, response: Response) => {
+    const genaiClient = getGenAiClient();
+    if (!genaiClient) {
+      response.status(500).json({
+        error: 'Failed to create GenAI client',
+        code: 'INTERNAL_ERROR',
+      });
+      return;
+    }
     const startTime = Date.now();
     let runId = 'unknown';
 
@@ -59,6 +96,7 @@ export const generate = onRequest(
       });
 
       const result = await generateContent(
+        genaiClient,
         payload.resolvedPrompts.dailyNote,
         payload.preprocessedTranscript,
       );

@@ -5,6 +5,7 @@
 
 import { GoogleGenAI } from '@google/genai';
 import { enableFirebaseTelemetry } from '@genkit-ai/firebase';
+import { logger } from 'firebase-functions/logger';
 
 enableFirebaseTelemetry();
 /** Vertex AI model ID (hard-coded for now). */
@@ -22,14 +23,14 @@ export interface GeminiGenerateResult {
  * Create a Vertex AI client using environment variables.
  * Requires: GOOGLE_CLOUD_PROJECT, GOOGLE_CLOUD_LOCATION, GOOGLE_GENAI_USE_VERTEXAI.
  */
-function createClient(): GoogleGenAI {
-  const project = process.env.GOOGLE_CLOUD_PROJECT;
-  const location = process.env.GOOGLE_CLOUD_LOCATION || 'global';
+export function createGenAiClient(project: string, location: string = 'global', useVertexAI: boolean = true): GoogleGenAI {
   if (!project) {
-    throw new Error('GOOGLE_CLOUD_PROJECT is required for Vertex AI');
+    logger.error('GOOGLE_CLOUD_PROJECT is required for Vertex AI');
+    return null as unknown as GoogleGenAI;
   }
+  logger.info('Creating GenAI client', { project, location, useVertexAI });
   return new GoogleGenAI({
-    vertexai: true,
+    vertexai: useVertexAI,
     project,
     location,
   });
@@ -42,13 +43,21 @@ function createClient(): GoogleGenAI {
  * @returns Generated text and optional token usage
  */
 export async function generateContent(
+  genaiClient: GoogleGenAI,
   prompt: string,
   transcript: string,
 ): Promise<GeminiGenerateResult> {
-  const ai = createClient();
+  if (!genaiClient) {
+    logger.error('GenAI client is required');
+    return null as unknown as GeminiGenerateResult;
+  }
+  if (!prompt || !transcript) {
+    logger.error('Prompt and transcript are required');
+    return null as unknown as GeminiGenerateResult;
+  }
   const input = `${prompt}\n\n---\n\n${transcript}`;
 
-  const response = await ai.models.generateContent({
+  const response = await genaiClient.models.generateContent({
     model: MODEL_ID,
     contents: input,
     config: {
