@@ -94,6 +94,9 @@ export const TokensSchema = z.object({
   notionPageId: z.string().optional(),
   notionDailyNotesDataSourceId: z.string().optional(),
   notionTodosDataSourceId: z.string().optional(),
+  /** Database ID for queries; when set, used by sync instead of data source ID. */
+  notionDailyNotesDbId: z.string().optional(),
+  notionTodosDbId: z.string().optional(),
 });
 
 export type Tokens = z.infer<typeof TokensSchema>;

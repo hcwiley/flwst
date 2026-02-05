@@ -61,3 +61,37 @@ export const NotionDailyNotePageSchema = z.object({
 });
 
 export type NotionDailyNotePage = z.infer<typeof NotionDailyNotePageSchema>;
+
+/**
+ * Sync metadata for a single sync run.
+ */
+export const NotionSyncErrorSchema = z.object({
+  message: z.string(),
+  at: z.string(),
+});
+
+export type NotionSyncError = z.infer<typeof NotionSyncErrorSchema>;
+
+/**
+ * Notion sync state: canonical snapshot of tasks and daily notes plus sync metadata.
+ */
+export const NotionSyncStateSchema = z.object({
+  lastSyncAt: z.string().datetime().optional(),
+  isSyncing: z.boolean(),
+  lastError: NotionSyncErrorSchema.nullable().optional(),
+  tasksById: z.record(z.string(), NotionTaskPageSchema),
+  notesById: z.record(z.string(), NotionDailyNotePageSchema),
+});
+
+export type NotionSyncState = z.infer<typeof NotionSyncStateSchema>;
+
+/**
+ * Result of dedup gate for a single draft task: create, update, or skip.
+ */
+export const DedupResultSchema = z.object({
+  action: z.enum(['create', 'update', 'skip']),
+  matchedTaskId: z.string().optional(),
+  reason: z.string(),
+});
+
+export type DedupResult = z.infer<typeof DedupResultSchema>;
