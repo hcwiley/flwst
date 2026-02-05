@@ -7,12 +7,12 @@ libraries.
 
 ## Architecture
 
-See `ARCH.md` for the current system overview and data flow.
-The Electron onboarding flow uses push-based IPC updates to keep the renderer
-in sync with migration state.
-The Electron client also manages local configuration for preprocess settings and
-prompt overrides, stored in encrypted local storage. The client now includes an
-Inbox ingestion flow that writes deterministic artifacts locally.
+See `ARCH.md` for the current system overview and data flow. The Electron app
+uses push-based IPC for onboarding and manages local config (preprocess, prompt
+overrides) in encrypted storage, with an Inbox ingestion flow that writes
+artifacts locally. The Firebase server exposes POST `/generate` for
+server-mediated LLM calls: the client sends transcript and resolved prompts and
+receives a daily note and task feed (Phase 6).
 
 ## Monorepo Structure
 
@@ -31,7 +31,7 @@ flwst/
 │   └── integrations/      # Integration config types (Notion, Firebase, etc.)
 ├── types/                 # Shared TypeScript types and Zod schemas
 ├── servers/
-│   └── firebase/          # Firebase Functions + Hosting (Phase 6+)
+│   └── firebase/          # Firebase Functions + Hosting (Phase 6: /generate API)
 ├── config/
 │   └── examples/          # Example config files (sanitized)
 ├── prompts/               # AI prompt templates
@@ -46,7 +46,7 @@ All workspace packages use the `@flwst/*` namespace:
 
 - `apps/electron` - Electron app (`apps/electron/README.md`)
 - `apps/mobile` - Expo stub (`apps/mobile/README.md`)
-- `servers/firebase` - Firebase server scaffold (`servers/firebase/README.md`)
+- `servers/firebase` - Firebase server with /generate API (`servers/firebase/README.md`)
 - `libs/core` - Core utilities (`libs/core/README.md`)
 - `libs/prompts` - Default prompt templates (`libs/prompts/README.md`)
 - `libs/ui` - Tamagui UI config (`libs/ui`)
@@ -80,7 +80,7 @@ The following directories are from the pre-monorepo version and are still used:
 
 - Node.js 20+
 - pnpm 8+
-- Firebase CLI (for server deployment, Phase 6+)
+- Firebase CLI (for server deployment; see `servers/firebase/README.md`)
 
 ### Install Dependencies
 

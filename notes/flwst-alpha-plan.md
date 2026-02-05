@@ -583,7 +583,7 @@ Deliverable:
 - ✅ Ensure no raw content persistence
 - ✅ Deploy to Firebase Hosting
 - ✅ Configure app to call server endpoint
-- ⚠️ Set runtime env vars in Functions and redeploy:
+- ✅ Set runtime env vars in Functions and redeploy:
   - `GOOGLE_CLOUD_PROJECT`
   - `GOOGLE_CLOUD_LOCATION=global`
   - `GOOGLE_GENAI_USE_VERTEXAI=true`

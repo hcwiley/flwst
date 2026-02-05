@@ -10,6 +10,24 @@ and storage boundaries, with TypeScript types inferred from the schemas.
 
 ## Key Schemas
 
+### API (`src/api.ts`)
+
+- `GenerateRequestSchema`: Request payload for the server `/generate` endpoint
+  (runId, timestamp, preprocessedTranscript, resolvedPrompts.dailyNote /
+  taskDraft, optional metadata).
+- `GenerateResponseSchema`: Response payload (runId, timestamp, dailyNote,
+  taskFeed, metadata with model, durationMs, tokenUsage).
+- `DailyNotePropsSchema` / `TaskPropsSchema`: Structured props parsed from
+  server output blocks.
+- `ApiErrorSchema`: Error response shape (error, code, optional details).
+
+### Artifacts (`src/artifacts.ts`)
+
+- `DailyNoteSchema`, `TaskSchema`, `TaskListSchema`: Canonical shapes for daily
+  notes and task lists (used by ingestion and server response parsing).
+- `ArtifactBundleSchema`: Bundle of raw transcript, clean transcript, daily
+  note, task list, and logs.
+
 ### Core Types (`src/core.ts`)
 
 - `PrioritySchema`: Task priority levels (low, medium, high, urgent)
