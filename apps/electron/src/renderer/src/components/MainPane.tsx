@@ -1,13 +1,17 @@
 /**
  * Main content pane: Daily Note preview and Kanban board.
+ * Kanban is always shown; data comes from notionSync (store) and ingest task feed (artifact).
+ * Future: dedup merge when building combined list (see plan "Future integration points").
  */
 
-import { useEffect, useState } from 'react';
-import { ScrollView, Separator, Stack, Text, YStack } from 'tamagui';
-import type { InboxIngestResult } from './inbox/types';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Separator, Stack, Text } from 'tamagui';
+import { useAppStore } from '@flwst/state';
 import type { TaskProps } from '@flwst/types';
+import type { InboxIngestResult } from './inbox/types';
 import { DailyNotePreview } from './main/DailyNotePreview';
 import { KanbanBoard } from './main/KanbanBoard';
+import { ingestTaskToDisplay, notionTaskToDisplay } from './main/kanbanTypes';
 import { MainPaneHeader } from './main/MainPaneHeader';
 
 interface MainPaneProps {
@@ -21,6 +25,42 @@ export function MainPane({ lastRun }: MainPaneProps): React.JSX.Element {
   const [taskProps, setTaskProps] = useState<TaskProps[]>([]);
   const [taskLoadError, setTaskLoadError] = useState<string | null>(null);
   const [isTaskLoading, setIsTaskLoading] = useState(false);
+
+  const notionTasksById = useAppStore((s) => s.notionSync.tasksById);
+  const isSyncing = useAppStore((s) => s.notionSync.isSyncing);
+  const notionSyncError = useAppStore((s) => s.notionSync.lastError);
+  const startSync = useAppStore((s) => s.startSync);
+
+  const notionTasks = useMemo(
+    () => Object.values(notionTasksById),
+    [notionTasksById],
+  );
+  const notionDisplays = useMemo(
+    () => notionTasks.map(notionTaskToDisplay),
+    [notionTasks],
+  );
+  const ingestDisplays = useMemo(
+    () => taskProps.map(ingestTaskToDisplay),
+    [taskProps],
+  );
+  const kanbanTasks = useMemo(
+    () => [...notionDisplays, ...ingestDisplays],
+    [notionDisplays, ingestDisplays],
+  );
+  const kanbanLoadError = taskLoadError ?? notionSyncError?.message ?? null;
+  const kanbanLoading = isTaskLoading || isSyncing;
+  const initialSyncRequested = useRef(false);
+
+  useEffect(() => {
+    if (initialSyncRequested.current) return;
+    if (isSyncing) return;
+    if (Object.keys(notionTasksById).length > 0) return;
+    initialSyncRequested.current = true;
+    startSync();
+    window.api.notion.sync().catch(() => {
+      // Errors are surfaced through the syncComplete event.
+    });
+  }, [isSyncing, notionTasksById, startSync]);
 
   useEffect(() => {
     if (!lastRun?.llmSuccess) {
@@ -128,16 +168,9 @@ export function MainPane({ lastRun }: MainPaneProps): React.JSX.Element {
           </Stack>
         )}
 
-        {lastRun && lastRun.llmSuccess && (
-          <YStack
-            flex={1}
-            gap='$3'
-          >
-            <Stack
-              flex={1}
-              // minHeight={'50vh'}
-              // maxHeight={'50vh'}
-            >
+        {lastRun?.llmSuccess && (
+          <>
+            <Stack flex={1}>
               <DailyNotePreview
                 markdown={markdown}
                 isLoading={isLoading}
@@ -145,19 +178,16 @@ export function MainPane({ lastRun }: MainPaneProps): React.JSX.Element {
               />
             </Stack>
             <Separator marginVertical='$3' />
-            <Stack
-              flex={1}
-              // minHeight={'50vh'}
-              // maxHeight={'50vh'}
-            >
-              <KanbanBoard
-                tasks={taskProps}
-                isLoading={isTaskLoading}
-                loadError={taskLoadError}
-              />
-            </Stack>
-          </YStack>
+          </>
         )}
+
+        <Stack flex={1}>
+          <KanbanBoard
+            tasks={kanbanTasks}
+            isLoading={kanbanLoading}
+            loadError={kanbanLoadError}
+          />
+        </Stack>
       </Stack>
     </Stack>
   );

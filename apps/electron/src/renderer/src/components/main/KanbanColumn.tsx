@@ -1,14 +1,16 @@
 /**
  * Single Kanban column rendering tasks for a status.
+ * Future: drag-and-drop "on move" handler will live here or on card wrapper.
  */
 
 import { Text, YStack } from 'tamagui';
-import type { TaskProps, TaskStatus } from '@flwst/types';
+import type { TaskStatus } from '@flwst/types';
+import type { KanbanTaskDisplay } from './kanbanTypes';
 import { KanbanTaskCard } from './KanbanTaskCard';
 
 interface KanbanColumnProps {
   status: TaskStatus;
-  tasks: TaskProps[];
+  tasks: KanbanTaskDisplay[];
 }
 
 export function KanbanColumn({
@@ -29,9 +31,9 @@ export function KanbanColumn({
       {tasks.length === 0 ? (
         <Text opacity={0.6}>No tasks</Text>
       ) : (
-        tasks.map((task) => (
+        tasks.map((task, idx) => (
           <KanbanTaskCard
-            key={`${status}-${task.name}`}
+            key={task.id ?? `ingest-${task.name}-${idx}`}
             task={task}
             status={status}
           />

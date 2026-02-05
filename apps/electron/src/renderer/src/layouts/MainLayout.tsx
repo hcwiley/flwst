@@ -11,6 +11,7 @@ import type { UserConfig } from '@flwst/types';
 import { InboxPane } from '../components/inbox';
 import { SettingsRail } from '../components/config';
 import { StatusPane } from '../components/status';
+import { SyncButton } from '../components/SyncButton';
 import type {
   InboxIngestResult,
   IngestStatus,
@@ -61,6 +62,18 @@ export function MainLayout(): React.JSX.Element {
         width='100vw'
         backgroundColor='$background'
       >
+        {/* Top bar with Sync on the right */}
+        <Stack
+          flexDirection='row'
+          justifyContent='flex-end'
+          alignItems='center'
+          paddingHorizontal='$3'
+          paddingVertical='$2'
+          borderBottomWidth={1}
+          borderColor='$gray4'
+        >
+          <SyncButton />
+        </Stack>
         {/* Main content row */}
         <Stack
           flexDirection='row'

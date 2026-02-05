@@ -1,52 +1,34 @@
 /**
  * Kanban board rendering tasks grouped by core status columns.
+ * Tasks are pre-normalized to KanbanTaskDisplay (status already normalized).
  */
 
-import { ScrollView, Text, XStack, Stack } from 'tamagui';
-import type { TaskProps, TaskStatus } from '@flwst/types';
+import { ScrollView, Stack, Text, XStack } from 'tamagui';
+import type { TaskStatus } from '@flwst/types';
+import type { KanbanTaskDisplay } from './kanbanTypes';
 import { KanbanColumn } from './KanbanColumn';
 
 interface KanbanBoardProps {
-  tasks: TaskProps[];
+  tasks: KanbanTaskDisplay[];
   isLoading: boolean;
   loadError: string | null;
 }
+
+const KANBAN_STATUSES: TaskStatus[] = [
+  'Backlog',
+  'To-do',
+  'On Deck',
+  'In progress',
+  'BLOCKED',
+  'Done',
+  'Cancelled',
+];
 
 export function KanbanBoard({
   tasks,
   isLoading,
   loadError,
 }: KanbanBoardProps): React.JSX.Element {
-  const kanbanStatuses: TaskStatus[] = [
-    'Backlog',
-    'To-do',
-    'On Deck',
-    'In progress',
-    'BLOCKED',
-    'Done',
-    'Cancelled',
-  ];
-
-  const statusMap: Record<string, TaskStatus> = {
-    Backlog: 'Backlog',
-    'To-do': 'To-do',
-    TODO: 'To-do',
-    'To Do': 'To-do',
-    'On Deck': 'On Deck',
-    'In progress': 'In progress',
-    'In Progress': 'In progress',
-    BLOCKED: 'BLOCKED',
-    Blocked: 'BLOCKED',
-    Done: 'Done',
-    Cancelled: 'Cancelled',
-    Canceled: 'Cancelled',
-  };
-
-  const normalizedTasks = tasks.map((task) => ({
-    ...task,
-    status: statusMap[task.status] ?? 'Backlog',
-  }));
-
   return (
     <ScrollView>
       <Stack
@@ -71,8 +53,8 @@ export function KanbanBoard({
         ) : (
           <ScrollView horizontal>
             <XStack gap='$3'>
-              {kanbanStatuses.map((status) => {
-                const statusTasks = normalizedTasks.filter(
+              {KANBAN_STATUSES.map((status) => {
+                const statusTasks = tasks.filter(
                   (task) => task.status === status,
                 );
                 return (
