@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Stack } from 'tamagui';
 import { FlowStateTamaguiProvider } from '@flwst/ui';
+import { useAppStore } from '@flwst/state';
 import { MainPane } from '../components/MainPane';
 import type { UserConfig } from '@flwst/types';
 import { InboxPane } from '../components/inbox';
@@ -28,6 +29,7 @@ export function MainLayout(): React.JSX.Element {
   const [runStatus, setRunStatus] = useState<IngestStatus>('idle');
   const [lastRun, setLastRun] = useState<InboxIngestResult | null>(null);
   const [runError, setRunError] = useState<string | null>(null);
+  const setKanbanPrefs = useAppStore((s) => s.setKanbanPrefs);
 
   const loadConfig = useCallback(async (): Promise<void> => {
     try {
@@ -45,6 +47,11 @@ export function MainLayout(): React.JSX.Element {
   useEffect(() => {
     void loadConfig();
   }, [loadConfig]);
+
+  useEffect(() => {
+    if (!config) return;
+    setKanbanPrefs(config.kanbanPrefs);
+  }, [config, setKanbanPrefs]);
 
   const effective = useMemo(() => {
     if (!config || !defaults) return null;

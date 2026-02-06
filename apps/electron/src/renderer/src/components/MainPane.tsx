@@ -7,7 +7,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Separator, Spinner, Stack, Text } from 'tamagui';
 import { useAppStore } from '@flwst/state';
-import type { DailyNoteProps, PublishResult, TaskProps } from '@flwst/types';
+import type {
+  DailyNoteProps,
+  PublishResult,
+  TaskProps,
+  TaskStatus,
+} from '@flwst/types';
 import type { InboxIngestResult } from './inbox/types';
 import { DailyNotePreview } from './main/DailyNotePreview';
 import { KanbanBoard } from './main/KanbanBoard';
@@ -25,6 +30,7 @@ export function MainPane({ lastRun }: MainPaneProps): React.JSX.Element {
   const [taskProps, setTaskProps] = useState<TaskProps[]>([]);
   const [taskLoadError, setTaskLoadError] = useState<string | null>(null);
   const [isTaskLoading, setIsTaskLoading] = useState(false);
+  const [taskMoveError, setTaskMoveError] = useState<string | null>(null);
   const [dailyNoteProps, setDailyNoteProps] = useState<DailyNoteProps | null>(
     null,
   );
@@ -41,6 +47,7 @@ export function MainPane({ lastRun }: MainPaneProps): React.JSX.Element {
   const isSyncing = useAppStore((s) => s.notionSync.isSyncing);
   const notionSyncError = useAppStore((s) => s.notionSync.lastError);
   const startSync = useAppStore((s) => s.startSync);
+  const updateTaskStatus = useAppStore((s) => s.updateTaskStatus);
 
   const notionTasks = useMemo(
     () => Object.values(notionTasksById),
@@ -196,6 +203,33 @@ export function MainPane({ lastRun }: MainPaneProps): React.JSX.Element {
     }
   }, [taskProps, isPublishing, lastRun?.runId, dailyNoteProps, hasPublishable]);
 
+  const handleMoveTask = useCallback(
+    async (taskId: string, status: TaskStatus) => {
+      const existing = notionTasksById[taskId];
+      if (!existing) return;
+      if (existing.status === status) return;
+      setTaskMoveError(null);
+      updateTaskStatus(taskId, status);
+      try {
+        const result = await window.api.notion.updateTaskStatus({
+          taskId,
+          status,
+        });
+        if (!result.ok) {
+          throw new Error(result.error);
+        }
+      } catch (error) {
+        updateTaskStatus(taskId, existing.status);
+        setTaskMoveError(
+          error instanceof Error
+            ? error.message
+            : 'Failed to update task status',
+        );
+      }
+    },
+    [notionTasksById, updateTaskStatus],
+  );
+
   return (
     <Stack
       flex={1}
@@ -286,10 +320,19 @@ export function MainPane({ lastRun }: MainPaneProps): React.JSX.Element {
         )}
 
         <Stack flex={1}>
+          {taskMoveError && (
+            <Text
+              fontSize='$2'
+              color='$red10'
+            >
+              {taskMoveError}
+            </Text>
+          )}
           <KanbanBoard
             tasks={kanbanTasks}
             isLoading={kanbanLoading}
             loadError={kanbanLoadError}
+            onMoveTask={handleMoveTask}
           />
         </Stack>
       </Stack>

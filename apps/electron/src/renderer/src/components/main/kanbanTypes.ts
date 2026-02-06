@@ -4,7 +4,13 @@
  * Display-level dedup (ingest vs Notion by title) is applied in MainPane when building the combined list.
  */
 
-import type { NotionTaskPage, TaskProps, TaskStatus } from '@flwst/types';
+import type {
+  KanbanSortDir,
+  KanbanSortKey,
+  NotionTaskPage,
+  TaskProps,
+  TaskStatus,
+} from '@flwst/types';
 
 export type TaskSource = 'notion' | 'ingest';
 
@@ -21,6 +27,8 @@ export type KanbanTaskDisplay = {
   description?: string;
   tags: string[];
   due?: string;
+  /** ISO timestamp for sorting ("Last Updated" in Notion). */
+  updatedAt: string;
   source: TaskSource;
 };
 
@@ -54,6 +62,7 @@ export function notionTaskToDisplay(task: NotionTaskPage): KanbanTaskDisplay {
     description: task.description,
     tags: task.tags ?? [],
     due: task.dueDate,
+    updatedAt: task.updatedAt,
     source: 'notion',
   };
 }
@@ -68,6 +77,63 @@ export function ingestTaskToDisplay(task: TaskProps): KanbanTaskDisplay {
     description: task.description,
     tags: task.tags ?? [],
     due: task.due,
+    updatedAt: new Date(0).toISOString(),
     source: 'ingest',
   };
+}
+
+const PRIORITY_RANK: Record<string, number> = {
+  urgent: 4,
+  high: 3,
+  medium: 2,
+  low: 1,
+};
+
+function compareStrings(a: string, b: string): number {
+  return a.localeCompare(b, undefined, { sensitivity: 'base' });
+}
+
+function compareDates(a: string, b: string): number {
+  const left = Number.isNaN(Date.parse(a)) ? 0 : Date.parse(a);
+  const right = Number.isNaN(Date.parse(b)) ? 0 : Date.parse(b);
+  return left - right;
+}
+
+function comparePriority(a: string, b: string): number {
+  const left = PRIORITY_RANK[a.trim().toLowerCase()] ?? 0;
+  const right = PRIORITY_RANK[b.trim().toLowerCase()] ?? 0;
+  return left - right;
+}
+
+function compareProject(a?: string, b?: string): number {
+  const left = (a ?? '').trim();
+  const right = (b ?? '').trim();
+  if (!left && !right) return 0;
+  if (!left) return 1;
+  if (!right) return -1;
+  return compareStrings(left, right);
+}
+
+/**
+ * Sort tasks for a column with deterministic ordering.
+ */
+export function sortTasks(
+  tasks: KanbanTaskDisplay[],
+  sortKey: KanbanSortKey,
+  sortDir: KanbanSortDir,
+): KanbanTaskDisplay[] {
+  const direction = sortDir === 'asc' ? 1 : -1;
+  return [...tasks].sort((left, right) => {
+    let comparison = 0;
+    if (sortKey === 'name') {
+      comparison = compareStrings(left.name, right.name);
+    } else if (sortKey === 'updatedAt') {
+      comparison = compareDates(left.updatedAt, right.updatedAt);
+    } else if (sortKey === 'priority') {
+      comparison = comparePriority(left.priority, right.priority);
+    } else if (sortKey === 'project') {
+      comparison = compareProject(left.project, right.project);
+    }
+    return comparison * direction;
+  });
 }
