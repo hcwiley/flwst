@@ -4,8 +4,9 @@
  */
 
 import type { DedupResult, NotionTaskPage } from '@flwst/types';
+import { getLogger } from '../sentry';
 
-/** Draft task from ingestion (minimal shape for matching). */
+/** Draft task from ingestion (minimal shape for matching and publish). */
 export interface DraftTask {
   name: string;
   project?: string;
@@ -14,6 +15,8 @@ export interface DraftTask {
   status?: string;
   tags?: string[];
   due?: string;
+  assignee?: string;
+  sourceRunId?: string;
 }
 
 const STOP_WORDS = new Set([
@@ -33,6 +36,8 @@ const STOP_WORDS = new Set([
   'from',
   'by',
 ]);
+
+const logger = getLogger();
 
 /**
  * Build compact query tokens from text: proper nouns first, then general tokens.
@@ -81,28 +86,42 @@ export function reconcileMcpIdsToSnapshot(
 /**
  * Prefilter snapshot candidates by title substring and token overlap.
  */
+type CandidateMatchReason = 'exact' | 'substring' | 'token_overlap';
+
+type CandidateMatch = {
+  task: NotionTaskPage;
+  reason: CandidateMatchReason;
+  overlap?: number;
+};
+
 function prefilterCandidates(
   draft: DraftTask,
   tasksById: Record<string, NotionTaskPage>,
-): NotionTaskPage[] {
+): CandidateMatch[] {
   const draftTitle = draft.name.trim().toLowerCase();
   if (!draftTitle) return [];
   const draftTokens = new Set(buildQueryTokens(draft.name));
-  const candidates: NotionTaskPage[] = [];
+  const candidates: CandidateMatch[] = [];
   for (const task of Object.values(tasksById)) {
     const taskTitle = task.title.trim().toLowerCase();
     if (!taskTitle) continue;
     if (taskTitle === draftTitle) {
-      candidates.push(task);
+      candidates.push({ task, reason: 'exact' });
       continue;
     }
     if (taskTitle.includes(draftTitle) || draftTitle.includes(taskTitle)) {
-      candidates.push(task);
+      candidates.push({ task, reason: 'substring' });
       continue;
     }
     const taskTokens = buildQueryTokens(task.title);
     const overlap = taskTokens.filter((t) => draftTokens.has(t));
-    if (overlap.length >= 2) candidates.push(task);
+    if (overlap.length >= 2) {
+      candidates.push({
+        task,
+        reason: 'token_overlap',
+        overlap: overlap.length,
+      });
+    }
   }
   return candidates;
 }
@@ -121,27 +140,50 @@ export function dedupDraft(
   }
   if (candidates.length === 1) {
     const exact =
-      candidates[0].title.trim().toLowerCase() ===
+      candidates[0].task.title.trim().toLowerCase() ===
       draft.name.trim().toLowerCase();
+    if (exact) {
+      return {
+        action: 'update',
+        matchedTaskId: candidates[0].task.id,
+        reason: 'exact_match',
+      };
+    }
+    logger.debug('Dedup fuzzy single-candidate: creating new task', {
+      draft: draft.name,
+      candidate: candidates[0].task.title,
+      reason: candidates[0].reason,
+      overlap: candidates[0].overlap,
+    });
     return {
-      action: exact ? 'update' : 'skip',
-      matchedTaskId: candidates[0].id,
-      reason: exact ? 'exact_match' : 'single_fuzzy_match',
+      action: 'create',
+      matchedTaskId: candidates[0].task.id,
+      reason: 'single_fuzzy_create',
     };
   }
   const exactMatch = candidates.find(
-    (t) => t.title.trim().toLowerCase() === draft.name.trim().toLowerCase(),
+    (c) =>
+      c.task.title.trim().toLowerCase() === draft.name.trim().toLowerCase(),
   );
   if (exactMatch) {
     return {
       action: 'update',
-      matchedTaskId: exactMatch.id,
+      matchedTaskId: exactMatch.task.id,
       reason: 'exact_match',
     };
   }
+  logger.debug('Dedup multiple candidates: skipping draft', {
+    draft: draft.name,
+    candidates: candidates.map((c) => ({
+      id: c.task.id,
+      title: c.task.title,
+      reason: c.reason,
+      overlap: c.overlap,
+    })),
+  });
   return {
     action: 'skip',
-    matchedTaskId: candidates[0].id,
+    matchedTaskId: candidates[0].task.id,
     reason: 'multiple_candidates',
   };
 }

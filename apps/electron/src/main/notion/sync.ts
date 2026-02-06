@@ -14,6 +14,8 @@ import { NotionError } from './errors';
 
 const logger = getLogger();
 
+const VERY_VERBOSE_LOGGING = false;
+
 /** Raw page from Notion API (partial; we only read known fields). */
 type RawPage = {
   id: string;
@@ -205,6 +207,7 @@ function mapToDailyNotePage(raw: RawPage): NotionDailyNotePage {
       extractMultiSelectNames(raw.properties, 'Tags').filter(Boolean) ||
       undefined,
     tasks: extractRelationIds(raw.properties, 'Tasks'),
+    sourceRunId: extractRichText(raw.properties, 'Source Run ID') || undefined,
     updatedAt,
   };
 }
@@ -284,14 +287,18 @@ export async function runSync(): Promise<SyncResult> {
     tasksCount: tasks.length,
     notesCount: notes.length,
   });
-  // debug log all the status:[name,...]
-  const statuses = tasks.map((t) => t.status).filter(Boolean);
-  statuses.forEach((status) => {
-    logger.debug(`status:${status}`, {
-      name: status,
-      ...tasks.filter((t) => t.status === status),
+
+  if (VERY_VERBOSE_LOGGING) {
+    // debug log all the status:[name,...]
+    const statuses = tasks.map((t) => t.status).filter(Boolean);
+    statuses.forEach((status) => {
+      logger.debug(`status:${status}`, {
+        name: status,
+        ...tasks.filter((t) => t.status === status),
+      });
     });
-  });
+  }
+
   return { tasks, notes };
 }
 
@@ -321,4 +328,32 @@ export async function runTasksSync(): Promise<NotionTaskPage[]> {
   const notion = new Client({ auth: accessToken });
   const rawTasks = await queryAllPages(notion, tasksDataSourceId);
   return rawTasks.map((p) => mapToTaskPage(p));
+}
+
+/**
+ * Run daily-notes-only sync (e.g. for daily note dedup).
+ */
+export async function runDailyNotesSync(): Promise<NotionDailyNotePage[]> {
+  const tokensStore = getTokensStore();
+  const tokens = await tokensStore.read();
+  const accessToken = tokens.notionAccessToken;
+  if (!accessToken) {
+    throw new NotionError(
+      'NOTION_TOKEN_MISSING',
+      'Notion access token is missing.',
+    );
+  }
+
+  const dailyNotesDataSourceId =
+    tokens.notionDailyNotesDataSourceId ?? tokens.notionDailyNotesDbId;
+  if (!dailyNotesDataSourceId) {
+    throw new NotionError(
+      'NOTION_VALIDATION_ERROR',
+      'Daily Notes data source ID missing. Complete Notion setup first.',
+    );
+  }
+
+  const notion = new Client({ auth: accessToken });
+  const rawNotes = await queryAllPages(notion, dailyNotesDataSourceId);
+  return rawNotes.map((p) => mapToDailyNotePage(p));
 }

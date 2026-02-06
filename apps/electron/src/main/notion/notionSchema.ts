@@ -127,6 +127,7 @@ export function buildTasksDbProperties(
 
   const properties: NotionDatabaseProperties = {
     Name: { title: {} },
+    'Task ID': { unique_id: { prefix: 'FTASK' } },
     Project: { select: { options: [] } },
     Description: { rich_text: {} },
     Priority: { select: { options: priorityOptions } },
@@ -161,9 +162,11 @@ export function buildDailyNotesDbProperties(
   });
   const properties: NotionDatabaseProperties = {
     Name: { title: {} },
+    'Note ID': { unique_id: { prefix: 'FNOTE' } },
     Date: { date: {} },
     Summary: { rich_text: {} },
     Tags: { multi_select: { options: [] } },
+    'Source Run ID': { rich_text: {} },
   };
 
   if (tasksDataSourceId) {

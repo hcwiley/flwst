@@ -26,6 +26,7 @@ export type NotionDatabaseProperty =
   | { multi_select: { options: NotionSelectOption[] } }
   | { select: { options: NotionSelectOption[] } }
   | { status: NotionEmptyObject }
+  | { unique_id: { prefix?: string } }
   | { relation: NotionRelationConfig };
 
 export type NotionDatabaseProperties = Record<string, NotionDatabaseProperty>;

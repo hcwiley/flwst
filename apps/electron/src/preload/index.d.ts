@@ -6,6 +6,8 @@ import type {
   NotionTaskPage,
   OnboardingState,
   NotionWorkspaceMetadata,
+  PublishPayload,
+  PublishResult,
   UserConfig,
   RunId,
 } from '@flwst/types';
@@ -48,6 +50,7 @@ export interface NotionAPI {
     notes: NotionDailyNotePage[];
   }>;
   syncTasks: () => Promise<NotionTaskPage[]>;
+  publishDrafts: (payload: PublishPayload) => Promise<PublishResult>;
   onSyncComplete: (
     callback: (payload: NotionSyncCompletePayload) => void,
   ) => () => void;

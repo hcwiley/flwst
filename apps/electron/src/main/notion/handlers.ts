@@ -13,6 +13,8 @@ import { toNotionError } from './errors';
 import { getOrCreateResources } from './resources';
 import { NotionError } from './errors';
 import { runSync, runTasksSync } from './sync';
+import { publishDrafts } from './publish';
+import type { PublishPayload } from '@flwst/types';
 
 const logger = getLogger();
 
@@ -241,7 +243,7 @@ export function registerNotionHandlers(): void {
     }
   });
 
-  // Tasks-only sync (e.g. for dedup gate)
+  // Tasks-only sync (e.g. for dedup gate). Broadcasts errors so renderer can update store.
   ipcMain.handle('notion:syncTasks', async () => {
     try {
       return await runTasksSync();
@@ -251,9 +253,32 @@ export function registerNotionHandlers(): void {
         code: notionError.code,
         message: notionError.message,
       });
+      BrowserWindow.getAllWindows().forEach((win) => {
+        win.webContents.send('notion:syncComplete', {
+          success: false,
+          error: notionError.message,
+        });
+      });
       throw notionError;
     }
   });
+
+  // Publish drafts to Notion (sync -> dedup -> create/update -> re-sync broadcast)
+  ipcMain.handle(
+    'notion:publishDrafts',
+    async (_event, payload: PublishPayload) => {
+      try {
+        return await publishDrafts(payload);
+      } catch (error) {
+        const notionError = toNotionError(error);
+        logger.error('Notion publish drafts failed', {
+          code: notionError.code,
+          message: notionError.message,
+        });
+        throw notionError;
+      }
+    },
+  );
 
   // Confirm status property migration
   ipcMain.handle('notion:confirmStatusMigration', async (): Promise<void> => {

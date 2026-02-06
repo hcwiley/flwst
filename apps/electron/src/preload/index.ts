@@ -68,6 +68,8 @@ const api = {
     sync: (): Promise<{ tasks: unknown[]; notes: unknown[] }> =>
       ipcRenderer.invoke('notion:sync'),
     syncTasks: (): Promise<unknown[]> => ipcRenderer.invoke('notion:syncTasks'),
+    publishDrafts: (payload: import('@flwst/types').PublishPayload) =>
+      ipcRenderer.invoke('notion:publishDrafts', payload),
     onSyncComplete: (
       callback: (payload: {
         success: boolean;
