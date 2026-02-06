@@ -8,6 +8,30 @@ import { PrioritySchema, TaskStatusSchema } from './core';
 import { OnboardingStateSchema } from './onboarding';
 
 /**
+ * Kanban preference schema (sorting and column visibility).
+ */
+export const KanbanSortKeySchema = z.enum([
+  'name',
+  'updatedAt',
+  'priority',
+  'project',
+]);
+
+export type KanbanSortKey = z.infer<typeof KanbanSortKeySchema>;
+
+export const KanbanSortDirSchema = z.enum(['asc', 'desc']);
+
+export type KanbanSortDir = z.infer<typeof KanbanSortDirSchema>;
+
+export const KanbanPrefsSchema = z.object({
+  sortKey: KanbanSortKeySchema,
+  sortDir: KanbanSortDirSchema,
+  visibleStatuses: z.array(TaskStatusSchema),
+});
+
+export type KanbanPrefs = z.infer<typeof KanbanPrefsSchema>;
+
+/**
  * Prompt overrides only; defaults live in @flwst/prompts.
  * When absent, app uses library default for that key.
  */
@@ -41,6 +65,11 @@ export const UserConfigSchema = z.object({
     todosDataSourceId: z.string().optional(),
   }),
   onboardingState: OnboardingStateSchema.optional(),
+  kanbanPrefs: KanbanPrefsSchema.default({
+    sortKey: 'name',
+    sortDir: 'asc',
+    visibleStatuses: TaskStatusSchema.options,
+  }),
 });
 
 export type UserConfig = z.infer<typeof UserConfigSchema>;
@@ -94,6 +123,9 @@ export const TokensSchema = z.object({
   notionPageId: z.string().optional(),
   notionDailyNotesDataSourceId: z.string().optional(),
   notionTodosDataSourceId: z.string().optional(),
+  /** Database ID for queries; when set, used by sync instead of data source ID. */
+  notionDailyNotesDbId: z.string().optional(),
+  notionTodosDbId: z.string().optional(),
 });
 
 export type Tokens = z.infer<typeof TokensSchema>;

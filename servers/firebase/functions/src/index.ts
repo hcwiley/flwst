@@ -158,12 +158,3 @@ export const generate = onRequest(
   },
 );
 
-/**
- * Health check endpoint.
- */
-export const helloWorld = onRequest((request: Request, response: Response) => {
-  logger.info('Hello logs!', { structuredData: true });
-  response.send('Hello from Firebase!');
-});
-
-export { generatePoem } from './genkit-sample';

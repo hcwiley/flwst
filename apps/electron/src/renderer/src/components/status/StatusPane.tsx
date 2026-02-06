@@ -1,11 +1,12 @@
 /**
  * Collapsible vertical pane showing run status.
- * Collapses up/down; similar pattern to SettingsRail.
+ * Quiet footer typography; tertiary Copy button.
  */
 
 import type { JSX } from 'react';
 import { useCallback, useMemo, useState } from 'react';
-import { Button, Stack, Text, YStack } from 'tamagui';
+import { Button, Stack, YStack } from 'tamagui';
+import { MetaText } from '@flwst/ui';
 import type { InboxIngestResult, IngestStatus } from '../inbox/types';
 
 interface StatusPaneProps {
@@ -102,26 +103,11 @@ export function StatusPane({
           alignItems='center'
           gap='$2'
         >
-          <Text
-            fontSize='$3'
-            fontWeight='600'
-          >
-            Status:
-          </Text>
-          <Text
-            fontSize='$3'
-            color={statusColor}
-          >
-            {statusLabel}
-          </Text>
-          {lastRun && (
-            <Text
-              fontSize='$2'
-              opacity={0.6}
-            >
-              ({lastRun.runId.slice(0, 8)}...)
-            </Text>
-          )}
+          <MetaText>Status:</MetaText>
+          <MetaText color={statusColor}>{statusLabel}</MetaText>
+          {lastRun ? (
+            <MetaText opacity={0.6}>({lastRun.runId.slice(0, 8)}...)</MetaText>
+          ) : null}
         </Stack>
         <Stack
           flexDirection='row'
@@ -130,7 +116,7 @@ export function StatusPane({
         >
           {(error || lastRun) && (
             <Button
-              size='$2'
+              size='$1'
               theme={copyState === 'error' ? 'red' : 'gray'}
               onPress={handleCopy}
             >
@@ -142,8 +128,10 @@ export function StatusPane({
             </Button>
           )}
           <Button
-            size='$2'
+            size='$1'
+            theme='gray'
             onPress={toggleCollapsed}
+            aria-label={collapsed ? 'Expand status' : 'Collapse status'}
           >
             {collapsed ? '▲' : '▼'}
           </Button>
@@ -157,41 +145,31 @@ export function StatusPane({
           flex={1}
           overflow='scroll'
         >
-          {lastRun && (
+          {lastRun ? (
             <>
-              <Text fontSize='$2'>Run ID: {lastRun.runId}</Text>
-              <Text fontSize='$2'>Timestamp: {lastRun.timestamp}</Text>
-              <Text fontSize='$2'>Filename: {lastRun.filename}</Text>
-              <Text fontSize='$2'>
+              <MetaText>Run ID: {lastRun.runId}</MetaText>
+              <MetaText>Timestamp: {lastRun.timestamp}</MetaText>
+              <MetaText>Filename: {lastRun.filename}</MetaText>
+              <MetaText>
                 LLM:{' '}
                 {lastRun.llmSuccess
                   ? `Success (${lastRun.llmDurationMs}ms)`
                   : 'Failed'}
-              </Text>
-              {lastRun.llmSuccess && (
+              </MetaText>
+              {lastRun.llmSuccess ? (
                 <>
-                  <Text fontSize='$2'>Daily Note: {lastRun.dailyNotePath}</Text>
-                  <Text fontSize='$2'>Task Feed: {lastRun.taskFeedPath}</Text>
+                  <MetaText>Daily Note: {lastRun.dailyNotePath}</MetaText>
+                  <MetaText>Task Feed: {lastRun.taskFeedPath}</MetaText>
                 </>
-              )}
+              ) : null}
             </>
-          )}
-          {error && (
-            <Text
-              fontSize='$2'
-              color='$red10'
-            >
-              Error: {error}
-            </Text>
-          )}
-          {!lastRun && !error && (
-            <Text
-              fontSize='$2'
-              opacity={0.6}
-            >
+          ) : null}
+          {error ? <MetaText color='$red10'>Error: {error}</MetaText> : null}
+          {!lastRun && !error ? (
+            <MetaText opacity={0.6}>
               No runs yet. Drop a transcript to begin.
-            </Text>
-          )}
+            </MetaText>
+          ) : null}
         </YStack>
       )}
     </Stack>

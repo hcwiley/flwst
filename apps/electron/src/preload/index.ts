@@ -65,6 +65,36 @@ const api = {
       dailyNotesDbId: string;
       tasksDbId: string;
     }> => ipcRenderer.invoke('notion:createResources', options),
+    sync: (): Promise<{ tasks: unknown[]; notes: unknown[] }> =>
+      ipcRenderer.invoke('notion:sync'),
+    syncTasks: (): Promise<unknown[]> => ipcRenderer.invoke('notion:syncTasks'),
+    publishDrafts: (payload: import('@flwst/types').PublishPayload) =>
+      ipcRenderer.invoke('notion:publishDrafts', payload),
+    updateTaskStatus: (payload: {
+      taskId: string;
+      status: import('@flwst/types').TaskStatus;
+    }): Promise<{ ok: true } | { ok: false; error: string }> =>
+      ipcRenderer.invoke('notion:updateTaskStatus', payload),
+    onSyncComplete: (
+      callback: (payload: {
+        success: boolean;
+        tasks?: unknown[];
+        notes?: unknown[];
+        error?: string;
+      }) => void,
+    ): (() => void) => {
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        payload: {
+          success: boolean;
+          tasks?: unknown[];
+          notes?: unknown[];
+          error?: string;
+        },
+      ) => callback(payload);
+      ipcRenderer.on('notion:syncComplete', handler);
+      return () => ipcRenderer.removeListener('notion:syncComplete', handler);
+    },
   },
 };
 

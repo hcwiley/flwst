@@ -9,7 +9,11 @@ import {
 } from './lifecycle';
 import { registerOnboardingHandlers } from './onboarding';
 import { registerConfigHandlers } from './config';
-import { checkNotionSchemasOnStartup, registerNotionHandlers } from './notion';
+import {
+  checkNotionSchemasOnStartup,
+  registerNotionHandlers,
+  runBootstrapSync,
+} from './notion';
 import { logger } from '@flwst/core';
 import { registerInboxHandlers } from './inbox';
 import { registerLlmHandlers } from './llm';
@@ -64,6 +68,11 @@ app.whenReady().then(() => {
 
   // Create main window (tracking happens in createMainWindow)
   createMainWindow();
+
+  // Bootstrap Notion sync when notion.status === 'ready'
+  runBootstrapSync().catch((err) =>
+    getLogger().error('Bootstrap sync failed', { err }),
+  );
 
   // Register lifecycle handlers
   registerAppLifecycleHandlers();

@@ -165,6 +165,12 @@ This ensures databases maintain correct schemas through:
 - Manual property deletions by users
 - Schema migrations
 
+## Notion Status Migration
+
+The Tasks database **Status** property is expected to be a Notion Status type
+(not Select). We detect legacy Select usage and guide a manual migration in
+Notion UI; code paths that write status always use the Status payload shape.
+
 ### Storage Architecture
 
 Two encrypted stores manage state:

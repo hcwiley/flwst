@@ -97,6 +97,24 @@ function diffPropertyTypes(
 }
 
 /**
+ * Ignore Status type mismatches between select and status.
+ * Status must be migrated manually in Notion UI; we do not auto-update types.
+ */
+function filterStatusTypeMismatch(
+  mismatches: { key: string; expected: string; actual: string }[],
+): { key: string; expected: string; actual: string }[] {
+  return mismatches.filter((entry) => {
+    if (entry.key !== 'Status') return true;
+    const expected = entry.expected.toLowerCase();
+    const actual = entry.actual.toLowerCase();
+    return !(
+      (expected === 'status' && actual === 'select') ||
+      (expected === 'select' && actual === 'status')
+    );
+  });
+}
+
+/**
  * Detect if the Status property has been migrated from select to status type.
  * The migration is needed if the "Status" property (exact name) is still type "select".
  * The migration is complete when "Status" property is type "status" (or doesn't exist and a status-type property exists).
@@ -351,7 +369,11 @@ export async function checkNotionSchemasOnStartup(): Promise<void> {
     }
 
     const dailyDiff = diffPropertyTypes(expectedTypes.daily, dailySchema);
-    const tasksDiff = diffPropertyTypes(expectedTypes.tasks, tasksSchema);
+    const rawTasksDiff = diffPropertyTypes(expectedTypes.tasks, tasksSchema);
+    const tasksDiff = {
+      ...rawTasksDiff,
+      typeMismatches: filterStatusTypeMismatch(rawTasksDiff.typeMismatches),
+    };
 
     if (
       dailyDiff.missing.length > 0 ||

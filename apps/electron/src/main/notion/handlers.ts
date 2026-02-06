@@ -3,8 +3,8 @@
  * Registers all Electron IPC handlers for Notion integration.
  */
 
-import { ipcMain, shell } from 'electron';
-import type { NotionWorkspaceMetadata } from '@flwst/types';
+import { ipcMain, shell, BrowserWindow } from 'electron';
+import type { NotionWorkspaceMetadata, TaskStatus } from '@flwst/types';
 import { getLogger } from '../sentry';
 import { getConfigStore, getTokensStore } from '../storage';
 import { completeNotionOAuth } from './notionOAuth';
@@ -12,6 +12,10 @@ import { normalizeNotionId } from './notionSchema';
 import { toNotionError } from './errors';
 import { getOrCreateResources } from './resources';
 import { NotionError } from './errors';
+import { runSync, runTasksSync } from './sync';
+import { publishDrafts } from './publish';
+import { updateTaskStatus } from './updateTaskStatus';
+import type { PublishPayload } from '@flwst/types';
 
 const logger = getLogger();
 
@@ -208,6 +212,92 @@ export function registerNotionHandlers(): void {
           message: notionError.message,
         });
         throw notionError;
+      }
+    },
+  );
+
+  // Full sync: tasks + daily notes
+  ipcMain.handle('notion:sync', async () => {
+    try {
+      const result = await runSync();
+      BrowserWindow.getAllWindows().forEach((win) => {
+        win.webContents.send('notion:syncComplete', {
+          success: true,
+          tasks: result.tasks,
+          notes: result.notes,
+        });
+      });
+      return result;
+    } catch (error) {
+      const notionError = toNotionError(error);
+      logger.error('Notion sync failed', {
+        code: notionError.code,
+        message: notionError.message,
+      });
+      BrowserWindow.getAllWindows().forEach((win) => {
+        win.webContents.send('notion:syncComplete', {
+          success: false,
+          error: notionError.message,
+        });
+      });
+      throw notionError;
+    }
+  });
+
+  // Tasks-only sync (e.g. for dedup gate). Broadcasts errors so renderer can update store.
+  ipcMain.handle('notion:syncTasks', async () => {
+    try {
+      return await runTasksSync();
+    } catch (error) {
+      const notionError = toNotionError(error);
+      logger.error('Notion sync tasks failed', {
+        code: notionError.code,
+        message: notionError.message,
+      });
+      BrowserWindow.getAllWindows().forEach((win) => {
+        win.webContents.send('notion:syncComplete', {
+          success: false,
+          error: notionError.message,
+        });
+      });
+      throw notionError;
+    }
+  });
+
+  // Publish drafts to Notion (sync -> dedup -> create/update -> re-sync broadcast)
+  ipcMain.handle(
+    'notion:publishDrafts',
+    async (_event, payload: PublishPayload) => {
+      try {
+        return await publishDrafts(payload);
+      } catch (error) {
+        const notionError = toNotionError(error);
+        logger.error('Notion publish drafts failed', {
+          code: notionError.code,
+          message: notionError.message,
+        });
+        throw notionError;
+      }
+    },
+  );
+
+  // Update a single task status (Kanban drag-and-drop)
+  ipcMain.handle(
+    'notion:updateTaskStatus',
+    async (
+      _event,
+      payload: { taskId: string; status: TaskStatus },
+    ): Promise<{ ok: true } | { ok: false; error: string }> => {
+      try {
+        await updateTaskStatus(payload.taskId, payload.status);
+        return { ok: true };
+      } catch (error) {
+        const notionError = toNotionError(error);
+        logger.error('Notion update task status failed', {
+          code: notionError.code,
+          message: notionError.message,
+        });
+        return { ok: false, error: notionError.message };
       }
     },
   );

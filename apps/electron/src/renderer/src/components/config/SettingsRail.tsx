@@ -1,12 +1,13 @@
 /**
  * Collapsible right-side rail for settings.
- * Collapsed state shows a compact icon-only rail for quick expand.
+ * Collapsed: single "Settings" button. Expanded: Panel with H2 header and ConfigPane.
  */
 
 import type { JSX } from 'react';
 
 import { useCallback, useState } from 'react';
-import { Button, Stack, Text, YStack } from 'tamagui';
+import { Button, Stack } from 'tamagui';
+import { H2, Panel } from '@flwst/ui';
 import type { UserConfig } from '@flwst/types';
 import { ConfigPane } from './ConfigPane';
 
@@ -58,46 +59,21 @@ export function SettingsRail({
         borderBottomWidth={1}
         borderColor='$gray3'
       >
-        {!collapsed && (
-          <Text
-            fontSize='$6'
-            fontWeight='600'
-          >
-            {title}
-          </Text>
-        )}
+        {!collapsed && <H2>{title}</H2>}
         <Button
           size='$3'
           onPress={toggleCollapsed}
-          aria-label={
-            collapsed ? 'Expand settings rail' : 'Collapse settings rail'
-          }
+          aria-label={collapsed ? 'Expand settings' : 'Collapse settings'}
         >
-          {collapsed ? '>' : '<'}
+          {collapsed ? 'Settings' : '◀'}
         </Button>
       </Stack>
 
-      {/* Icon-only rail when collapsed to keep layout minimal */}
-      {collapsed ? (
-        <YStack
-          flex={1}
-          alignItems='center'
-          justifyContent='flex-start'
-          paddingTop='$4'
-          gap='$3'
-        >
-          <Button
-            size='$3'
-            onPress={toggleCollapsed}
-            aria-label='Open settings'
-          >
-            SET
-          </Button>
-        </YStack>
-      ) : (
-        <Stack
+      {collapsed ? null : (
+        <Panel
           flex={1}
           overflow='hidden'
+          padding='$3'
         >
           <ConfigPane
             selectedPromptKey={selectedPromptKey}
@@ -108,7 +84,7 @@ export function SettingsRail({
             onSelectPrompt={setSelectedPromptKey}
             loadConfig={loadConfig}
           />
-        </Stack>
+        </Panel>
       )}
     </Stack>
   );

@@ -1,3 +1,4 @@
+import { TaskProps } from './../../../../types/src/api';
 /**
  * Client-side ingest pipeline for transcript inputs.
  * Responsible for deterministic run IDs, preprocess transforms, and artifact writes.
@@ -390,7 +391,19 @@ export async function ingestTranscript(
     cleanPath,
     logsPath,
     bundlePath,
+    taskFeedPropsPath,
   });
+
+  // if we're in development load taskFeedProps from the file system and print it
+  if (process.env.NODE_ENV === 'development') {
+    const taskFeedPropsStr = await readFile(taskFeedPropsPath, 'utf8');
+    try {
+      const taskFeedProps = JSON.parse(taskFeedPropsStr) as TaskProps[];
+      logger.debug('taskFeedProps', { taskFeedProps });
+    } catch (error) {
+      logger.error('Failed to parse taskFeedProps', { error });
+    }
+  }
 
   return {
     runId,

@@ -13,7 +13,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "rm -rf dist && tsc",
+    "build": "rm -rf dist && rm -f tsconfig.tsbuildinfo && tsc --build",
     "build:firebase": "tsc -p tsconfig.firebase.json && node ./scripts/rewrite-extensions.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint ."

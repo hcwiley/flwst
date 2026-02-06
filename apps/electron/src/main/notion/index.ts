@@ -5,3 +5,4 @@
 
 export { registerNotionHandlers } from './handlers';
 export { checkNotionSchemasOnStartup } from './schemaValidation';
+export { runBootstrapSync } from './bootstrap';

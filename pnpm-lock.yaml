@@ -90,6 +90,9 @@ importers:
       '@flwst/prompts':
         specifier: workspace:*
         version: link:../../libs/prompts
+      '@flwst/state':
+        specifier: workspace:*
+        version: link:../../libs/state
       '@flwst/types':
         specifier: workspace:*
         version: link:../../types
@@ -290,6 +293,10 @@ importers:
         version: 5.9.3
 
   servers/firebase:
+    dependencies:
+      '@flwst/types':
+        specifier: workspace:*
+        version: link:../../types
     devDependencies:
       tsc:
         specifier: ^2.0.4

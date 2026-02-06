@@ -6,11 +6,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Stack } from 'tamagui';
 import { FlowStateTamaguiProvider } from '@flwst/ui';
+import { useAppStore } from '@flwst/state';
 import { MainPane } from '../components/MainPane';
 import type { UserConfig } from '@flwst/types';
 import { InboxPane } from '../components/inbox';
 import { SettingsRail } from '../components/config';
 import { StatusPane } from '../components/status';
+import { SyncButton } from '../components/SyncButton';
 import type {
   InboxIngestResult,
   IngestStatus,
@@ -27,6 +29,7 @@ export function MainLayout(): React.JSX.Element {
   const [runStatus, setRunStatus] = useState<IngestStatus>('idle');
   const [lastRun, setLastRun] = useState<InboxIngestResult | null>(null);
   const [runError, setRunError] = useState<string | null>(null);
+  const setKanbanPrefs = useAppStore((s) => s.setKanbanPrefs);
 
   const loadConfig = useCallback(async (): Promise<void> => {
     try {
@@ -45,6 +48,11 @@ export function MainLayout(): React.JSX.Element {
     void loadConfig();
   }, [loadConfig]);
 
+  useEffect(() => {
+    if (!config) return;
+    setKanbanPrefs(config.kanbanPrefs);
+  }, [config, setKanbanPrefs]);
+
   const effective = useMemo(() => {
     if (!config || !defaults) return null;
     return {
@@ -61,6 +69,18 @@ export function MainLayout(): React.JSX.Element {
         width='100vw'
         backgroundColor='$background'
       >
+        {/* Top bar with Sync on the right */}
+        <Stack
+          flexDirection='row'
+          justifyContent='flex-end'
+          alignItems='center'
+          paddingHorizontal='$3'
+          paddingVertical='$2'
+          borderBottomWidth={1}
+          borderColor='$gray4'
+        >
+          <SyncButton />
+        </Stack>
         {/* Main content row */}
         <Stack
           flexDirection='row'

@@ -6,6 +6,7 @@
 import { APIErrorCode, APIResponseError } from '@notionhq/client';
 
 export type NotionErrorCode =
+  | 'NOTION_AUTH_ERROR'
   | 'NOTION_TOKEN_MISSING'
   | 'NOTION_PERMISSION_DENIED'
   | 'NOTION_PARENT_NOT_FOUND'

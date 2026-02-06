@@ -28,6 +28,7 @@
     "@flwst/core": "workspace:*",
     "@flwst/integrations": "workspace:*",
     "@flwst/prompts": "workspace:*",
+    "@flwst/state": "workspace:*",
     "@flwst/types": "workspace:*",
     "@flwst/ui": "workspace:*",
     "@notionhq/client": "^5.8.0",

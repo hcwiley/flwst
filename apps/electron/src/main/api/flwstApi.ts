@@ -38,7 +38,10 @@ export class FlwstApiClient {
   constructor(config: FlwstApiClientConfig) {
     this.baseUrl = config.baseUrl.replace(/\/$/, '');
     this.timeout = config.timeout ?? DEFAULT_TIMEOUT_MS;
-    logger.info('FlwstApiClient initialized', { baseUrl: this.baseUrl, timeout: this.timeout });
+    logger.info('FlwstApiClient initialized', {
+      baseUrl: this.baseUrl,
+      timeout: this.timeout,
+    });
   }
 
   /**

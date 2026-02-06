@@ -2,8 +2,13 @@ import { ElectronAPI } from '@electron-toolkit/preload';
 import type {
   GenerateRequest,
   GenerateResponse,
+  NotionDailyNotePage,
+  NotionTaskPage,
   OnboardingState,
   NotionWorkspaceMetadata,
+  PublishPayload,
+  PublishResult,
+  TaskStatus,
   UserConfig,
   RunId,
 } from '@flwst/types';
@@ -25,6 +30,10 @@ export interface ConfigAPI {
   getPromptDefaults: () => Promise<EffectivePrompts>;
 }
 
+export type NotionSyncCompletePayload =
+  | { success: true; tasks: NotionTaskPage[]; notes: NotionDailyNotePage[] }
+  | { success: false; error: string };
+
 export interface NotionAPI {
   startOAuth: () => Promise<{ authUrl: string }>;
   storeOAuthResult: (result: {
@@ -37,6 +46,19 @@ export interface NotionAPI {
     dailyNotesDbId: string;
     tasksDbId: string;
   }>;
+  sync: () => Promise<{
+    tasks: NotionTaskPage[];
+    notes: NotionDailyNotePage[];
+  }>;
+  syncTasks: () => Promise<NotionTaskPage[]>;
+  publishDrafts: (payload: PublishPayload) => Promise<PublishResult>;
+  updateTaskStatus: (payload: {
+    taskId: string;
+    status: TaskStatus;
+  }) => Promise<{ ok: true } | { ok: false; error: string }>;
+  onSyncComplete: (
+    callback: (payload: NotionSyncCompletePayload) => void,
+  ) => () => void;
 }
 
 export interface InboxIngestRequest {

@@ -133,6 +133,19 @@ export class ConfigStore extends EncryptedStore<UserConfig> {
       prompts: {},
       notion: {},
       onboardingState: undefined,
+      kanbanPrefs: {
+        sortKey: 'name',
+        sortDir: 'asc',
+        visibleStatuses: [
+          'Backlog',
+          'To-do',
+          'On Deck',
+          'In progress',
+          'BLOCKED',
+          'Done',
+          'Cancelled',
+        ],
+      },
     };
   }
 

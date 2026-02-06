@@ -4,7 +4,8 @@
  */
 
 import { useCallback, useMemo, useState } from 'react';
-import { Button, Spinner, Stack, Text, TextArea, YStack } from 'tamagui';
+import { Button, Spinner, Stack, TextArea, YStack } from 'tamagui';
+import { H1, H2, MetaText, Panel } from '@flwst/ui';
 import type { UserConfig } from '@flwst/types';
 import type { InboxIngestResult, IngestStatus } from './types';
 
@@ -127,24 +128,20 @@ export function InboxPane({
   ]);
 
   return (
-    <Stack
+    <Panel
       flex={1}
+      overflow='hidden'
       padding='$4'
       gap='$3'
     >
-      <Text
-        fontSize='$8'
-        fontWeight='bold'
+      <Stack
+        style={{ position: 'sticky', top: 0, zIndex: 1 }}
+        backgroundColor='$gray2'
+        paddingBottom='$2'
       >
-        Inbox
-      </Text>
-
-      <Text
-        fontSize='$3'
-        opacity={0.8}
-      >
-        Drop a transcript file or paste text below to ingest.
-      </Text>
+        <H1>Inbox</H1>
+      </Stack>
+      <MetaText>Drop a transcript file or paste text below to ingest.</MetaText>
 
       {/* Drop zone for text files (div for DOM drag events in Electron renderer) */}
       <Stack
@@ -160,32 +157,17 @@ export function InboxPane({
           onDragLeave={handleDragLeave}
           style={{ minHeight: 44 }}
         >
-          <Text
-            fontSize='$3'
-            opacity={0.9}
-          >
+          <MetaText opacity={0.9}>
             {isDragging
               ? 'Release to load file'
               : 'Drag and drop a .txt or .md'}
-          </Text>
-          {filename && (
-            <Text
-              fontSize='$3'
-              opacity={0.7}
-            >
-              Loaded: {filename}
-            </Text>
-          )}
+          </MetaText>
+          {filename && <MetaText opacity={0.7}>Loaded: {filename}</MetaText>}
         </div>
       </Stack>
 
       <YStack gap='$2'>
-        <Text
-          fontSize='$4'
-          fontWeight='600'
-        >
-          Paste transcript
-        </Text>
+        <H2 fontSize='$4'>Paste transcript</H2>
         <TextArea
           value={content}
           onChangeText={setContent}
@@ -220,12 +202,7 @@ export function InboxPane({
         {isProcessing && <Spinner size='small' />}
       </Stack>
 
-      <Text
-        fontSize='$3'
-        opacity={0.7}
-      >
-        Preprocess: {preprocessEnabled ? 'On' : 'Off'}
-      </Text>
-    </Stack>
+      <MetaText>Preprocess: {preprocessEnabled ? 'On' : 'Off'}</MetaText>
+    </Panel>
   );
 }
