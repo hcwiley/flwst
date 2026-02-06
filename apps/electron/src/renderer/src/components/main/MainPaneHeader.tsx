@@ -2,7 +2,8 @@
  * Main pane header showing title and run metadata.
  */
 
-import { Stack, Text } from 'tamagui';
+import { Stack, XStack } from 'tamagui';
+import { H1, MetaText } from '@flwst/ui';
 import type { InboxIngestResult } from '../inbox/types';
 
 interface MainPaneHeaderProps {
@@ -13,29 +14,20 @@ export function MainPaneHeader({
   lastRun,
 }: MainPaneHeaderProps): React.JSX.Element {
   return (
-    <Stack gap='$1'>
-      <Text
-        fontSize='$7'
-        fontWeight='600'
-      >
-        Daily Note + Kanban
-      </Text>
+    <XStack
+      gap='$3'
+      alignItems='center'
+      justifyContent='flex-start'
+    >
+      <H1 fontSize='$7'>Daily Note + Kanban</H1>
       {lastRun ? (
-        <Text
-          fontSize='$3'
-          opacity={0.7}
-        >
+        <MetaText>
           {lastRun.filename} · {lastRun.runId.slice(0, 8)} ·{' '}
           {lastRun.llmSuccess ? 'LLM OK' : 'LLM Error'}
-        </Text>
+        </MetaText>
       ) : (
-        <Text
-          fontSize='$3'
-          opacity={0.7}
-        >
-          Run a transcript to preview the daily note output.
-        </Text>
+        <MetaText>Run a transcript to preview the daily note output.</MetaText>
       )}
-    </Stack>
+    </XStack>
   );
 }

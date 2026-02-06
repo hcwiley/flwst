@@ -1,11 +1,21 @@
 /**
  * Kanban board rendering tasks grouped by core status columns.
  * Tasks are pre-normalized to KanbanTaskDisplay (status already normalized).
+ * Board header: Toolbar with Sort control and Column visibility popover.
  */
 
 import { useCallback, useState } from 'react';
-import { Button, ScrollView, Stack, Text, XStack } from 'tamagui';
+import {
+  Button,
+  Popover,
+  ScrollView,
+  Separator,
+  Text,
+  XStack,
+  YStack,
+} from 'tamagui';
 import { useAppStore } from '@flwst/state';
+import { H2, MetaText, Panel, Toolbar } from '@flwst/ui';
 import type { KanbanSortDir, KanbanSortKey, TaskStatus } from '@flwst/types';
 import type { KanbanTaskDisplay } from './kanbanTypes';
 import { KanbanColumn } from './KanbanColumn';
@@ -35,6 +45,20 @@ const SORT_OPTIONS: Array<{ key: KanbanSortKey; label: string }> = [
   { key: 'project', label: 'Project' },
 ];
 
+function formatLastSync(iso: string | undefined): string {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleTimeString(undefined, {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return '';
+  }
+}
+
 export function KanbanBoard({
   tasks,
   isLoading,
@@ -43,6 +67,7 @@ export function KanbanBoard({
 }: KanbanBoardProps): React.JSX.Element {
   const kanbanPrefs = useAppStore((s) => s.kanbanPrefs);
   const setKanbanPrefs = useAppStore((s) => s.setKanbanPrefs);
+  const lastSyncAt = useAppStore((s) => s.notionSync.lastSyncAt);
   const [prefsError, setPrefsError] = useState<string | null>(null);
 
   const updatePrefs = useCallback(
@@ -105,89 +130,175 @@ export function KanbanBoard({
     kanbanPrefs.visibleStatuses.includes(status),
   );
 
+  const syncLabel = formatLastSync(lastSyncAt);
+  const sortDirLabel = kanbanPrefs.sortDir === 'asc' ? 'Asc' : 'Desc';
+
   return (
     <ScrollView>
-      <Stack
+      <Panel
         flex={1}
-        borderWidth={1}
-        borderColor='$gray4'
-        borderRadius='$4'
-        backgroundColor='$gray1'
-        padding='$3'
         overflow='scroll'
+        padding='$3'
+        gap='$3'
       >
-        <Text
-          fontSize='$6'
-          fontWeight='600'
-        >
-          Kanban
-        </Text>
-        <XStack
-          gap='$2'
-          alignItems='center'
+        {/* Board header: title + meta left; sort + columns right */}
+        <Toolbar
+          justifyContent='space-between'
+          alignItems='flex-start'
           flexWrap='wrap'
         >
-          <Text
-            fontSize='$2'
-            opacity={0.7}
+          <XStack
+            gap='$3'
+            alignItems='center'
+            justifyContent='center'
           >
-            Sort
-          </Text>
-          {SORT_OPTIONS.map((option) => (
+            <H2>Kanban</H2>
+            {syncLabel ? <MetaText>Synced {syncLabel}</MetaText> : null}
+          </XStack>
+          <XStack
+            gap='$2'
+            alignItems='center'
+            flexWrap='wrap'
+          >
+            <MetaText>Sort by</MetaText>
+            {SORT_OPTIONS.map((option) => (
+              <Button
+                key={option.key}
+                size='$2'
+                theme={
+                  kanbanPrefs.sortKey === option.key ? 'active' : undefined
+                }
+                fontWeight={
+                  kanbanPrefs.sortKey === option.key ? '600' : undefined
+                }
+                onPress={() => handleSortKey(option.key)}
+                aria-pressed={kanbanPrefs.sortKey === option.key}
+              >
+                {option.label}
+              </Button>
+            ))}
             <Button
-              key={option.key}
               size='$2'
-              theme={kanbanPrefs.sortKey === option.key ? 'active' : undefined}
-              onPress={() => handleSortKey(option.key)}
+              onPress={handleSortDir}
+              aria-label={`Sort direction: ${sortDirLabel}. Toggle to change.`}
             >
-              {option.label}
+              {sortDirLabel}
             </Button>
-          ))}
-          <Button
-            size='$2'
-            onPress={handleSortDir}
-          >
-            {kanbanPrefs.sortDir === 'asc' ? 'Asc' : 'Desc'}
-          </Button>
-        </XStack>
-        <XStack
-          gap='$2'
-          alignItems='center'
-          flexWrap='wrap'
-        >
-          <Text
-            fontSize='$2'
-            opacity={0.7}
-          >
-            Columns
-          </Text>
-          {KANBAN_STATUSES.map((status) => (
-            <Button
-              key={status}
-              size='$2'
-              theme={
-                kanbanPrefs.visibleStatuses.includes(status)
-                  ? 'active'
-                  : undefined
-              }
-              onPress={() => handleToggleStatus(status)}
-            >
-              {status}
-            </Button>
-          ))}
-        </XStack>
-        {prefsError && (
+            <YStack
+              width={1}
+              alignSelf='stretch'
+              backgroundColor='$gray6'
+              marginHorizontal='$2'
+              minHeight={20}
+            />
+            <Popover>
+              <Popover.Trigger asChild>
+                <Button
+                  size='$2'
+                  theme='gray'
+                  borderWidth={1}
+                  borderColor='$gray6'
+                  aria-label='Column visibility (opens menu)'
+                >
+                  <XStack
+                    gap='$1'
+                    alignItems='center'
+                  >
+                    <Text>Columns</Text>
+                    <Text
+                      fontSize='$1'
+                      opacity={0.8}
+                    >
+                      ▾
+                    </Text>
+                  </XStack>
+                </Button>
+              </Popover.Trigger>
+              <Popover.Content
+                padding='$2'
+                elevate
+                borderWidth={1}
+                borderColor='$gray4'
+                enterStyle={{ opacity: 0, scale: 0.96 }}
+                exitStyle={{ opacity: 0, scale: 0.96 }}
+                aria-label='Column visibility'
+              >
+                <Popover.Arrow />
+                <YStack
+                  gap='$1'
+                  minWidth={180}
+                >
+                  {KANBAN_STATUSES.map((status) => {
+                    const isVisible =
+                      kanbanPrefs.visibleStatuses.includes(status);
+                    return (
+                      <Button
+                        key={status}
+                        size='$2'
+                        chromeless
+                        justifyContent='flex-start'
+                        backgroundColor={isVisible ? '$gray3' : 'transparent'}
+                        borderWidth={1}
+                        borderColor={isVisible ? '$gray5' : 'transparent'}
+                        borderRadius='$2'
+                        onPress={() => handleToggleStatus(status)}
+                        aria-pressed={isVisible}
+                        aria-label={`${status} column: ${isVisible ? 'visible' : 'hidden'}`}
+                      >
+                        <XStack
+                          gap='$2'
+                          alignItems='center'
+                        >
+                          <YStack
+                            width={14}
+                            height={14}
+                            borderRadius='$1'
+                            borderWidth={1}
+                            borderColor='$gray8'
+                            backgroundColor={
+                              isVisible ? '$blue8' : 'transparent'
+                            }
+                            alignItems='center'
+                            justifyContent='center'
+                          >
+                            {isVisible ? (
+                              <Text
+                                fontSize={10}
+                                color='$white'
+                              >
+                                ✓
+                              </Text>
+                            ) : null}
+                          </YStack>
+                          <Text fontSize='$2'>{status}</Text>
+                        </XStack>
+                      </Button>
+                    );
+                  })}
+                </YStack>
+              </Popover.Content>
+            </Popover>
+          </XStack>
+        </Toolbar>
+
+        {prefsError ? (
           <Text
             fontSize='$2'
             color='$red10'
           >
             {prefsError}
           </Text>
-        )}
+        ) : null}
+        <Separator />
         {isLoading ? (
-          <Text opacity={0.7}>Loading tasks…</Text>
+          <MetaText>Loading tasks…</MetaText>
         ) : loadError ? (
-          <Text color='$red10'>{loadError}</Text>
+          <Text
+            fontSize='$2'
+            color='$red10'
+          >
+            {loadError}
+          </Text>
         ) : (
           <ScrollView horizontal>
             <XStack gap='$3'>
@@ -212,7 +323,7 @@ export function KanbanBoard({
             </XStack>
           </ScrollView>
         )}
-      </Stack>
+      </Panel>
     </ScrollView>
   );
 }

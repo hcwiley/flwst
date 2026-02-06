@@ -5,7 +5,15 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Separator, Spinner, Stack, Text } from 'tamagui';
+import {
+  Button,
+  Separator,
+  Spinner,
+  Stack,
+  Text,
+  XStack,
+  YStack,
+} from 'tamagui';
 import { useAppStore } from '@flwst/state';
 import type {
   DailyNoteProps,
@@ -237,13 +245,58 @@ export function MainPane({ lastRun }: MainPaneProps): React.JSX.Element {
       borderColor='$gray4'
       overflow='hidden'
     >
-      <Stack
+      <YStack
         flex={1}
         padding='$4'
         gap='$3'
         backgroundColor='$background'
       >
-        <MainPaneHeader lastRun={lastRun} />
+        <XStack
+          flex={0.1}
+          alignItems='center'
+          justifyContent='flex-end'
+        >
+          <Stack flex={0.8}>
+            <MainPaneHeader lastRun={lastRun} />
+          </Stack>
+          {hasPublishable && (
+            <Stack
+              flexDirection='row'
+              alignItems='flex-end'
+              justifyContent='flex-end'
+              flex={0.2}
+              gap='$2'
+              flexWrap='wrap'
+            >
+              <Button
+                size='$3'
+                theme='active'
+                disabled={isPublishing}
+                onPress={handlePublish}
+                icon={isPublishing ? <Spinner size='small' /> : undefined}
+              >
+                {isPublishing ? 'Publishing…' : 'Publish to Notion'}
+              </Button>
+              {publishError && (
+                <Text
+                  fontSize='$2'
+                  color='$red10'
+                >
+                  {publishError}
+                </Text>
+              )}
+              {publishResult && !publishError && (
+                <Text
+                  fontSize='$2'
+                  color='$gray10'
+                >
+                  Created {publishResult.created}, updated{' '}
+                  {publishResult.updated}, skipped {publishResult.skipped}.
+                </Text>
+              )}
+            </Stack>
+          )}
+        </XStack>
 
         {!lastRun && (
           <Stack
@@ -271,51 +324,15 @@ export function MainPane({ lastRun }: MainPaneProps): React.JSX.Element {
         )}
 
         {lastRun?.llmSuccess && (
-          <>
-            <Stack flex={1}>
-              <DailyNotePreview
-                markdown={markdown}
-                isLoading={isLoading}
-                loadError={loadError}
-              />
-            </Stack>
-            <Separator marginVertical='$3' />
-          </>
-        )}
-
-        {hasPublishable && (
           <Stack
-            flexDirection='row'
-            alignItems='center'
-            gap='$2'
-            flexWrap='wrap'
+            flex={0.5}
+            maxHeight={'40vh'}
           >
-            <Button
-              size='$3'
-              theme='active'
-              disabled={isPublishing}
-              onPress={handlePublish}
-              icon={isPublishing ? <Spinner size='small' /> : undefined}
-            >
-              {isPublishing ? 'Publishing…' : 'Publish to Notion'}
-            </Button>
-            {publishError && (
-              <Text
-                fontSize='$2'
-                color='$red10'
-              >
-                {publishError}
-              </Text>
-            )}
-            {publishResult && !publishError && (
-              <Text
-                fontSize='$2'
-                color='$gray10'
-              >
-                Created {publishResult.created}, updated {publishResult.updated}
-                , skipped {publishResult.skipped}.
-              </Text>
-            )}
+            <DailyNotePreview
+              markdown={markdown}
+              isLoading={isLoading}
+              loadError={loadError}
+            />
           </Stack>
         )}
 
@@ -335,7 +352,7 @@ export function MainPane({ lastRun }: MainPaneProps): React.JSX.Element {
             onMoveTask={handleMoveTask}
           />
         </Stack>
-      </Stack>
+      </YStack>
     </Stack>
   );
 }

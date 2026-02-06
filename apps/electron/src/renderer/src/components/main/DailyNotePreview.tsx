@@ -21,16 +21,18 @@ export function DailyNotePreview({
   const markdownColor = theme.color?.get() ?? 'inherit';
 
   return (
-    <ScrollView>
-      <Stack
-        flex={1}
-        borderWidth={1}
-        borderColor='$gray4'
-        borderRadius='$4'
-        backgroundColor='$gray1'
-        padding='$3'
-        overflow='scroll'
-      >
+    <Stack
+      flex={1}
+      flexGrow={0}
+      flexShrink={1}
+      borderWidth={1}
+      borderColor='$gray4'
+      borderRadius='$4'
+      backgroundColor='$gray1'
+      padding='$3'
+      overflow='scroll'
+    >
+      <ScrollView>
         {isLoading ? (
           <Text opacity={0.7}>Loading daily note…</Text>
         ) : loadError ? (
@@ -45,7 +47,7 @@ export function DailyNotePreview({
             </ReactMarkdown>
           </Stack>
         )}
-      </Stack>
-    </ScrollView>
+      </ScrollView>
+    </Stack>
   );
 }

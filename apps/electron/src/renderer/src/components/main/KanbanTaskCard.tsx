@@ -1,10 +1,11 @@
 /**
  * Single task card for the Kanban board.
- * Shows source badge (Notion vs Pending); Notion tasks get a clickable link to open in browser.
- * Future: "Save to Notion" action for source === 'ingest' (see plan "Future integration points").
+ * AppCard with title, source Pill, project/meta, and tag Pills.
+ * Notion tasks: clickable title opens in browser; draggable.
  */
 
-import { Stack, Text, XStack } from 'tamagui';
+import { XStack } from 'tamagui';
+import { AppCard, BodyText, MetaText, Pill } from '@flwst/ui';
 import type { KanbanTaskDisplay } from './kanbanTypes';
 
 interface KanbanTaskCardProps {
@@ -15,6 +16,9 @@ interface KanbanTaskCardProps {
 function openNotionUrl(url: string): void {
   window.open(url, '_blank', 'noopener,noreferrer');
 }
+
+/** Max lines for tag row to avoid layout jitter. */
+const TAG_MAX_LINES = 2;
 
 export function KanbanTaskCard({
   task,
@@ -31,7 +35,7 @@ export function KanbanTaskCard({
 
   const titleNode =
     task.url != null ? (
-      <Text
+      <BodyText
         fontWeight='600'
         fontSize='$3'
         color='$blue10'
@@ -41,26 +45,18 @@ export function KanbanTaskCard({
         onPress={() => openNotionUrl(task.url!)}
       >
         {task.name}
-      </Text>
+      </BodyText>
     ) : (
-      <Text
+      <BodyText
         fontWeight='600'
         fontSize='$3'
       >
         {task.name}
-      </Text>
+      </BodyText>
     );
 
   return (
-    <Stack
-      padding='$2'
-      borderWidth={1}
-      borderColor='$gray3'
-      borderRadius='$3'
-      backgroundColor='$background'
-      gap='$1'
-      asChild
-    >
+    <AppCard asChild>
       <div
         draggable={canDrag}
         onDragStart={handleDragStart}
@@ -75,46 +71,50 @@ export function KanbanTaskCard({
           flexWrap='wrap'
           gap='$1'
         >
-          {titleNode}
-          <Stack
-            paddingHorizontal='$2'
-            paddingVertical='$1'
-            borderRadius='$2'
-            backgroundColor={task.source === 'notion' ? '$blue4' : '$yellow4'}
+          <XStack
+            flex={1}
+            minWidth={0}
           >
-            <Text
-              fontSize='$1'
-              fontWeight='600'
-              color={task.source === 'notion' ? '$blue11' : '$yellow11'}
-            >
-              {task.source === 'notion' ? 'Notion' : 'Pending'}
-            </Text>
-          </Stack>
+            {titleNode}
+          </XStack>
+          <Pill
+            label={task.source === 'notion' ? 'Notion' : 'Pending'}
+            bg={task.source === 'notion' ? '$blue4' : '$yellow4'}
+            color={task.source === 'notion' ? '$blue11' : '$yellow11'}
+          />
         </XStack>
-        {task.project != null && task.project !== '' && (
-          <Text
-            fontSize='$2'
-            opacity={0.7}
-          >
-            {task.project}
-          </Text>
-        )}
-        <Text
-          fontSize='$2'
-          opacity={0.7}
+        {task.project != null && task.project !== '' ? (
+          <MetaText>{task.project}</MetaText>
+        ) : null}
+        <XStack
+          gap='$2'
+          flexWrap='wrap'
+          alignItems='center'
         >
-          Priority: {task.priority}
-          {task.due != null && task.due !== '' ? ` · Due: ${task.due}` : ''}
-        </Text>
-        {task.tags.length > 0 && (
-          <Text
-            fontSize='$2'
-            opacity={0.7}
+          <MetaText>
+            Priority: {task.priority}
+            {task.due != null && task.due !== '' ? ` · Due: ${task.due}` : ''}
+          </MetaText>
+        </XStack>
+        {task.tags.length > 0 ? (
+          <XStack
+            flexWrap='wrap'
+            gap='$1'
+            maxHeight={TAG_MAX_LINES * 24}
+            overflow='hidden'
           >
-            Tags: {task.tags.join(', ')}
-          </Text>
-        )}
+            {task.tags.slice(0, 6).map((tag) => (
+              <Pill
+                key={tag}
+                label={tag}
+              />
+            ))}
+            {task.tags.length > 6 ? (
+              <Pill label={`+${task.tags.length - 6}`} />
+            ) : null}
+          </XStack>
+        ) : null}
       </div>
-    </Stack>
+    </AppCard>
   );
 }

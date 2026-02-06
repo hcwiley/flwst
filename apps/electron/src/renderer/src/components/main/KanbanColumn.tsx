@@ -1,13 +1,18 @@
 /**
  * Single Kanban column rendering tasks for a status.
- * Future: drag-and-drop "on move" handler will live here or on card wrapper.
+ * Panel container with sticky header (title + count), internal scroll for cards.
+ * Drag-and-drop drop target for moving tasks between columns.
  */
 
 import { useCallback, useState } from 'react';
-import { Text, YStack } from 'tamagui';
+import { ScrollView, YStack } from 'tamagui';
+import { H2, MetaText, Panel, Pill } from '@flwst/ui';
 import type { TaskStatus } from '@flwst/types';
 import type { KanbanTaskDisplay } from './kanbanTypes';
 import { KanbanTaskCard } from './KanbanTaskCard';
+
+/** Max height for column body so it scrolls internally. */
+const COLUMN_BODY_MAX_HEIGHT = 420;
 
 interface KanbanColumnProps {
   status: TaskStatus;
@@ -54,34 +59,71 @@ export function KanbanColumn({
   }, []);
 
   return (
-    <YStack
+    <Panel
       width={240}
+      flexShrink={0}
       padding='$3'
-      borderWidth={1}
-      borderColor={isDragOver ? '$blue8' : '$gray4'}
-      borderRadius='$4'
-      backgroundColor={isDragOver ? '$blue2' : '$gray1'}
       gap='$2'
-      asChild
+      borderColor={isDragOver ? '$blue8' : '$gray4'}
+      backgroundColor={isDragOver ? '$blue2' : '$gray2'}
     >
-      <div
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
+      <YStack
+        flex={1}
+        minHeight={0}
+        asChild
       >
-        <Text fontWeight='600'>{status}</Text>
-        {tasks.length === 0 ? (
-          <Text opacity={0.6}>No tasks</Text>
-        ) : (
-          tasks.map((task, idx) => (
-            <KanbanTaskCard
-              key={task.id ?? `ingest-${task.name}-${idx}`}
-              task={task}
-              status={status}
-            />
-          ))
-        )}
-      </div>
-    </YStack>
+        <div
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            flex: 1,
+            minHeight: 0,
+          }}
+        >
+          <YStack
+            flexShrink={0}
+            zIndex={1}
+            backgroundColor={isDragOver ? '$blue2' : '$gray2'}
+            paddingBottom='$2'
+            flexDirection='row'
+            alignItems='center'
+            gap='$2'
+            style={{ position: 'sticky', top: 0 } as React.CSSProperties}
+          >
+            <H2
+              fontSize='$4'
+              flex={1}
+            >
+              {status}
+            </H2>
+            <Pill label={String(tasks.length)} />
+          </YStack>
+          <ScrollView
+            maxHeight={COLUMN_BODY_MAX_HEIGHT}
+            flex={1}
+          >
+            <YStack
+              gap='$2'
+              paddingRight='$1'
+            >
+              {tasks.length === 0 ? (
+                <MetaText>No tasks</MetaText>
+              ) : (
+                tasks.map((task, idx) => (
+                  <KanbanTaskCard
+                    key={task.id ?? `ingest-${task.name}-${idx}`}
+                    task={task}
+                    status={status}
+                  />
+                ))
+              )}
+            </YStack>
+          </ScrollView>
+        </div>
+      </YStack>
+    </Panel>
   );
 }
