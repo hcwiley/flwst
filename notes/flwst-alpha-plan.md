@@ -330,7 +330,7 @@ fast feedback, **and secure LLM access via a server-managed architecture**.
 
 # Development Plan
 
-**Current Phase:** Phase 5 — Inbox Pane + Client Pipeline (completing)
+**Current Phase:** Phase 7 complete; Phase 8 — Kanban + Sync-Driven Rendering (in progress)
 
 ## **Phase 0 — Prerequisites and Human Setup (Manual)**
 
@@ -617,11 +617,24 @@ Deliverable:
 
 ## **Phase 7 — Notion Sync + Dedup Gate (Pre-Publish)**
 
-Owner: Cursor
+### Status: ✅
 
-Goal: Make Notion the system of record inside the app: pull Tasks + Daily Notes into local state on launch and via Sync, then use a DB-scoped dedup gate (API snapshot + MCP) before creating/updating tasks.
+**Owner:** Cursor
 
-7.0 Guardrails (pulled from PR #2, adapted)
+**Goal:** Make Notion the system of record inside the app: pull Tasks + Daily Notes into local state on launch and via Sync, then use a DB-scoped dedup gate (API snapshot + MCP) before creating/updating tasks.
+
+**Done:**
+
+- **7.1 Bootstrap sync on launch** — When notion is ready, sync Tasks + Daily Notes into local state; persist lastSyncAt, counts, lastError.
+- **7.2 Manual Sync button** — Top-right Sync button; disabled while syncing, shows syncing state, updates lastSyncAt on success, surfaces errors.
+- **7.3 Normalize Notion ↔ local enums** — `normalize.ts`: status and priority normalization in both directions (ingest, Notion read, write payloads).
+- **7.4 Dedup gate** — After ingest: draft tasks + canonical tasks snapshot → per-draft action (create/update/skip) with reason; sync ensures snapshot present.
+- **7.5 Candidate prefilter + query keywords** — `dedup.ts`: buildQueryTokens (proper nouns first, stop words, cap 12); prefilter snapshot candidates.
+- **7.6 DB-scoped reconciliation** — MCP results reconciled to snapshot by id; only accept tasks present in `tasksById`.
+- **7.7 Write safety** — `writeGuards.ts`: normalize assignee (Notion user id guard), preprocess (dictionary/ignore) for content.
+- **Publish flow** — `publish.ts`: publish Daily Note + task drafts to Notion with dedup gate; wired to ingest and preload API.
+
+  7.0 Guardrails (pulled from PR #2, adapted)
 
 DB-scoped only (hard requirement)
 Any “search-like” result must be filtered to pages whose parent.type === 'database_id' and whose parent.database_id matches the configured Tasks DB. PR #2 had to harden this because Notion search/MCP results can return pages without parent or with unexpected parent types, and it used cached API pages to recover when results were missing parent metadata. ￼
@@ -844,23 +857,35 @@ Deliverable (Phase 7)
 
 ## **Phase 8 — Kanban + Sync-Driven Rendering (No Writes Required)**
 
-Owner: Cursor
+### Status: In progress
 
-Goal: Make FlowState usable daily by rendering Kanban purely from the synced snapshot and wiring refresh behaviors tightly.
+**Owner:** Cursor
 
-8.1 Render Kanban from Synced Tasks Snapshot
-• Source of truth: tasksById (from Phase 7 sync)
-• Group into columns by normalized status
-• Keep rendering independent of ingest/publish path (Kanban works even if user never runs the LLM)
+**Goal:** Make FlowState usable daily by rendering Kanban purely from the synced snapshot and wiring refresh behaviors tightly.
 
-8.2 Column Controls + Sorting
-• Column visibility toggles
-• Horizontal scroll
-• Sorting:
-• Priority (normalized)
-• Last updated (last_edited_time)
+**Done:**
 
-8.3 Refresh UX Patterns (pulled from PR #2)
+- **8.1 Render Kanban from synced tasks snapshot** — KanbanBoard/KanbanColumn/KanbanTaskCard source from `tasksById`; columns by normalized status; `kanbanTypes.ts` for shared types.
+- **8.2 Column controls + sorting** — Column visibility toggles; sorting by priority (normalized) and last updated.
+- **8.3 Refresh UX** — Sync button drives refresh; disabled while `isSyncing`; loading/syncing state shown.
+
+**Remaining:**
+
+- **8.4 “View in Notion” link** — Task cards “View” action opens Notion URL via external opener (not in-app); guard shell availability and fallback.
+
+  8.1 Render Kanban from Synced Tasks Snapshot
+  • Source of truth: tasksById (from Phase 7 sync)
+  • Group into columns by normalized status
+  • Keep rendering independent of ingest/publish path (Kanban works even if user never runs the LLM)
+
+  8.2 Column Controls + Sorting
+  • Column visibility toggles
+  • Horizontal scroll
+  • Sorting:
+  • Priority (normalized)
+  • Last updated (last_edited_time)
+
+  8.3 Refresh UX Patterns (pulled from PR #2)
 
 PR #2 added a “Refresh Kanban” button and disabled it while a refresh was active, plus a loading overlay state; reuse that exact interaction model, but back it with the unified Sync button. ￼
 

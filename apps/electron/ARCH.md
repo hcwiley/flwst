@@ -65,6 +65,13 @@ This ensures databases always have the correct schema even if:
 - The user manually deletes properties in Notion
 - Schema migrations are needed
 
+### Status Property Migration
+
+Tasks now expect the Notion **Status** property type (not Select). Writes and
+status updates use the Status payload shape; Select is considered legacy and
+must be migrated manually in Notion UI. Schema validation detects the mismatch
+and surfaces migration state but does not auto-convert property types.
+
 ## Data Flow
 
 ```mermaid
