@@ -7,7 +7,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Button,
-  Separator,
   Spinner,
   Stack,
   Text,
@@ -42,7 +41,7 @@ export function MainPane({ lastRun }: MainPaneProps): React.JSX.Element {
   const [dailyNoteProps, setDailyNoteProps] = useState<DailyNoteProps | null>(
     null,
   );
-  const [dailyNotePropsError, setDailyNotePropsError] = useState<string | null>(
+  const [_dailyNotePropsError, setDailyNotePropsError] = useState<string | null>(
     null,
   );
   const [publishResult, setPublishResult] = useState<PublishResult | null>(

@@ -345,7 +345,11 @@ export async function publishDrafts(
 
     if (result.action === 'create') {
       try {
-        const id = await createTaskPage(notion, tasksDataSourceId, draft);
+        const id = await createTaskPage(
+          notion,
+          tasksDataSourceId as string,
+          draft,
+        );
         created++;
         createdTaskIds.push(id);
         logger.debug('Created task', { title: draft.name });

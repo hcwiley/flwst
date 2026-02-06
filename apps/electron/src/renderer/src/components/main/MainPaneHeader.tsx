@@ -2,7 +2,7 @@
  * Main pane header showing title and run metadata.
  */
 
-import { Stack, XStack } from 'tamagui';
+import { XStack } from 'tamagui';
 import { H1, MetaText } from '@flwst/ui';
 import type { InboxIngestResult } from '../inbox/types';
 

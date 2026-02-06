@@ -22,7 +22,7 @@
     "node": "22"
   },
   "dependencies": {
-    "@flwst/types": "file:./types",
+    "@flwst/types": "file:../../../types",
     "@genkit-ai/firebase": "^1.28.0",
     "@genkit-ai/google-genai": "^1.28.0",
     "@google/genai": "^1.0.0",

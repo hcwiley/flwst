@@ -27,8 +27,8 @@ describe('publish', () => {
       const dbId = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
       const id = await createTaskPage(notion, dbId, draft);
       assert.equal(id, createdId);
-      assert.equal(createMock.callCount, 1);
-      const [payload] = createMock.calls[0].arguments as [
+      assert.equal(createMock.mock.calls.length, 1);
+      const [payload] = createMock.mock.calls[0].arguments as unknown as [
         {
           parent: { type: string; data_source_id: string };
           properties: Record<string, unknown>;
@@ -65,7 +65,7 @@ describe('publish', () => {
         'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
         draft,
       );
-      const [payload] = createMock.calls[0].arguments as [
+      const [payload] = createMock.mock.calls[0].arguments as unknown as [
         { properties: Record<string, unknown> },
       ];
       assert.ok(payload.properties.Description);
@@ -85,8 +85,8 @@ describe('publish', () => {
 
       const pageId = 'bbbbbbbb-cccc-dddd-eeee-ffffffffffff';
       await updateTaskPage(notion, pageId, draft);
-      assert.equal(updateMock.callCount, 1);
-      const [payload] = updateMock.calls[0].arguments as [
+      assert.equal(updateMock.mock.calls.length, 1);
+      const [payload] = updateMock.mock.calls[0].arguments as unknown as [
         { page_id: string; properties: Record<string, unknown> },
       ];
       assert.ok(payload.page_id.length === 36);

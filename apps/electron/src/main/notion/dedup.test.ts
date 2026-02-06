@@ -105,7 +105,8 @@ describe('dedup', () => {
       const tasksById: Record<string, NotionTaskPage> = {
         id1: task('id1', 'Ship the API'),
       };
-      const result = dedupDraft({ name: 'Ship the API' }, tasksById);
+      // "Ship API" fuzzy-matches one task but is not exact → create (single_fuzzy_create)
+      const result = dedupDraft({ name: 'Ship API' }, tasksById);
       assert.equal(result.action, 'create');
       assert.equal(result.matchedTaskId, 'id1');
       assert.equal(result.reason, 'single_fuzzy_create');

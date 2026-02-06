@@ -6,7 +6,7 @@
 import type { JSX } from 'react';
 
 import { useCallback, useState } from 'react';
-import { Button, Stack, YStack } from 'tamagui';
+import { Button, Stack } from 'tamagui';
 import { H2, Panel } from '@flwst/ui';
 import type { UserConfig } from '@flwst/types';
 import { ConfigPane } from './ConfigPane';

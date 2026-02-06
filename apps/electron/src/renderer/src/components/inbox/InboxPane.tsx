@@ -135,9 +135,7 @@ export function InboxPane({
       gap='$3'
     >
       <Stack
-        position='sticky'
-        top={0}
-        zIndex={1}
+        style={{ position: 'sticky', top: 0, zIndex: 1 }}
         backgroundColor='$gray2'
         paddingBottom='$2'
       >

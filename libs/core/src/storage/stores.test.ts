@@ -10,7 +10,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { ConfigStore } from './stores';
 import type { UserConfig } from '@flwst/types';
-import { UserConfigSchema } from '@flwst/types';
+import { TaskStatusSchema, UserConfigSchema } from '@flwst/types';
 
 // Mock keytar
 let keychainStore: Map<string, string> = new Map();
@@ -48,6 +48,11 @@ test('ConfigStore writes and reads config round-trip', async () => {
     },
     notion: {
       flowStatePageId: 'test-id',
+    },
+    kanbanPrefs: {
+      sortKey: 'name',
+      sortDir: 'asc',
+      visibleStatuses: TaskStatusSchema.options,
     },
   };
 
