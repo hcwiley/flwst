@@ -5,8 +5,10 @@
 
 import { create } from 'zustand';
 import type {
+  KanbanPrefs,
   NotionDailyNotePage,
   NotionTaskPage,
+  TaskStatus,
   UserConfig,
 } from '@flwst/types';
 
@@ -26,6 +28,8 @@ export interface AppState {
   review: Record<string, never>;
 
   kanban: Record<string, never>;
+
+  kanbanPrefs: KanbanPrefs;
 
   notionSync: {
     lastSyncAt?: string;
@@ -48,6 +52,10 @@ export interface AppActions {
   failSync: (error: NotionSyncError) => void;
   /** Update only tasks (e.g. after tasks-only sync). */
   syncTasksOnly: (tasks: NotionTaskPage[]) => void;
+  /** Update a single task status in the sync snapshot (optimistic UI). */
+  updateTaskStatus: (taskId: string, status: TaskStatus) => void;
+  /** Replace kanban preferences (sorting + column visibility). */
+  setKanbanPrefs: (prefs: KanbanPrefs) => void;
 }
 
 /**
@@ -62,6 +70,20 @@ const initialNotionSync: AppState['notionSync'] = {
   notesById: {},
 };
 
+const defaultKanbanPrefs: KanbanPrefs = {
+  sortKey: 'name',
+  sortDir: 'asc',
+  visibleStatuses: [
+    'Backlog',
+    'To-do',
+    'On Deck',
+    'In progress',
+    'BLOCKED',
+    'Done',
+    'Cancelled',
+  ],
+};
+
 /**
  * Create the application store.
  */
@@ -72,6 +94,7 @@ export const useAppStore = create<AppStore>((set) => ({
   },
   review: {},
   kanban: {},
+  kanbanPrefs: defaultKanbanPrefs,
   notionSync: initialNotionSync,
 
   startSync: () =>
@@ -120,4 +143,28 @@ export const useAppStore = create<AppStore>((set) => ({
       },
     }));
   },
+
+  updateTaskStatus: (taskId, status) =>
+    set((state) => {
+      const existing = state.notionSync.tasksById[taskId];
+      if (!existing) return state;
+      return {
+        notionSync: {
+          ...state.notionSync,
+          tasksById: {
+            ...state.notionSync.tasksById,
+            [taskId]: {
+              ...existing,
+              status,
+              updatedAt: new Date().toISOString(),
+            },
+          },
+        },
+      };
+    }),
+
+  setKanbanPrefs: (prefs) =>
+    set(() => ({
+      kanbanPrefs: prefs,
+    })),
 }));
