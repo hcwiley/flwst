@@ -57,6 +57,7 @@ export const NotionDailyNotePageSchema = z.object({
   summary: z.string().optional(),
   tags: z.array(z.string()).optional(),
   tasks: z.array(z.string()),
+  sourceRunId: z.string().optional(),
   updatedAt: z.string().datetime(),
 });
 
@@ -95,3 +96,73 @@ export const DedupResultSchema = z.object({
 });
 
 export type DedupResult = z.infer<typeof DedupResultSchema>;
+
+/**
+ * Draft task shape for publish input (matches ingest TaskProps).
+ */
+export const DraftTaskSchema = z.object({
+  name: z.string(),
+  project: z.string().optional(),
+  description: z.string().optional(),
+  priority: z.string().optional(),
+  status: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  due: z.string().optional(),
+  assignee: z.string().optional(),
+  sourceRunId: z.string().optional(),
+});
+
+export type DraftTask = z.infer<typeof DraftTaskSchema>;
+
+/**
+ * Draft daily note shape for publish input (matches DailyNoteProps).
+ */
+export const DraftDailyNoteSchema = z.object({
+  name: z.string(),
+  date: z.string(),
+  summary: z.string(),
+  tags: z.array(z.string()),
+  content: z.string().optional(),
+  sourceRunId: z.string().optional(),
+});
+
+export type DraftDailyNote = z.infer<typeof DraftDailyNoteSchema>;
+
+/**
+ * Publish payload: tasks plus optional daily note.
+ */
+export const PublishPayloadSchema = z.object({
+  tasks: z.array(DraftTaskSchema),
+  dailyNote: DraftDailyNoteSchema.optional(),
+});
+
+export type PublishPayload = z.infer<typeof PublishPayloadSchema>;
+
+/**
+ * Per-draft outcome for publish result details.
+ */
+export const PublishDetailSchema = z.object({
+  draft: DraftTaskSchema,
+  result: DedupResultSchema,
+  error: z.string().optional(),
+});
+
+export type PublishDetail = z.infer<typeof PublishDetailSchema>;
+
+/**
+ * Result of publishing draft tasks to Notion (create/update/skip counts + details).
+ */
+export const PublishResultSchema = z.object({
+  created: z.number(),
+  updated: z.number(),
+  skipped: z.number(),
+  details: z.array(PublishDetailSchema),
+  dailyNote: z
+    .object({
+      id: z.string().optional(),
+      error: z.string().optional(),
+    })
+    .optional(),
+});
+
+export type PublishResult = z.infer<typeof PublishResultSchema>;
