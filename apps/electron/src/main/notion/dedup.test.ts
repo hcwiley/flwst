@@ -101,13 +101,14 @@ describe('dedup', () => {
       assert.equal(result.reason, 'multiple_candidates');
     });
 
-    it('returns update when single fuzzy match', () => {
+    it('returns create when single fuzzy match', () => {
       const tasksById: Record<string, NotionTaskPage> = {
         id1: task('id1', 'Ship the API'),
       };
       const result = dedupDraft({ name: 'Ship the API' }, tasksById);
-      assert.equal(result.action, 'update');
+      assert.equal(result.action, 'create');
       assert.equal(result.matchedTaskId, 'id1');
+      assert.equal(result.reason, 'single_fuzzy_create');
     });
   });
 
