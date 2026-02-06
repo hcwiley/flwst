@@ -1,13 +1,13 @@
 /**
  * Main content pane: Daily Note preview and Kanban board.
  * Kanban is always shown; data comes from notionSync (store) and ingest task feed (artifact).
- * Future: dedup merge when building combined list (see plan "Future integration points").
+ * Display-level dedup: ingest tasks whose title matches a Notion task are omitted (Notion is canonical).
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Separator, Stack, Text } from 'tamagui';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Button, Separator, Spinner, Stack, Text } from 'tamagui';
 import { useAppStore } from '@flwst/state';
-import type { TaskProps } from '@flwst/types';
+import type { DailyNoteProps, PublishResult, TaskProps } from '@flwst/types';
 import type { InboxIngestResult } from './inbox/types';
 import { DailyNotePreview } from './main/DailyNotePreview';
 import { KanbanBoard } from './main/KanbanBoard';
@@ -25,6 +25,17 @@ export function MainPane({ lastRun }: MainPaneProps): React.JSX.Element {
   const [taskProps, setTaskProps] = useState<TaskProps[]>([]);
   const [taskLoadError, setTaskLoadError] = useState<string | null>(null);
   const [isTaskLoading, setIsTaskLoading] = useState(false);
+  const [dailyNoteProps, setDailyNoteProps] = useState<DailyNoteProps | null>(
+    null,
+  );
+  const [dailyNotePropsError, setDailyNotePropsError] = useState<string | null>(
+    null,
+  );
+  const [publishResult, setPublishResult] = useState<PublishResult | null>(
+    null,
+  );
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
 
   const notionTasksById = useAppStore((s) => s.notionSync.tasksById);
   const isSyncing = useAppStore((s) => s.notionSync.isSyncing);
@@ -43,13 +54,19 @@ export function MainPane({ lastRun }: MainPaneProps): React.JSX.Element {
     () => taskProps.map(ingestTaskToDisplay),
     [taskProps],
   );
-  const kanbanTasks = useMemo(
-    () => [...notionDisplays, ...ingestDisplays],
-    [notionDisplays, ingestDisplays],
-  );
+  const kanbanTasks = useMemo(() => {
+    const notionTitles = new Set(
+      notionTasks.map((t) => t.title.trim().toLowerCase()),
+    );
+    const dedupedIngest = ingestDisplays.filter(
+      (t) => !notionTitles.has(t.name.trim().toLowerCase()),
+    );
+    return [...notionDisplays, ...dedupedIngest];
+  }, [notionDisplays, ingestDisplays, notionTasks]);
   const kanbanLoadError = taskLoadError ?? notionSyncError?.message ?? null;
   const kanbanLoading = isTaskLoading || isSyncing;
   const initialSyncRequested = useRef(false);
+  const hasPublishable = taskProps.length > 0 || dailyNoteProps != null;
 
   useEffect(() => {
     if (initialSyncRequested.current) return;
@@ -70,6 +87,8 @@ export function MainPane({ lastRun }: MainPaneProps): React.JSX.Element {
       setTaskProps([]);
       setTaskLoadError(lastRun?.llmError ?? null);
       setIsTaskLoading(false);
+      setDailyNoteProps(null);
+      setDailyNotePropsError(null);
       return;
     }
 
@@ -80,6 +99,8 @@ export function MainPane({ lastRun }: MainPaneProps): React.JSX.Element {
     setIsTaskLoading(true);
     setTaskLoadError(null);
     setTaskProps([]);
+    setDailyNoteProps(null);
+    setDailyNotePropsError(null);
 
     window.api.artifacts
       .readTextFile(lastRun.dailyNotePath)
@@ -96,6 +117,22 @@ export function MainPane({ lastRun }: MainPaneProps): React.JSX.Element {
       .finally(() => {
         if (!isActive) return;
         setIsLoading(false);
+      });
+
+    window.api.artifacts
+      .readTextFile(lastRun.dailyNotePropsPath)
+      .then((content) => {
+        if (!isActive) return;
+        const parsed = JSON.parse(content) as DailyNoteProps;
+        setDailyNoteProps(parsed);
+      })
+      .catch((error) => {
+        if (!isActive) return;
+        setDailyNotePropsError(
+          error instanceof Error
+            ? error.message
+            : 'Failed to load daily note props',
+        );
       });
 
     if (!lastRun.taskFeedPropsPath) {
@@ -127,6 +164,37 @@ export function MainPane({ lastRun }: MainPaneProps): React.JSX.Element {
       isActive = false;
     };
   }, [lastRun]);
+
+  const handlePublish = useCallback(async () => {
+    if (!hasPublishable || isPublishing) return;
+    setIsPublishing(true);
+    setPublishError(null);
+    setPublishResult(null);
+    try {
+      const sourceRunId = lastRun?.runId;
+      const drafts = taskProps.map((task) => ({
+        ...task,
+        sourceRunId,
+      }));
+      const result = await window.api.notion.publishDrafts({
+        tasks: drafts,
+        dailyNote: dailyNoteProps
+          ? {
+              ...dailyNoteProps,
+              content: markdown,
+              sourceRunId,
+            }
+          : undefined,
+      });
+      setPublishResult(result);
+    } catch (error) {
+      setPublishError(
+        error instanceof Error ? error.message : 'Publish to Notion failed',
+      );
+    } finally {
+      setIsPublishing(false);
+    }
+  }, [taskProps, isPublishing, lastRun?.runId, dailyNoteProps, hasPublishable]);
 
   return (
     <Stack
@@ -179,6 +247,42 @@ export function MainPane({ lastRun }: MainPaneProps): React.JSX.Element {
             </Stack>
             <Separator marginVertical='$3' />
           </>
+        )}
+
+        {hasPublishable && (
+          <Stack
+            flexDirection='row'
+            alignItems='center'
+            gap='$2'
+            flexWrap='wrap'
+          >
+            <Button
+              size='$3'
+              theme='active'
+              disabled={isPublishing}
+              onPress={handlePublish}
+              icon={isPublishing ? <Spinner size='small' /> : undefined}
+            >
+              {isPublishing ? 'Publishing…' : 'Publish to Notion'}
+            </Button>
+            {publishError && (
+              <Text
+                fontSize='$2'
+                color='$red10'
+              >
+                {publishError}
+              </Text>
+            )}
+            {publishResult && !publishError && (
+              <Text
+                fontSize='$2'
+                color='$gray10'
+              >
+                Created {publishResult.created}, updated {publishResult.updated}
+                , skipped {publishResult.skipped}.
+              </Text>
+            )}
+          </Stack>
         )}
 
         <Stack flex={1}>

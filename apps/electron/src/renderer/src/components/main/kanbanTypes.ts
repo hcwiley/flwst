@@ -1,7 +1,7 @@
 /**
  * Unified Kanban display type and mappers.
  * Maps NotionTaskPage and TaskProps (ingest) to a single shape for the board.
- * Future: dedup merge happens when building combined list in MainPane.
+ * Display-level dedup (ingest vs Notion by title) is applied in MainPane when building the combined list.
  */
 
 import type { NotionTaskPage, TaskProps, TaskStatus } from '@flwst/types';
