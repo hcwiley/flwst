@@ -330,7 +330,7 @@ fast feedback, **and secure LLM access via a server-managed architecture**.
 
 # Development Plan
 
-**Current Phase:** Phase 7 complete; Phase 8 — Kanban + Sync-Driven Rendering (in progress)
+**Current Phase:** Phase 7 ✅ complete; Phase 8 ✅ complete. Next: Phase 9 — Analytics, Polish, and Alpha Hardening.
 
 ## **Phase 0 — Prerequisites and Human Setup (Manual)**
 
@@ -857,7 +857,7 @@ Deliverable (Phase 7)
 
 ## **Phase 8 — Kanban + Sync-Driven Rendering (No Writes Required)**
 
-### Status: In progress
+### Status: ✅
 
 **Owner:** Cursor
 
@@ -868,10 +868,7 @@ Deliverable (Phase 7)
 - **8.1 Render Kanban from synced tasks snapshot** — KanbanBoard/KanbanColumn/KanbanTaskCard source from `tasksById`; columns by normalized status; `kanbanTypes.ts` for shared types.
 - **8.2 Column controls + sorting** — Column visibility toggles; sorting by priority (normalized) and last updated.
 - **8.3 Refresh UX** — Sync button drives refresh; disabled while `isSyncing`; loading/syncing state shown.
-
-**Remaining:**
-
-- **8.4 “View in Notion” link** — Task cards “View” action opens Notion URL via external opener (not in-app); guard shell availability and fallback.
+- **8.4 “View in Notion” link** — Task card title opens Notion URL externally (`window.open` in renderer; main process can route to `shell.openExternal`); Notion tasks show clickable title.
 
   8.1 Render Kanban from Synced Tasks Snapshot
   • Source of truth: tasksById (from Phase 7 sync)
