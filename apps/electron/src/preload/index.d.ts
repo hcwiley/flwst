@@ -8,6 +8,7 @@ import type {
   NotionWorkspaceMetadata,
   PublishPayload,
   PublishResult,
+  TaskStatus,
   UserConfig,
   RunId,
 } from '@flwst/types';
@@ -51,6 +52,10 @@ export interface NotionAPI {
   }>;
   syncTasks: () => Promise<NotionTaskPage[]>;
   publishDrafts: (payload: PublishPayload) => Promise<PublishResult>;
+  updateTaskStatus: (payload: {
+    taskId: string;
+    status: TaskStatus;
+  }) => Promise<{ ok: true } | { ok: false; error: string }>;
   onSyncComplete: (
     callback: (payload: NotionSyncCompletePayload) => void,
   ) => () => void;

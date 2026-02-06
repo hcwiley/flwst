@@ -106,8 +106,9 @@ export function buildTasksDbProperties(
     color: priorityColorMap[priority] || 'default',
   }));
 
-  // Status options with colors that map to workflow stages
-  // Users should convert this to a Status property in Notion UI for better workflow features
+  // Status options with colors that map to workflow stages.
+  // Status is expected to be a Notion Status property (not Select).
+  // Existing Select-based databases must be migrated manually in Notion UI.
   const statusOptions = TaskStatusSchema.options.map((status) => {
     // Map status values to appropriate colors
     const colorMap: Record<string, string> = {
@@ -131,7 +132,7 @@ export function buildTasksDbProperties(
     Project: { select: { options: [] } },
     Description: { rich_text: {} },
     Priority: { select: { options: priorityOptions } },
-    Status: { select: { options: statusOptions } },
+    Status: { status: { options: statusOptions } },
     Tags: { multi_select: { options: [] } },
     'Due Date': { date: {} },
     Assignee: { rich_text: {} },

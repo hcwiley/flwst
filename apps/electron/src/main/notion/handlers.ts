@@ -4,7 +4,7 @@
  */
 
 import { ipcMain, shell, BrowserWindow } from 'electron';
-import type { NotionWorkspaceMetadata } from '@flwst/types';
+import type { NotionWorkspaceMetadata, TaskStatus } from '@flwst/types';
 import { getLogger } from '../sentry';
 import { getConfigStore, getTokensStore } from '../storage';
 import { completeNotionOAuth } from './notionOAuth';
@@ -14,6 +14,7 @@ import { getOrCreateResources } from './resources';
 import { NotionError } from './errors';
 import { runSync, runTasksSync } from './sync';
 import { publishDrafts } from './publish';
+import { updateTaskStatus } from './updateTaskStatus';
 import type { PublishPayload } from '@flwst/types';
 
 const logger = getLogger();
@@ -276,6 +277,27 @@ export function registerNotionHandlers(): void {
           message: notionError.message,
         });
         throw notionError;
+      }
+    },
+  );
+
+  // Update a single task status (Kanban drag-and-drop)
+  ipcMain.handle(
+    'notion:updateTaskStatus',
+    async (
+      _event,
+      payload: { taskId: string; status: TaskStatus },
+    ): Promise<{ ok: true } | { ok: false; error: string }> => {
+      try {
+        await updateTaskStatus(payload.taskId, payload.status);
+        return { ok: true };
+      } catch (error) {
+        const notionError = toNotionError(error);
+        logger.error('Notion update task status failed', {
+          code: notionError.code,
+          message: notionError.message,
+        });
+        return { ok: false, error: notionError.message };
       }
     },
   );

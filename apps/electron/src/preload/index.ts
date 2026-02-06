@@ -70,6 +70,11 @@ const api = {
     syncTasks: (): Promise<unknown[]> => ipcRenderer.invoke('notion:syncTasks'),
     publishDrafts: (payload: import('@flwst/types').PublishPayload) =>
       ipcRenderer.invoke('notion:publishDrafts', payload),
+    updateTaskStatus: (payload: {
+      taskId: string;
+      status: import('@flwst/types').TaskStatus;
+    }): Promise<{ ok: true } | { ok: false; error: string }> =>
+      ipcRenderer.invoke('notion:updateTaskStatus', payload),
     onSyncComplete: (
       callback: (payload: {
         success: boolean;
