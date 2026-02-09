@@ -1,8 +1,11 @@
 /**
  * Simple logging utility for FlowState pipeline.
+ * Metadata sent to external loggers (e.g. Sentry) is redacted for telemetry safety.
  */
 
 import type { LogEntry } from '@flwst/types';
+
+import { redactForTelemetry } from './redact';
 
 /**
  * Log levels.
@@ -91,7 +94,8 @@ export class ConsoleLogger implements Logger {
     }
 
     try {
-      externalLogger?.[level]?.(message, metadata);
+      const safeMetadata = redactForTelemetry(metadata);
+      externalLogger?.[level]?.(message, safeMetadata);
     } catch {
       // Ignore failures in external logger sinks.
     }
