@@ -5,7 +5,7 @@
 
 import type { OnboardingState } from '@flwst/types';
 import { getDefaultOnboardingState } from '@flwst/types';
-import { getLogger } from '@flwst/core';
+import { getLogger } from '../../sentry';
 
 import type {
   OnboardingFlowState,
