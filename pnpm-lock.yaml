@@ -237,6 +237,12 @@ importers:
 
   libs/integrations:
     dependencies:
+      '@amplitude/analytics-browser':
+        specifier: ^2.33.5
+        version: 2.34.0
+      '@flwst/core':
+        specifier: workspace:*
+        version: link:../core
       '@flwst/types':
         specifier: workspace:*
         version: link:../../types
@@ -293,10 +299,6 @@ importers:
         version: 5.9.3
 
   servers/firebase:
-    dependencies:
-      '@flwst/types':
-        specifier: workspace:*
-        version: link:../../types
     devDependencies:
       tsc:
         specifier: ^2.0.4
@@ -324,6 +326,30 @@ packages:
     peerDependenciesMeta:
       graphql:
         optional: true
+
+  '@amplitude/analytics-browser@2.34.0':
+    resolution: {integrity: sha512-a5AeUBs6AbgfEPBNVP1/FM8+0ZBjIzbfYcVJq2Lkvb0EaeEI09vrl+zFeJSDcjg5nsDBmz7oKV8j2kbGJHbZ9w==}
+
+  '@amplitude/analytics-connector@1.6.4':
+    resolution: {integrity: sha512-SpIv0IQMNIq6SH3UqFGiaZyGSc7PBZwRdq7lvP0pBxW8i4Ny+8zwI0pV+VMfMHQwWY3wdIbWw5WQphNjpdq1/Q==}
+
+  '@amplitude/analytics-core@2.37.0':
+    resolution: {integrity: sha512-/2vIyquLMSA29MMM901d5DOhBZ5bc6Qf4s0KVfRk8Avn90mC7KlE5SQiHOAW8+63o5aT1NtB0djrY4cq8Y8Opw==}
+
+  '@amplitude/plugin-autocapture-browser@1.19.0':
+    resolution: {integrity: sha512-ga0TXxE87wNMgFvVUPE7a+HGMqMz9/Gy6C7ux3cgcuy8D7Z/Te5iMZmMadK/ztmQ3/pSZjYv9iDvOFsT6ywMZw==}
+
+  '@amplitude/plugin-network-capture-browser@1.7.8':
+    resolution: {integrity: sha512-SZj3m3O8yI040+Nto9uLi5eM0AclEi8hkZttLSKKVCJVIdi5xE1z9oC7lTir1h2b198unTqP2o7cmzEqI1wBoA==}
+
+  '@amplitude/plugin-page-url-enrichment-browser@0.5.14':
+    resolution: {integrity: sha512-vaAGxMgxQbsRKWtIKiMp3kVdg4RSsAzwlffDw7ifTw1yObVV2vVeBPb/O24cLf49NrhZ3ZuJlaxGmRxoY4FWow==}
+
+  '@amplitude/plugin-page-view-tracking-browser@2.6.11':
+    resolution: {integrity: sha512-/UqXipdOWOsmn8Uw1BibOfgLMvjE8YYYI8bXL2vZ6D2mk6c0FdGe17BmccsLr1LVGx3HObZoIGnxje+0X1j07w==}
+
+  '@amplitude/plugin-web-vitals-browser@1.1.9':
+    resolution: {integrity: sha512-hVGsJWtJQpHlpfC+IubCixe7KNmqaDkWO0XkwkLkn4T/FjFgK+rp9edBJr5KSi0enfcN+49DxJ4qQKu7NncIMA==}
 
   '@apm-js-collab/code-transformer@0.8.2':
     resolution: {integrity: sha512-YRjJjNq5KFSjDUoqu5pFUWrrsvGOxl6c3bu+uMFc9HNNptZ2rNU/TI2nLw4jnhQNtka972Ee2m3uqbvDQtPeCA==}
@@ -3132,6 +3158,9 @@ packages:
 
   '@types/yauzl@2.10.3':
     resolution: {integrity: sha512-oJoftv0LSuaDZE3Le4DbKX+KS9G36NzOeSap90UIK0yMA/NhKJhqlSGtNDORNRaIbQfzjXDrQa0ytJ6mNRGz/Q==}
+
+  '@types/zen-observable@0.8.3':
+    resolution: {integrity: sha512-fbF6oTd4sGGy0xjHPKAt+eS2CrxJ3+6gQ3FGcBoIJR2TLAyCkCyI8JqZNy+FeON0AhVgNJoUumVoZQjBFUqHkw==}
 
   '@typescript-eslint/eslint-plugin@8.53.1':
     resolution: {integrity: sha512-cFYYFZ+oQFi6hUnBTbLRXfTJiaQtYE3t4O692agbBl+2Zy+eqSKWtPjhPXJu1G7j4RLjKgeJPDdq3EqOwmX5Ag==}
@@ -7480,6 +7509,9 @@ packages:
   wcwidth@1.0.1:
     resolution: {integrity: sha512-XHPEwS0q6TaxcvG85+8EYkbiCux2XtWG2mkc47Ng2A77BQu9+DqIOJldST4HgPkuea7dvKSj5VgX3P1d4rW8Tg==}
 
+  web-vitals@5.1.0:
+    resolution: {integrity: sha512-ArI3kx5jI0atlTtmV0fWU3fjpLmq/nD3Zr1iFFlJLaqa5wLBkUSzINwBPySCX/8jRyjlmy1Volw1kz1g9XE4Jg==}
+
   webidl-conversions@3.0.1:
     resolution: {integrity: sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ==}
 
@@ -7646,6 +7678,12 @@ packages:
     resolution: {integrity: sha512-4LCcse/U2MHZ63HAJVE+v71o7yOdIe4cZ70Wpf8D/IyjDKYQLV5GD46B+hSTjJsvV5PztjvHoU580EftxjDZFQ==}
     engines: {node: '>=12.20'}
 
+  zen-observable-ts@1.1.0:
+    resolution: {integrity: sha512-1h4zlLSqI2cRLPJUHJFL8bCWHhkpuXkF+dbGkRaWjgDIG26DmzyshUMrdV/rL3UnR+mhaX4fRq8LPouq0MYYIA==}
+
+  zen-observable@0.8.15:
+    resolution: {integrity: sha512-PQ2PC7R9rslx84ndNBZB/Dkv8V8fZEpk83RLgXtYd0fwUgEjseMn1Dgajh2x6S8QbZAFa9p2qVCEuYZNgve0dQ==}
+
   zod-to-json-schema@3.25.1:
     resolution: {integrity: sha512-pM/SU9d3YAggzi6MtR4h7ruuQlqKtad8e9S0fmxcMi+ueAK5Korys/aWcV9LIIHTVbj01NdzxcnXSN+O74ZIVA==}
     peerDependencies:
@@ -7686,6 +7724,50 @@ snapshots:
   7zip-bin@5.2.0: {}
 
   '@0no-co/graphql.web@1.2.0': {}
+
+  '@amplitude/analytics-browser@2.34.0':
+    dependencies:
+      '@amplitude/analytics-core': 2.37.0
+      '@amplitude/plugin-autocapture-browser': 1.19.0
+      '@amplitude/plugin-network-capture-browser': 1.7.8
+      '@amplitude/plugin-page-url-enrichment-browser': 0.5.14
+      '@amplitude/plugin-page-view-tracking-browser': 2.6.11
+      '@amplitude/plugin-web-vitals-browser': 1.1.9
+      tslib: 2.8.1
+
+  '@amplitude/analytics-connector@1.6.4': {}
+
+  '@amplitude/analytics-core@2.37.0':
+    dependencies:
+      '@amplitude/analytics-connector': 1.6.4
+      tslib: 2.8.1
+      zen-observable-ts: 1.1.0
+
+  '@amplitude/plugin-autocapture-browser@1.19.0':
+    dependencies:
+      '@amplitude/analytics-core': 2.37.0
+      tslib: 2.8.1
+
+  '@amplitude/plugin-network-capture-browser@1.7.8':
+    dependencies:
+      '@amplitude/analytics-core': 2.37.0
+      tslib: 2.8.1
+
+  '@amplitude/plugin-page-url-enrichment-browser@0.5.14':
+    dependencies:
+      '@amplitude/analytics-core': 2.37.0
+      tslib: 2.8.1
+
+  '@amplitude/plugin-page-view-tracking-browser@2.6.11':
+    dependencies:
+      '@amplitude/analytics-core': 2.37.0
+      tslib: 2.8.1
+
+  '@amplitude/plugin-web-vitals-browser@1.1.9':
+    dependencies:
+      '@amplitude/analytics-core': 2.37.0
+      tslib: 2.8.1
+      web-vitals: 5.1.0
 
   '@apm-js-collab/code-transformer@0.8.2': {}
 
@@ -11519,6 +11601,8 @@ snapshots:
     dependencies:
       '@types/node': 24.10.9
     optional: true
+
+  '@types/zen-observable@0.8.3': {}
 
   '@typescript-eslint/eslint-plugin@8.53.1(@typescript-eslint/parser@8.53.1(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3))(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3)':
     dependencies:
@@ -17030,6 +17114,8 @@ snapshots:
     dependencies:
       defaults: 1.0.4
 
+  web-vitals@5.1.0: {}
+
   webidl-conversions@3.0.1: {}
 
   webidl-conversions@5.0.0: {}
@@ -17181,6 +17267,13 @@ snapshots:
   yocto-queue@0.1.0: {}
 
   yocto-queue@1.2.2: {}
+
+  zen-observable-ts@1.1.0:
+    dependencies:
+      '@types/zen-observable': 0.8.3
+      zen-observable: 0.8.15
+
+  zen-observable@0.8.15: {}
 
   zod-to-json-schema@3.25.1(zod@3.25.76):
     dependencies:

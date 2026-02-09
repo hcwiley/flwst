@@ -11,6 +11,8 @@ export default defineConfig(({ mode }) => {
   const flwstApiUrl = rootEnv.FLWST_API_URL ?? process.env.FLWST_API_URL ?? '';
   const reuseLlmOutput =
     rootEnv.FLWST_REUSE_LLM_OUTPUT ?? process.env.FLWST_REUSE_LLM_OUTPUT ?? '';
+  const amplitudeApiKey =
+    rootEnv.AMPLITUDE_API_KEY ?? process.env.AMPLITUDE_API_KEY ?? '';
 
   return {
     main: {
@@ -67,6 +69,8 @@ export default defineConfig(({ mode }) => {
           '@renderer': r('src/renderer/src'),
           // Use source files in dev, not dist
           '@flwst/ui': r('../../libs/ui/src'),
+          // Use browser-safe integrations (excludes Sentry; avoids @sentry/electron/main in renderer)
+          '@flwst/integrations': r('../../libs/integrations/src/index.browser.ts'),
           // Alias for subpath imports (e.g., @flwst/core/logger)
           '@flwst/core/logger': r('../../libs/core/src/logger.ts'),
           // Use browser-safe exports for renderer (excludes Node.js modules like paths)
@@ -89,6 +93,7 @@ export default defineConfig(({ mode }) => {
         ),
         'process.env.FLWST_API_URL': JSON.stringify(flwstApiUrl),
         'process.env.FLWST_REUSE_LLM_OUTPUT': JSON.stringify(reuseLlmOutput),
+        'process.env.AMPLITUDE_API_KEY': JSON.stringify(amplitudeApiKey),
       },
       optimizeDeps: {
         // Exclude Sentry from dependency optimization (dynamic imports)

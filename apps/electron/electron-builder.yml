@@ -1,5 +1,5 @@
-appId: com.electron.app
-productName: '@flwst/electron'
+appId: com.crescrentwrenchstudio.flwst
+productName: flwst
 directories:
   buildResources: build
 files:
@@ -12,7 +12,7 @@ files:
 asarUnpack:
   - resources/**
 win:
-  executableName: '@flwst/electron'
+  executableName: flwst
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
