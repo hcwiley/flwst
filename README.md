@@ -129,72 +129,52 @@ See `apps/mobile/INIT_COMMANDS.md` for details.
 
 See `servers/firebase/README.md` for manual Firebase Console setup steps.
 
-## Legacy Setup (Pre-Phase 1)
+## Deployment
 
-Install Notion MCP (legacy workflow only):
+Deployment covers two surfaces: the **Electron desktop app** (installer/DMG) and
+the **Firebase server** (API + Hosting). Both are required for the alpha
+end-to-end flow.
 
-- https://developers.notion.com/docs/get-started-with-mcp
+### Electron app (desktop)
 
-Install Cursor:
+```bash
+source .env.alpha
+pnpm dist:electron
+```
 
-- https://www.cursor.com/
+Distributable builds are produced from `apps/electron` using electron-builder.
 
-### Notion Databases
+- **Prerequisites:** Node.js 20+, pnpm 8+, dependencies installed at repo root.
+- **Build commands** (from repo root or `apps/electron`):
+  - macOS: `pnpm --filter @flwst/electron build:mac` → DMG and zip in
+    `apps/electron/dist/`
+  - Windows: `pnpm --filter @flwst/electron build:win`
+  - Linux: `pnpm --filter @flwst/electron build:linux`
+- **Config:** `apps/electron/electron-builder.yml` (app id, targets, notarization
+  off by default).
+- **Smoke test:** Install the built app (e.g. DMG on a clean Mac) and run
+  through onboarding and a single ingest → publish run.
 
-Get the database IDs from the Notion database settings and paste them into the
-`config/notion.ts` file. Optional but highly recommended as it will cut down on
-the number of API calls and improve performance.
+See [Building for distribution](apps/electron/README.md#building-for-distribution-eg-dmg)
+in `apps/electron/README.md` for step-by-step DMG build and environment notes.
 
-![Copy Notion Database ID](./docs/copy-database-id.gif)
+### Firebase server (API + Hosting)
 
-#### Daily Notes
+The FlowState API (e.g. POST `/generate`) and hosting are deployed via Firebase
+CLI from `servers/firebase`.
 
-- `Name`: The name of the daily note.
-- `Date`: The date of the daily note.
-- `Summary`: A high level summary of the daily note.
-- `Tags`: A list of tags to group daily notes.
-- `Tasks`: Relation to the Tasks Page that task is from or referenced in (Many
-  to Many relationship)
+- **Prerequisites:** Firebase CLI, Firebase project created and linked (see
+  `servers/firebase/README.md`).
+- **Deploy:**
+  ```bash
+  cd servers/firebase
+  pnpm deploy
+  ```
+  Use `pnpm deploy:functions` or `pnpm deploy:hosting` for partial deploys.
+- **Environment:** Set runtime env for Functions (e.g. in Firebase Console or
+  via `.env`/secret config): `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION`,
+  `GOOGLE_GENAI_USE_VERTEXAI`. See `servers/firebase/README.md` and
+  `config/examples/firebase.functions.env.example`.
 
-#### Tasks
-
-- `Name`: The name of the task.
-- `Project`: The project the task is associated with (optional)
-- `Description`: The description of the task.
-- `Priority`: The priority of the task.
-- `Status`: The status of the task.
-- `Tags`: A list of tags to group tasks (optional)
-- `Due Date`: The due date of the task (optional)
-- `Assignee`: The assignee of the task (optional)
-- `Daily Notes`: Relation to the Daily Notes Page that task is from or
-  referenced in (Many to Many relationship)
-
-### configs
-
-Copy the `config/examples/` directory to `config/` and edit the files as needed.
-
-- `config/notion.ts`: Update the names of various Notion databases and
-  properties.
-- `config/spelling.ts`: Update the spelling of various words and phrases.
-
-## Usage
-
-1. Capture your thoughts (voice memo, typed notes, etc.) and place the
-   transcript inside `inbox/`.
-2. Run the `/process_inbox` command:
-   - Confirm each checkpoint with `yes`, pause to make manual edits and reply
-     `fixed`, or abandon with `quit`.
-   - The command generates a high-level `tmp/daily_note.md` plus
-     `tmp/tasks/{task}/DRAFT.md`/`REVIEW.md` folders so you can review every
-     artifact before it touches Notion.
-   - The Daily Note stays narrative-only; once Tasks are written to Notion, the
-     `## TODOs` section is replaced with a small table that links directly to
-     each Task page (no duplicated acceptance criteria).
-   - Tasks are created or updated in Notion **before** the Daily Note so the
-     final note can link to every task using the shared `[[Task Handle]]`
-     placeholders.
-   - Expect a final success message summarizing the Daily Note link,
-     created/updated task links, and the archive path (e.g.,
-     `archive/2025-01-01/`).
-3. (Optional) Run `/list_daily` to spot-check recent Daily Notes or confirm
-   links.
+See `servers/firebase/README.md` for API contract, structure, and manual
+Firebase Console setup.
