@@ -3,7 +3,7 @@ import { defineConfig } from 'electron-vite';
 import react from '@vitejs/plugin-react';
 import { loadEnv } from 'vite';
 
-const r = (...parts: string[]) => resolve(__dirname, ...parts);
+const r = (...parts: string[]): string => resolve(__dirname, ...parts);
 
 export default defineConfig(({ mode }) => {
   // Load monorepo root .env so FLWST_API_URL etc. are available to main process

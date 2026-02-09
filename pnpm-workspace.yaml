@@ -2,7 +2,6 @@ packages:
   - apps/*
   - libs/*
   - types
-  - servers/*
 
 onlyBuiltDependencies:
   - '@firebase/util'
