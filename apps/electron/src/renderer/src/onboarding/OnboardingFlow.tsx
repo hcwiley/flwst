@@ -4,15 +4,12 @@
  */
 
 import { track } from '@flwst/integrations';
+import { getDefaultOnboardingState } from '@flwst/types';
+import { BusyScreen, ErrorScreen } from '@flwst/ui';
 import { useReducer, useEffect, useRef, useState } from 'react';
 import { Stack, Spinner, Text } from 'tamagui';
-import type { OnboardingState } from '@flwst/types';
-import type {
-  OnboardingFlowState,
-  OnboardingFlowAction,
-  OnboardingStep,
-} from './types';
-import { getDefaultOnboardingState } from '@flwst/types';
+
+import { onboardingReducer, getResumeStep } from './onboardingReducer';
 import { OnboardingStatusBar } from './OnboardingStatusBar';
 import {
   WelcomeScreen,
@@ -28,257 +25,8 @@ import {
   StatusConversionScreen,
   CancelConfirmScreen,
 } from './screens';
-import { BusyScreen, ErrorScreen } from '@flwst/ui';
-
-/**
- * Onboarding flow reducer.
- * Pure function that handles state transitions.
- *
- * @internal - exported for testing
- */
-export function onboardingReducer(
-  state: OnboardingFlowState,
-  action: OnboardingFlowAction,
-): OnboardingFlowState {
-  switch (action.type) {
-    case 'NEXT': {
-      // Determine next step based on current step and state
-      const nextStep = getNextStep(state.step, state.onboardingState);
-      return {
-        ...state,
-        step: nextStep,
-        error: undefined,
-      };
-    }
-
-    case 'BACK': {
-      const prevStep = getPreviousStep(state.step);
-      return {
-        ...state,
-        step: prevStep,
-        error: undefined,
-      };
-    }
-
-    case 'SELECT_SYSTEM': {
-      if (action.system === 'notion') {
-        return {
-          ...state,
-          step: 'NotionExplain',
-        };
-      }
-      // JIRA or other -> FeatureRequest
-      return {
-        ...state,
-        step: 'FeatureRequest',
-      };
-    }
-
-    case 'SUBMIT_FEATURE_REQUEST': {
-      const updatedState: OnboardingState = {
-        ...state.onboardingState,
-        featureRequests: [
-          ...(state.onboardingState.featureRequests || []),
-          ...(action.payload || []),
-        ],
-        updatedAt: new Date().toISOString(),
-      };
-      // After submitting feature request, show thank you screen
-      // which will redirect back to system selection
-      return {
-        ...state,
-        onboardingState: updatedState,
-        step: 'FeatureRequestThankYou',
-      };
-    }
-
-    case 'SET_BUSY':
-      return {
-        ...state,
-        step: 'Busy',
-        busy: action.payload,
-      };
-
-    case 'CLEAR_BUSY': {
-      const returnStep = state.busy?.returnToStep || 'Welcome';
-      return {
-        ...state,
-        step: returnStep,
-        busy: undefined,
-      };
-    }
-
-    case 'SET_ERROR':
-      return {
-        ...state,
-        step: 'Error',
-        error: action.payload,
-      };
-
-    case 'CLEAR_ERROR': {
-      const returnStep = state.error?.returnToStep || 'Welcome';
-      return {
-        ...state,
-        step: returnStep,
-        error: undefined,
-      };
-    }
-
-    case 'CANCEL':
-      return {
-        ...state,
-        step: 'CancelConfirm',
-      };
-
-    case 'CONFIRM_CANCEL':
-      return {
-        ...state,
-        step: 'Done',
-      };
-
-    case 'HYDRATE':
-      return {
-        ...state,
-        step: action.payload.step,
-        onboardingState: action.payload.state,
-        busy: undefined,
-        error: undefined,
-      };
-
-    case 'UPDATE_STATE': {
-      const updatedState: OnboardingState = {
-        ...state.onboardingState,
-        ...action.payload,
-        updatedAt: new Date().toISOString(),
-      };
-      return {
-        ...state,
-        onboardingState: updatedState,
-      };
-    }
-
-    case 'RESET':
-      return {
-        step: 'Welcome',
-        onboardingState: getDefaultOnboardingState(),
-      };
-
-    default:
-      return state;
-  }
-}
-
-/**
- * Get next step based on current step and onboarding state.
- */
-function getNextStep(
-  currentStep: OnboardingStep,
-  _state: OnboardingState,
-): OnboardingStep {
-  switch (currentStep) {
-    case 'Welcome':
-      return 'SystemSelect';
-    case 'SystemSelect':
-      // This should be handled by SELECT_SYSTEM action
-      return 'SystemSelect';
-    case 'FeatureRequestThankYou':
-      return 'SystemSelect';
-    case 'FeatureRequest':
-      return 'FeatureRequestThankYou';
-    case 'NotionExplain':
-      return 'NotionOAuthStart';
-    case 'NotionOAuthStart':
-      return 'NotionOAuthComplete';
-    case 'NotionOAuthComplete':
-      return 'ParentSelect';
-    case 'ParentSelect':
-      return 'ConfirmCreate';
-    case 'ConfirmCreate':
-      return 'CreateResources';
-    case 'CreateResources':
-      return 'StatusConversion';
-    case 'StatusConversion':
-      return 'Done';
-    case 'Done':
-      return 'Done';
-    default:
-      return currentStep;
-  }
-}
-
-/**
- * Determine the onboarding step to resume from stored state.
- */
-function getResumeStep(state: OnboardingState): OnboardingStep {
-  // Prefer the detected migration state from schema checks.
-  const needsStatusMigration =
-    state.notion.statusPropertyNeedsMigration === true &&
-    state.notion.statusPropertyHasBeenMigrated !== true;
-
-  if (needsStatusMigration) {
-    return 'StatusConversion';
-  }
-
-  if (state.onboardingCompleted) {
-    return 'Done';
-  }
-
-  switch (state.notion.status) {
-    case 'ready':
-      return 'Done';
-    case 'resources_created':
-      return state.onboardingCompleted ? 'Done' : 'StatusConversion';
-    case 'parent_selected':
-      return 'ConfirmCreate';
-    case 'authed':
-      return 'ParentSelect';
-    case 'oauth_pending':
-      return 'NotionOAuthComplete';
-    case 'error':
-      return 'NotionExplain';
-    case 'disconnected':
-    default:
-      return 'Welcome';
-  }
-}
-
-/**
- * Get previous step.
- */
-function getPreviousStep(currentStep: OnboardingStep): OnboardingStep {
-  switch (currentStep) {
-    case 'SystemSelect':
-      return 'Welcome';
-    case 'FeatureRequest':
-      return 'SystemSelect';
-    case 'FeatureRequestThankYou':
-      return 'FeatureRequest';
-    case 'NotionExplain':
-      return 'SystemSelect';
-    case 'NotionOAuthStart':
-      return 'NotionExplain';
-    case 'NotionOAuthComplete':
-      return 'NotionOAuthStart';
-    case 'ParentSelect':
-      return 'NotionOAuthComplete';
-    case 'ConfirmCreate':
-      return 'ParentSelect';
-    case 'CreateResources':
-      return 'ConfirmCreate';
-    case 'StatusConversion':
-      return 'CreateResources';
-    default:
-      return 'Welcome';
-  }
-}
-
-/**
- * OnboardingFlow component props.
- */
-export interface OnboardingFlowProps {
-  initialState?: OnboardingState;
-  onComplete: () => void;
-}
+import type { OnboardingFlowProps } from './types';
+import type { OnboardingFlowAction, OnboardingStep } from './types';
 
 /**
  * Onboarding flow coordinator component.
@@ -436,19 +184,25 @@ export function OnboardingFlow({
     if (isHydrated) {
       prevStepRef.current = flowState.step;
     }
-  }, [isHydrated]);
+  }, [isHydrated, flowState.step]);
 
   // Analytics: step viewed only when step changes after hydrate (user navigated).
   useEffect(() => {
-    if (!isHydrated) return;
-    if (flowState.step === prevStepRef.current) return;
+    if (!isHydrated) {
+      return;
+    }
+    if (flowState.step === prevStepRef.current) {
+      return;
+    }
     prevStepRef.current = flowState.step;
     track('Onboarding Step Viewed', { step: flowState.step });
   }, [flowState.step, isHydrated]);
 
   // Handle completion: track only when user navigated to Done; when hydrated into Done, just call onComplete once.
   useEffect(() => {
-    if (flowState.step !== 'Done') return;
+    if (flowState.step !== 'Done') {
+      return;
+    }
     if (userNavigatedToDoneRef.current) {
       const trackCompleted =
         flowState.onboardingState.notion.status === 'ready'

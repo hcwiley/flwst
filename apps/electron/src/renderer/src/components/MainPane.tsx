@@ -212,7 +212,14 @@ export function MainPane({
     } finally {
       setIsPublishing(false);
     }
-  }, [taskProps, isPublishing, lastRun?.runId, dailyNoteProps, hasPublishable]);
+  }, [
+    taskProps,
+    isPublishing,
+    lastRun?.runId,
+    dailyNoteProps,
+    hasPublishable,
+    markdown,
+  ]);
 
   const handleMoveTask = useCallback(
     async (taskId: string, status: TaskStatus) => {

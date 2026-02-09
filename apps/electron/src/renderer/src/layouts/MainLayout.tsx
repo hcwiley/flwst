@@ -45,7 +45,9 @@ export function MainLayout(): React.JSX.Element {
   }, []);
 
   useEffect(() => {
-    void loadConfig();
+    queueMicrotask(() => {
+      void loadConfig();
+    });
   }, [loadConfig]);
 
   useEffect(() => {
