@@ -120,3 +120,4 @@ coverage/
 *.tmp
 *.temp
 .cache/
+.eslintcache
