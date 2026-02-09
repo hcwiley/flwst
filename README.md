@@ -96,6 +96,8 @@ pnpm build
 pnpm turbo run build
 ```
 
+To build a distributable Electron app (e.g. Mac DMG), see [Building for distribution](apps/electron/README.md#building-for-distribution-eg-dmg) in `apps/electron/README.md`.
+
 ### Type Check
 
 ```bash
