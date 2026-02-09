@@ -166,6 +166,15 @@ export async function fetchDataSourceFullSchema(
  * Check if select/multi-select options need to be updated.
  * Returns properties that need option updates.
  */
+/** Shape of a property as returned by the Notion API (schema fetch). */
+type ActualPropertySchema = {
+  type?: string;
+  select?: { options?: Array<{ name: string; id?: string; color?: string }> };
+  multi_select?: {
+    options?: Array<{ name: string; id?: string; color?: string }>;
+  };
+};
+
 export function findPropertiesNeedingOptionUpdates(
   expected: NotionDatabaseProperties,
   actualFull: Record<string, unknown>,
@@ -173,7 +182,7 @@ export function findPropertiesNeedingOptionUpdates(
   const needsUpdate: NotionDatabaseProperties = {};
 
   for (const [propName, expectedProp] of Object.entries(expected)) {
-    const actualProp = actualFull[propName];
+    const actualProp = actualFull[propName] as ActualPropertySchema | undefined;
     if (!actualProp) continue; // Property doesn't exist yet, will be handled by missing check
 
     // Check select properties

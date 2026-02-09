@@ -130,10 +130,7 @@ export async function findExistingResources(
 
   const pageSearch = await notion.search({
     query: FLOW_STATE_PAGE_TITLE,
-    filter: {
-      property: 'object',
-      value: 'page',
-    } as { property: string; value: string },
+    filter: { property: 'object', value: 'page' },
   });
 
   for (const item of pageSearch.results) {
@@ -159,10 +156,7 @@ export async function findExistingResources(
     dbSearch = await notion.search({
       query: DAILY_NOTES_DB_TITLE,
       // Notion Search API now only accepts object filter values: "page" or "data_source".
-      filter: {
-        property: 'object',
-        value: 'data_source',
-      } as { property: string; value: string },
+      filter: { property: 'object', value: 'data_source' },
     });
   } catch (error) {
     logger.error('Failed to search for daily notes database', { error });
@@ -193,10 +187,7 @@ export async function findExistingResources(
     tasksSearch = await notion.search({
       query: TASKS_DB_TITLE,
       // Notion Search API now only accepts object filter values: "page" or "data_source".
-      filter: {
-        property: 'object',
-        value: 'data_source',
-      } as { property: string; value: string },
+      filter: { property: 'object', value: 'data_source' },
     });
   } catch (error) {
     logger.error('Failed to search for tasks database', { error });
