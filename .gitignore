@@ -59,6 +59,7 @@ release/
 
 # env files
 .env
+.env.*
 config/.env
 
 # Firebase
