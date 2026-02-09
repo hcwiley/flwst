@@ -4,8 +4,8 @@
  */
 
 import { track } from '@flwst/integrations';
-import { useReducer, useEffect, useState } from 'react';
-import { Stack, Text } from 'tamagui';
+import { useReducer, useEffect, useRef, useState } from 'react';
+import { Stack, Spinner, Text } from 'tamagui';
 import type { OnboardingState } from '@flwst/types';
 import type {
   OnboardingFlowState,
@@ -293,6 +293,16 @@ export function OnboardingFlow({
     onboardingState: initialState || getDefaultOnboardingState(),
   });
   const [isHydrated, setIsHydrated] = useState(false);
+  const prevStepRef = useRef<OnboardingStep>(flowState.step);
+  const userNavigatedToDoneRef = useRef(false);
+  const hasCalledOnCompleteForHydratedDoneRef = useRef(false);
+
+  const dispatchWithNavTracking = useRef((action: OnboardingFlowAction) => {
+    if (action.type === 'NEXT') {
+      userNavigatedToDoneRef.current = true;
+    }
+    dispatch(action);
+  }).current;
 
   /**
    * Ordered onboarding steps used for progress tracking.
@@ -421,15 +431,25 @@ export function OnboardingFlow({
     persistState();
   }, [flowState.onboardingState, flowState.step, isHydrated]);
 
-  // Analytics: step viewed (fire when step changes)
+  // After hydrate, record current step so we don't track it as "viewed" (it came from storage).
+  useEffect(() => {
+    if (isHydrated) {
+      prevStepRef.current = flowState.step;
+    }
+  }, [isHydrated]);
+
+  // Analytics: step viewed only when step changes after hydrate (user navigated).
   useEffect(() => {
     if (!isHydrated) return;
+    if (flowState.step === prevStepRef.current) return;
+    prevStepRef.current = flowState.step;
     track('Onboarding Step Viewed', { step: flowState.step });
   }, [flowState.step, isHydrated]);
 
-  // Handle completion
+  // Handle completion: track only when user navigated to Done; when hydrated into Done, just call onComplete once.
   useEffect(() => {
-    if (flowState.step === 'Done') {
+    if (flowState.step !== 'Done') return;
+    if (userNavigatedToDoneRef.current) {
       const trackCompleted =
         flowState.onboardingState.notion.status === 'ready'
           ? 'notion'
@@ -442,8 +462,47 @@ export function OnboardingFlow({
       }, 500);
       return () => clearTimeout(timer);
     }
+    if (!hasCalledOnCompleteForHydratedDoneRef.current) {
+      hasCalledOnCompleteForHydratedDoneRef.current = true;
+      onComplete();
+    }
     return undefined;
   }, [flowState.step, flowState.onboardingState, onComplete]);
+
+  // In-flow loading until state is hydrated; avoid flashing Welcome or Done before we know the real step.
+  if (!isHydrated) {
+    return (
+      <Stack
+        flex={1}
+        backgroundColor='$background'
+        alignItems='center'
+        justifyContent='center'
+        gap='$3'
+      >
+        <Spinner size='large' />
+        <Text
+          fontSize='$4'
+          color='$gray11'
+        >
+          Loading…
+        </Text>
+      </Stack>
+    );
+  }
+
+  // Hydrated into Done: no UI, completion effect will call onComplete().
+  if (flowState.step === 'Done' && !userNavigatedToDoneRef.current) {
+    return (
+      <Stack
+        flex={1}
+        backgroundColor='$background'
+        alignItems='center'
+        justifyContent='center'
+      >
+        <Spinner size='large' />
+      </Stack>
+    );
+  }
 
   /**
    * Render appropriate screen based on current step.
@@ -452,12 +511,18 @@ export function OnboardingFlow({
   const renderStep = (): React.JSX.Element => {
     switch (flowState.step) {
       case 'Welcome':
-        return <WelcomeScreen onNext={() => dispatch({ type: 'NEXT' })} />;
+        return (
+          <WelcomeScreen
+            onNext={() => dispatchWithNavTracking({ type: 'NEXT' })}
+          />
+        );
 
       case 'SystemSelect':
         return (
           <SystemSelectScreen
-            onSelect={(system) => dispatch({ type: 'SELECT_SYSTEM', system })}
+            onSelect={(system) =>
+              dispatchWithNavTracking({ type: 'SELECT_SYSTEM', system })
+            }
           />
         );
 
@@ -470,7 +535,10 @@ export function OnboardingFlow({
           <FeatureRequestScreen
             system={system}
             onSubmit={(payload) => {
-              dispatch({ type: 'SUBMIT_FEATURE_REQUEST', payload });
+              dispatchWithNavTracking({
+                type: 'SUBMIT_FEATURE_REQUEST',
+                payload,
+              });
               const first = payload?.[0];
               if (first) {
                 track('Feature Request Submitted', {
@@ -480,7 +548,7 @@ export function OnboardingFlow({
                 });
               }
             }}
-            onBack={() => dispatch({ type: 'BACK' })}
+            onBack={() => dispatchWithNavTracking({ type: 'BACK' })}
           />
         );
       }
@@ -488,31 +556,31 @@ export function OnboardingFlow({
       case 'FeatureRequestThankYou':
         return (
           <FeatureRequestThankYouScreen
-            onContinue={() => dispatch({ type: 'NEXT' })}
+            onContinue={() => dispatchWithNavTracking({ type: 'NEXT' })}
           />
         );
 
       case 'NotionExplain':
         return (
           <NotionExplainScreen
-            onNext={() => dispatch({ type: 'NEXT' })}
-            onBack={() => dispatch({ type: 'BACK' })}
+            onNext={() => dispatchWithNavTracking({ type: 'NEXT' })}
+            onBack={() => dispatchWithNavTracking({ type: 'BACK' })}
           />
         );
 
       case 'NotionOAuthStart':
         return (
           <NotionOAuthStartScreen
-            onNext={() => dispatch({ type: 'NEXT' })}
-            onBack={() => dispatch({ type: 'BACK' })}
+            onNext={() => dispatchWithNavTracking({ type: 'NEXT' })}
+            onBack={() => dispatchWithNavTracking({ type: 'BACK' })}
           />
         );
 
       case 'NotionOAuthComplete':
         return (
           <NotionOAuthCompleteScreen
-            onNext={() => dispatch({ type: 'NEXT' })}
-            onBack={() => dispatch({ type: 'BACK' })}
+            onNext={() => dispatchWithNavTracking({ type: 'NEXT' })}
+            onBack={() => dispatchWithNavTracking({ type: 'BACK' })}
           />
         );
 
@@ -531,9 +599,9 @@ export function OnboardingFlow({
                   },
                 },
               });
-              dispatch({ type: 'NEXT' });
+              dispatchWithNavTracking({ type: 'NEXT' });
             }}
-            onBack={() => dispatch({ type: 'BACK' })}
+            onBack={() => dispatchWithNavTracking({ type: 'BACK' })}
           />
         );
 
@@ -541,8 +609,8 @@ export function OnboardingFlow({
         return (
           <ConfirmCreateScreen
             parentPageId={flowState.onboardingState.notion.parentPageId || ''}
-            onConfirm={() => dispatch({ type: 'NEXT' })}
-            onBack={() => dispatch({ type: 'BACK' })}
+            onConfirm={() => dispatchWithNavTracking({ type: 'NEXT' })}
+            onBack={() => dispatchWithNavTracking({ type: 'BACK' })}
           />
         );
 
@@ -560,10 +628,10 @@ export function OnboardingFlow({
                 });
               } catch (error) {
                 console.error('Failed to refresh onboarding state:', error);
-                dispatch({ type: 'NEXT' });
+                dispatchWithNavTracking({ type: 'NEXT' });
               }
             }}
-            onBack={() => dispatch({ type: 'BACK' })}
+            onBack={() => dispatchWithNavTracking({ type: 'BACK' })}
           />
         );
 
@@ -578,7 +646,7 @@ export function OnboardingFlow({
                   onboardingCompleted: true,
                 },
               });
-              dispatch({ type: 'NEXT' });
+              dispatchWithNavTracking({ type: 'NEXT' });
             }}
           />
         );
@@ -587,7 +655,9 @@ export function OnboardingFlow({
         return flowState.busy ? (
           <BusyScreen message={flowState.busy.message} />
         ) : (
-          <WelcomeScreen onNext={() => dispatch({ type: 'NEXT' })} />
+          <WelcomeScreen
+            onNext={() => dispatchWithNavTracking({ type: 'NEXT' })}
+          />
         );
 
       case 'Error':
@@ -599,14 +669,16 @@ export function OnboardingFlow({
             onCancel={() => dispatch({ type: 'CANCEL' })}
           />
         ) : (
-          <WelcomeScreen onNext={() => dispatch({ type: 'NEXT' })} />
+          <WelcomeScreen
+            onNext={() => dispatchWithNavTracking({ type: 'NEXT' })}
+          />
         );
 
       case 'CancelConfirm':
         return (
           <CancelConfirmScreen
             onConfirm={() => dispatch({ type: 'CONFIRM_CANCEL' })}
-            onCancel={() => dispatch({ type: 'BACK' })}
+            onCancel={() => dispatchWithNavTracking({ type: 'BACK' })}
           />
         );
 

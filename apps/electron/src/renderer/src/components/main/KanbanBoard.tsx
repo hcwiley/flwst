@@ -4,6 +4,7 @@
  * Board header: Toolbar with Sort control and Column visibility popover.
  */
 
+import { track } from '@flwst/integrations';
 import { useCallback, useState } from 'react';
 import {
   Button,
@@ -84,6 +85,7 @@ export function KanbanBoard({
       setPrefsError(null);
       try {
         await window.api.config.update({ kanbanPrefs: next });
+        track('Config Updated', { field: 'kanbanPrefs' });
       } catch (error) {
         setKanbanPrefs(previous);
         setPrefsError(

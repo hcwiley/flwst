@@ -19,7 +19,9 @@ import {
 type CreatePageParameters = Parameters<Client['pages']['create']>[0];
 type CreatePageResponse = Awaited<ReturnType<Client['pages']['create']>>;
 type CreateDatabaseParameters = Parameters<Client['databases']['create']>[0];
-type CreateDatabaseResponse = Awaited<ReturnType<Client['databases']['create']>>;
+type CreateDatabaseResponse = Awaited<
+  ReturnType<Client['databases']['create']>
+>;
 
 type DatabaseCreatePayload = {
   parent:

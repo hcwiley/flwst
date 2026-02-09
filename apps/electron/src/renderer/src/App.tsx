@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { Stack, Spinner, Text } from 'tamagui';
+import { FlowStateTamaguiProvider } from '@flwst/ui';
 import { OnboardingLayout } from './onboarding/OnboardingLayout';
 import { MainLayout } from './layouts/MainLayout';
 import type { OnboardingState } from '@flwst/types';
@@ -59,8 +61,27 @@ function App(): React.JSX.Element {
   };
 
   if (isLoading) {
-    // Show loading state while checking onboarding status
-    return <div>Loading...</div>;
+    return (
+      <FlowStateTamaguiProvider defaultTheme='light'>
+        <Stack
+          flex={1}
+          height='100vh'
+          width='100vw'
+          alignItems='center'
+          justifyContent='center'
+          backgroundColor='$background'
+          gap='$3'
+        >
+          <Spinner size='large' />
+          <Text
+            fontSize='$4'
+            color='$gray11'
+          >
+            Loading…
+          </Text>
+        </Stack>
+      </FlowStateTamaguiProvider>
+    );
   }
 
   if (showOnboarding) {

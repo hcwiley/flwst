@@ -3,6 +3,7 @@
  * Placed in top-right of MainLayout; disables while in-flight and surfaces errors.
  */
 
+import { track } from '@flwst/integrations';
 import { useCallback, useEffect } from 'react';
 import { Button, Spinner, Stack, Text } from 'tamagui';
 import { useAppStore } from '@flwst/state';
@@ -46,6 +47,7 @@ export function SyncButton(): React.JSX.Element {
 
   const handleSync = useCallback(() => {
     if (isSyncing) return;
+    track('Sync from Notion', { source: 'button' });
     startSync();
     void window.api.notion.sync();
   }, [isSyncing, startSync]);

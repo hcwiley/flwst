@@ -68,6 +68,8 @@ export function InboxPane({
         const text = await file.text();
         setContent(text);
         setFilename(file.name);
+        const ext = file.name.toLowerCase().endsWith('.md') ? '.md' : '.txt';
+        track('File Dropped', { extension: ext });
         onStatusChange('idle');
       } catch (readError) {
         onStatusChange('error');
@@ -96,6 +98,7 @@ export function InboxPane({
       return;
     }
 
+    track('Ingest', { hasFilename: !!filename });
     setIsProcessing(true);
     onStatusChange('ingesting');
     onError(null);

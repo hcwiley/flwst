@@ -2,6 +2,7 @@
  * Config pane: preprocess toggle and prompt editors (default, effective, reset).
  */
 
+import { track } from '@flwst/integrations';
 import { useCallback, useState } from 'react';
 import { Stack, Text, Button, Spinner, YStack } from 'tamagui';
 import type { UserConfig } from '@flwst/types';
@@ -50,6 +51,7 @@ export function ConfigPane({
       if (prompts.taskDraft === '') delete prompts.taskDraft;
       const updated = await window.api.config.update({ prompts });
       onConfigChange(updated);
+      track('Config Updated', { field: 'prompts' });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save');
     } finally {
@@ -66,6 +68,7 @@ export function ConfigPane({
         await window.api.config.resetPrompt(selectedPromptKey);
       onConfigChange(updated);
       await loadConfig();
+      track('Config Updated', { field: 'resetPrompt' });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to reset');
     } finally {
@@ -85,6 +88,7 @@ export function ConfigPane({
         },
       });
       onConfigChange(updated);
+      track('Config Updated', { field: 'preprocess' });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to update');
     } finally {

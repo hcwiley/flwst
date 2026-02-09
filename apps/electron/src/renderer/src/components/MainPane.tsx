@@ -4,6 +4,7 @@
  * Display-level dedup: ingest tasks whose title matches a Notion task are omitted (Notion is canonical).
  */
 
+import { track } from '@flwst/integrations';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Spinner, Stack, Text, XStack, YStack } from 'tamagui';
 import { useAppStore } from '@flwst/state';
@@ -85,6 +86,7 @@ export function MainPane({
     if (isSyncing) return;
     if (Object.keys(notionTasksById).length > 0) return;
     initialSyncRequested.current = true;
+    track('Sync from Notion', { source: 'initial' });
     startSync();
     window.api.notion.sync().catch(() => {
       // Errors are surfaced through the syncComplete event.
@@ -199,6 +201,10 @@ export function MainPane({
           : undefined,
       });
       setPublishResult(result);
+      track('Publish to Notion', {
+        taskCount: taskProps.length,
+        hadDailyNote: !!dailyNoteProps,
+      });
     } catch (error) {
       setPublishError(
         error instanceof Error ? error.message : 'Publish to Notion failed',
@@ -223,6 +229,10 @@ export function MainPane({
         if (!result.ok) {
           throw new Error(result.error);
         }
+        track('Task Status Updated', {
+          fromStatus: existing.status,
+          toStatus: status,
+        });
       } catch (error) {
         updateTaskStatus(taskId, existing.status);
         setTaskMoveError(
