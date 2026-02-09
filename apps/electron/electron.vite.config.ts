@@ -70,7 +70,9 @@ export default defineConfig(({ mode }) => {
           // Use source files in dev, not dist
           '@flwst/ui': r('../../libs/ui/src'),
           // Use browser-safe integrations (excludes Sentry; avoids @sentry/electron/main in renderer)
-          '@flwst/integrations': r('../../libs/integrations/src/index.browser.ts'),
+          '@flwst/integrations': r(
+            '../../libs/integrations/src/index.browser.ts',
+          ),
           // Alias for subpath imports (e.g., @flwst/core/logger)
           '@flwst/core/logger': r('../../libs/core/src/logger.ts'),
           // Use browser-safe exports for renderer (excludes Node.js modules like paths)
