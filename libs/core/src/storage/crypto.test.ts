@@ -5,6 +5,7 @@
 
 import assert from 'node:assert/strict';
 import test from 'node:test';
+
 import { encrypt, decrypt, EncryptionError } from './crypto';
 
 test('encrypt and decrypt round-trip with valid data', () => {

@@ -31,7 +31,7 @@ describe('notionSchema helpers', () => {
   });
 
   it('builds tasks properties with relations when provided', () => {
-    const properties: any = buildTasksDbProperties(
+    const properties = buildTasksDbProperties(
       'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
     );
     assert.ok(properties.Status);
@@ -44,7 +44,7 @@ describe('notionSchema helpers', () => {
   });
 
   it('builds daily notes properties with relations when provided', () => {
-    const properties: any = buildDailyNotesDbProperties(
+    const properties = buildDailyNotesDbProperties(
       'cccccccc-cccc-cccc-cccc-cccccccccccc',
     );
     assert.equal(

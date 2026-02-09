@@ -45,9 +45,11 @@ const logger = getLogger();
  */
 export function buildQueryTokens(text: string): string[] {
   const rawTokens = text.split(/[\s/]+/);
-  const normalize = (t: string) => t.toLowerCase().replace(/[^\w]/g, '');
-  const isCandidate = (t: string) => t.length >= 3 && !STOP_WORDS.has(t);
-  const isProperNoun = (raw: string) => /^[A-Z][a-z]+/.test(raw);
+  const normalize = (t: string): string =>
+    t.toLowerCase().replace(/[^\w]/g, '');
+  const isCandidate = (t: string): boolean =>
+    t.length >= 3 && !STOP_WORDS.has(t);
+  const isProperNoun = (raw: string): boolean => /^[A-Z][a-z]+/.test(raw);
 
   const proper = rawTokens
     .map((raw) => ({ raw, norm: normalize(raw) }))

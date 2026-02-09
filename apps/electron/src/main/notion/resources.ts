@@ -130,7 +130,10 @@ export async function findExistingResources(
 
   const pageSearch = await notion.search({
     query: FLOW_STATE_PAGE_TITLE,
-    filter: { property: 'object', value: 'page' } as any,
+    filter: {
+      property: 'object',
+      value: 'page',
+    } as { property: string; value: string },
   });
 
   for (const item of pageSearch.results) {
@@ -156,8 +159,10 @@ export async function findExistingResources(
     dbSearch = await notion.search({
       query: DAILY_NOTES_DB_TITLE,
       // Notion Search API now only accepts object filter values: "page" or "data_source".
-      // Databases are returned as "data_source".
-      filter: { property: 'object', value: 'data_source' } as any,
+      filter: {
+        property: 'object',
+        value: 'data_source',
+      } as { property: string; value: string },
     });
   } catch (error) {
     logger.error('Failed to search for daily notes database', { error });
@@ -188,8 +193,10 @@ export async function findExistingResources(
     tasksSearch = await notion.search({
       query: TASKS_DB_TITLE,
       // Notion Search API now only accepts object filter values: "page" or "data_source".
-      // Databases are returned as "data_source".
-      filter: { property: 'object', value: 'data_source' } as any,
+      filter: {
+        property: 'object',
+        value: 'data_source',
+      } as { property: string; value: string },
     });
   } catch (error) {
     logger.error('Failed to search for tasks database', { error });
@@ -248,10 +255,14 @@ async function createNotionDatabase(
   title: string,
   properties: NotionDatabaseProperties,
 ): Promise<string> {
-  const payload: any = {
+  const payload: {
+    parent: { type: 'page_id'; page_id: string };
+    title: Array<{ text: { content: string } }>;
+    properties: Record<string, unknown>;
+  } = {
     parent: { type: 'page_id', page_id: normalizeNotionId(parentPageId) },
     title: [{ text: { content: title } }],
-    properties: properties as any,
+    properties: properties as Record<string, unknown>,
   };
   const response = await notion.databases.create(payload);
   return response.id;
@@ -334,7 +345,7 @@ export async function addDatabaseProperties(
   _label: 'daily_notes' | 'tasks',
 ): Promise<void> {
   // Remove the Name property since it's already created by databases.create
-  const { Name, ...propsToAdd } = properties;
+  const { Name: _name, ...propsToAdd } = properties;
 
   if (Object.keys(propsToAdd).length === 0) {
     return;
@@ -360,7 +371,16 @@ export async function ensureDailyNotesRelation(
   dailyNotesDataSourceId: string,
   tasksDataSourceId: string,
 ): Promise<void> {
-  const properties: any = {
+  const properties: Record<
+    string,
+    {
+      relation: {
+        data_source_id: string;
+        type: 'single_property';
+        single_property: Record<string, never>;
+      };
+    }
+  > = {
     Tasks: {
       relation: {
         data_source_id: tasksDataSourceId,

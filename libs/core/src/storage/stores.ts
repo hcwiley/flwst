@@ -3,12 +3,13 @@
  * Provides type-safe read/write APIs with automatic encryption/decryption.
  */
 
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
-import { join } from 'node:path';
-import { encrypt, decrypt, EncryptionError } from './crypto';
-import { KeyManager } from './keyManager';
 import type { UserConfig, Tokens } from '@flwst/types';
 import { UserConfigSchema, TokensSchema } from '@flwst/types';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { join } from 'node:path';
+
+import { encrypt, decrypt, EncryptionError } from './crypto';
+import { KeyManager, type KeytarAdapter } from './keyManager';
 
 /**
  * Base class for encrypted storage stores.
@@ -109,17 +110,7 @@ abstract class EncryptedStore<T> {
  * Store for user configuration.
  */
 export class ConfigStore extends EncryptedStore<UserConfig> {
-  constructor(
-    storageDir: string,
-    keytar: {
-      setPassword: (
-        service: string,
-        account: string,
-        password: string,
-      ) => Promise<void>;
-      getPassword: (service: string, account: string) => Promise<string | null>;
-    },
-  ) {
+  constructor(storageDir: string, keytar: KeytarAdapter) {
     super(storageDir, new KeyManager(keytar), 'config.encrypted');
   }
 
@@ -177,17 +168,7 @@ export class ConfigStore extends EncryptedStore<UserConfig> {
  * Store for OAuth tokens and Notion IDs.
  */
 export class TokensStore extends EncryptedStore<Tokens> {
-  constructor(
-    storageDir: string,
-    keytar: {
-      setPassword: (
-        service: string,
-        account: string,
-        password: string,
-      ) => Promise<void>;
-      getPassword: (service: string, account: string) => Promise<string | null>;
-    },
-  ) {
+  constructor(storageDir: string, keytar: KeytarAdapter) {
     super(storageDir, new KeyManager(keytar), 'tokens.encrypted');
   }
 

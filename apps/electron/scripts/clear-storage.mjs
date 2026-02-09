@@ -14,7 +14,9 @@ const platform = process.platform;
  * Get storage paths for both dev and production modes.
  * In dev, Electron uses 'Electron' as the app name.
  * In production, it uses '@flwst/electron' from package.json.
+ * @returns {string[]}
  */
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc @returns used; .mjs has no inline return type
 function getStoragePaths() {
   const paths = [];
   if (platform === 'darwin') {

@@ -2,8 +2,8 @@
  * File path utilities for FlowState artifacts and config.
  */
 
-import { join } from 'node:path';
 import { homedir } from 'node:os';
+import { join } from 'node:path';
 
 /**
  * Get the FlowState app cache directory.

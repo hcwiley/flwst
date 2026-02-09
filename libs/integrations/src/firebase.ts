@@ -7,6 +7,7 @@ import type { FirebaseConfig } from '@flwst/types';
 /**
  * Firebase integration configuration interface.
  */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface FirebaseIntegrationConfig extends FirebaseConfig {
   // Future: additional Firebase-specific config
 }

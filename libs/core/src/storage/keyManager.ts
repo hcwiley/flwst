@@ -18,26 +18,24 @@ const KEYCHAIN_ACCOUNT = 'encryption-key';
 let keyCreationLock: Promise<Buffer> | null = null;
 
 /**
+ * Keychain adapter interface used by KeyManager.
+ */
+export interface KeytarAdapter {
+  setPassword: (
+    service: string,
+    account: string,
+    password: string,
+  ) => Promise<void>;
+  getPassword: (service: string, account: string) => Promise<string | null>;
+}
+
+/**
  * Key manager that uses OS keychain to store encryption keys.
  */
 export class KeyManager {
-  private keytar: {
-    setPassword: (
-      service: string,
-      account: string,
-      password: string,
-    ) => Promise<void>;
-    getPassword: (service: string, account: string) => Promise<string | null>;
-  };
+  private keytar: KeytarAdapter;
 
-  constructor(keytar: {
-    setPassword: (
-      service: string,
-      account: string,
-      password: string,
-    ) => Promise<void>;
-    getPassword: (service: string, account: string) => Promise<string | null>;
-  }) {
+  constructor(keytar: KeytarAdapter) {
     this.keytar = keytar;
   }
 

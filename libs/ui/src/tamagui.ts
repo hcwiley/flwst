@@ -1,29 +1,27 @@
 /**
  * Tamagui base configuration for FlowState.
- * Phase 1: Minimal tokens and theme scaffolding.
+ * Uses @tamagui/config v3 and createTamagui; exports type and singleton instance.
  *
- * Note: Tamagui dependencies are peer dependencies.
- * Apps that use this package must install @tamagui/config and @tamagui/core.
+ * Note: Tamagui is a direct dependency of @flwst/ui.
+ * Apps get the provider via FlowStateTamaguiProvider from this package.
  */
 
-// Placeholder for Tamagui configuration.
-// Actual implementation will be added when Tamagui is integrated in Phase 2/3.
-export interface TamaguiConfig {
-  // Placeholder type - will be replaced with actual Tamagui config
-}
+import { config } from '@tamagui/config/v3';
+import { createTamagui } from 'tamagui';
+
+/** Tamagui config type (return type of createTamagui). */
+export type TamaguiConfig = ReturnType<typeof createTamagui>;
 
 /**
  * FlowState custom theme tokens.
- * Phase 1: Placeholder only.
+ * Extend or override Tamagui tokens here when needed.
  */
 export const flowStateTokens = {
-  // Custom tokens will be added in future phases
+  // Custom tokens can be added for FlowState-specific theming
 };
 
 /**
- * FlowState Tamagui configuration.
- * Phase 1: Placeholder, not yet integrated into apps.
+ * FlowState Tamagui configuration instance.
+ * Built from @tamagui/config/v3; used by FlowStateTamaguiProvider.
  */
-export const tamaguiConfig: TamaguiConfig = {
-  // Placeholder - actual config will be created in Phase 2/3
-} as TamaguiConfig;
+export const tamaguiConfig: TamaguiConfig = createTamagui(config);

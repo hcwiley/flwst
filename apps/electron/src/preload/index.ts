@@ -91,7 +91,7 @@ const api = {
           notes?: unknown[];
           error?: string;
         },
-      ) => callback(payload);
+      ): void => callback(payload);
       ipcRenderer.on('notion:syncComplete', handler);
       return () => ipcRenderer.removeListener('notion:syncComplete', handler);
     },

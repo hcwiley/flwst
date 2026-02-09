@@ -14,6 +14,7 @@ import type {
 /**
  * Notion integration configuration interface.
  */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface NotionIntegrationConfig extends NotionConfig {
   // Future: additional Notion-specific config
 }

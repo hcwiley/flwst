@@ -85,7 +85,8 @@ export class ConsoleLogger implements Logger {
         ? console.error
         : level === 'warn'
           ? console.warn
-          : console.log;
+          : // eslint-disable-next-line no-console
+            console.log;
 
     if (metadata) {
       logFn(prefix, message, metadata);

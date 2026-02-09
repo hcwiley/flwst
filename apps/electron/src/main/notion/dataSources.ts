@@ -149,15 +149,15 @@ export async function fetchDataSourceFullSchema(
   notion: Client,
   dataSourceId: string,
   label: 'daily_notes' | 'tasks',
-): Promise<Record<string, any>> {
+): Promise<Record<string, unknown>> {
   logger.debug('Fetching data source full schema', { dataSourceId, label });
   try {
     const dataSources = getDataSourcesClient(notion);
     const dataSource = (await dataSources.retrieve({
       data_source_id: dataSourceId,
-    })) as { properties?: Record<string, any> };
-    return (dataSource.properties ?? {}) as Record<string, any>;
-  } catch (error) {
+    })) as { properties?: Record<string, unknown> };
+    return (dataSource.properties ?? {}) as Record<string, unknown>;
+  } catch {
     return {};
   }
 }
@@ -168,7 +168,7 @@ export async function fetchDataSourceFullSchema(
  */
 export function findPropertiesNeedingOptionUpdates(
   expected: NotionDatabaseProperties,
-  actualFull: Record<string, any>,
+  actualFull: Record<string, unknown>,
 ): NotionDatabaseProperties {
   const needsUpdate: NotionDatabaseProperties = {};
 
@@ -290,7 +290,7 @@ export async function ensureDataSourcePropertiesOnStartup(
 
     // Log relation properties before sending
     const relationProps = Object.entries(propertiesToUpdate).filter(
-      ([_, value]) => 'relation' in value,
+      ([, value]) => 'relation' in value,
     );
     logger.debug('Relation properties before sending', { relationProps });
 
