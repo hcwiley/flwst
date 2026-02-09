@@ -95,3 +95,11 @@ pnpm build:mac
 # For Linux
 pnpm build:linux
 ```
+
+### Building for distribution (e.g. DMG)
+
+To produce a distributable Mac build (DMG and zip):
+
+1. Set `NODE_ENV=production` if you want production optimizations (optional; electron-vite uses mode from the build command).
+2. From the repo root: `pnpm --filter @flwst/electron build:mac`, or from this directory: `pnpm build:mac`.
+3. The DMG and zip artifacts are written to `apps/electron/dist/` (e.g. `flwst-1.0.0.dmg`). Install the app from the DMG on a target Mac for smoke testing.

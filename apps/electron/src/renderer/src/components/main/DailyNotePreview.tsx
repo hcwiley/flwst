@@ -37,6 +37,13 @@ export function DailyNotePreview({
           <Text opacity={0.7}>Loading daily note…</Text>
         ) : loadError ? (
           <Text color='$red10'>{loadError}</Text>
+        ) : markdown.trim() === '' ? (
+          <Text
+            opacity={0.7}
+            fontStyle='italic'
+          >
+            Daily note is empty for this run.
+          </Text>
         ) : (
           <Stack
             className='markdown-preview'

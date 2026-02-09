@@ -1,5 +1,6 @@
 import './assets/main.css';
 
+import { initAmplitude } from '@flwst/integrations';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { initSentryRenderer, getLogger } from '../sentry';
@@ -11,6 +12,11 @@ initSentryRenderer(
   process.env.SENTRY_DSN,
   process.env.NODE_ENV || 'development',
 );
+
+// Amplitude: init when API key is set (no-op otherwise)
+initAmplitude({
+  apiKey: process.env.AMPLITUDE_API_KEY ?? '',
+});
 
 // Error boundary for renderer
 window.addEventListener('error', (event) => {

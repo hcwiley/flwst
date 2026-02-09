@@ -299,6 +299,15 @@ export function KanbanBoard({
           >
             {loadError}
           </Text>
+        ) : tasks.length === 0 ? (
+          <MetaText
+            padding='$3'
+            textAlign='center'
+            opacity={0.85}
+          >
+            No tasks in this view. Sync from Notion or run an ingest to see
+            tasks.
+          </MetaText>
         ) : (
           <ScrollView horizontal>
             <XStack gap='$3'>

@@ -3,6 +3,7 @@
  * Manages the onboarding flow state and transitions.
  */
 
+import { track } from '@flwst/integrations';
 import { useReducer, useEffect, useState } from 'react';
 import { Stack, Text } from 'tamagui';
 import type { OnboardingState } from '@flwst/types';
@@ -420,16 +421,29 @@ export function OnboardingFlow({
     persistState();
   }, [flowState.onboardingState, flowState.step, isHydrated]);
 
+  // Analytics: step viewed (fire when step changes)
+  useEffect(() => {
+    if (!isHydrated) return;
+    track('Onboarding Step Viewed', { step: flowState.step });
+  }, [flowState.step, isHydrated]);
+
   // Handle completion
   useEffect(() => {
     if (flowState.step === 'Done') {
+      const trackCompleted =
+        flowState.onboardingState.notion.status === 'ready'
+          ? 'notion'
+          : (flowState.onboardingState.featureRequests?.length ?? 0) > 0
+            ? 'feature_request'
+            : 'notion';
+      track('Onboarding Completed', { track: trackCompleted });
       const timer = setTimeout(() => {
         onComplete();
       }, 500);
       return () => clearTimeout(timer);
     }
     return undefined;
-  }, [flowState.step, onComplete]);
+  }, [flowState.step, flowState.onboardingState, onComplete]);
 
   /**
    * Render appropriate screen based on current step.
@@ -455,9 +469,17 @@ export function OnboardingFlow({
         return (
           <FeatureRequestScreen
             system={system}
-            onSubmit={(payload) =>
-              dispatch({ type: 'SUBMIT_FEATURE_REQUEST', payload })
-            }
+            onSubmit={(payload) => {
+              dispatch({ type: 'SUBMIT_FEATURE_REQUEST', payload });
+              const first = payload?.[0];
+              if (first) {
+                track('Feature Request Submitted', {
+                  system: first.system,
+                  teamSize: first.teamSize,
+                  urgency: first.urgency,
+                });
+              }
+            }}
             onBack={() => dispatch({ type: 'BACK' })}
           />
         );
