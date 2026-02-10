@@ -5,10 +5,6 @@
 
 import crypto from 'node:crypto';
 
-/**
- * Service name for keychain storage.
- */
-const KEYCHAIN_SERVICE = 'com.flowstate.app';
 const KEYCHAIN_ACCOUNT = 'encryption-key';
 
 /**
@@ -34,9 +30,15 @@ export interface KeytarAdapter {
  */
 export class KeyManager {
   private keytar: KeytarAdapter;
+  private service: string;
 
-  constructor(keytar: KeytarAdapter) {
+  /**
+   * @param keytar - Keychain adapter (e.g., node-keytar)
+   * @param service - Service name for keychain storage (e.g., app bundle ID)
+   */
+  constructor(keytar: KeytarAdapter, service: string) {
     this.keytar = keytar;
+    this.service = service;
   }
 
   /**
@@ -49,7 +51,7 @@ export class KeyManager {
   async getOrCreateKey(): Promise<Buffer> {
     // Try to get existing key
     const existingKey = await this.keytar.getPassword(
-      KEYCHAIN_SERVICE,
+      this.service,
       KEYCHAIN_ACCOUNT,
     );
 
@@ -67,7 +69,7 @@ export class KeyManager {
       try {
         // Double-check after acquiring lock (another caller may have created it)
         const doubleCheckKey = await this.keytar.getPassword(
-          KEYCHAIN_SERVICE,
+          this.service,
           KEYCHAIN_ACCOUNT,
         );
         if (doubleCheckKey) {
@@ -79,7 +81,7 @@ export class KeyManager {
 
         // Store in keychain as base64
         await this.keytar.setPassword(
-          KEYCHAIN_SERVICE,
+          this.service,
           KEYCHAIN_ACCOUNT,
           newKey.toString('base64'),
         );

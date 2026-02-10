@@ -9,6 +9,12 @@ import { join } from 'node:path';
 import { ConfigStore, TokensStore } from '@flwst/core';
 
 /**
+ * App bundle ID for keychain storage.
+ * Must match appId in electron-builder.yml.
+ */
+const APP_ID = 'com.crescrentwrenchstudio.flwst';
+
+/**
  * Module-level storage stores.
  * Initialized by initializeStorage() and accessible via getters.
  */
@@ -26,8 +32,8 @@ export function initializeStorage(): void {
   const storageDir = join(userDataPath, 'storage');
 
   // Create and store the stores for IPC handler access
-  configStore = new ConfigStore(storageDir, keytar);
-  tokensStore = new TokensStore(storageDir, keytar);
+  configStore = new ConfigStore(storageDir, keytar, APP_ID);
+  tokensStore = new TokensStore(storageDir, keytar, APP_ID);
 }
 
 /**

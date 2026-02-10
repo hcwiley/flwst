@@ -36,7 +36,11 @@ test('ConfigStore writes and reads config round-trip', async () => {
   const testDir = join(tmpdir(), `flwst-test-${Date.now()}`);
   await mkdir(testDir, { recursive: true });
 
-  const store = new ConfigStore(testDir, mockKeytar as KeytarAdapter);
+  const store = new ConfigStore(
+    testDir,
+    mockKeytar as KeytarAdapter,
+    'com.test.app',
+  );
 
   const testConfig: UserConfig = {
     preprocess: {
@@ -68,7 +72,11 @@ test('ConfigStore returns default config when file does not exist', async () => 
   const testDir = join(tmpdir(), `flwst-test-${Date.now()}`);
   await mkdir(testDir, { recursive: true });
 
-  const store = new ConfigStore(testDir, mockKeytar as KeytarAdapter);
+  const store = new ConfigStore(
+    testDir,
+    mockKeytar as KeytarAdapter,
+    'com.test.app',
+  );
   const config = await store.read();
 
   // Should return a valid default config structure
@@ -88,7 +96,11 @@ test('ConfigStore handles corrupted encrypted file gracefully', async () => {
   const configPath = join(testDir, 'config.encrypted');
   await writeFile(configPath, 'corrupted-data');
 
-  const store = new ConfigStore(testDir, mockKeytar as KeytarAdapter);
+  const store = new ConfigStore(
+    testDir,
+    mockKeytar as KeytarAdapter,
+    'com.test.app',
+  );
 
   // Should fall back to default config
   const config = await store.read();

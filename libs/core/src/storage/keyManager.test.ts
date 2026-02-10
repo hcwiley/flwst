@@ -31,7 +31,10 @@ test.beforeEach(() => {
 });
 
 test('KeyManager creates new key on first access', async () => {
-  const manager = new KeyManager(mockKeytar as KeytarAdapter);
+  const manager = new KeyManager(
+    mockKeytar as KeytarAdapter,
+    'com.test.app',
+  );
 
   const key1 = await manager.getOrCreateKey();
 
@@ -41,7 +44,10 @@ test('KeyManager creates new key on first access', async () => {
 });
 
 test('KeyManager reuses existing key from keychain', async () => {
-  const manager = new KeyManager(mockKeytar as KeytarAdapter);
+  const manager = new KeyManager(
+    mockKeytar as KeytarAdapter,
+    'com.test.app',
+  );
 
   const key1 = await manager.getOrCreateKey();
   const key2 = await manager.getOrCreateKey();
@@ -50,10 +56,16 @@ test('KeyManager reuses existing key from keychain', async () => {
 });
 
 test('KeyManager creates stable key across instances', async () => {
-  const manager1 = new KeyManager(mockKeytar as KeytarAdapter);
+  const manager1 = new KeyManager(
+    mockKeytar as KeytarAdapter,
+    'com.test.app',
+  );
   const key1 = await manager1.getOrCreateKey();
 
-  const manager2 = new KeyManager(mockKeytar as KeytarAdapter);
+  const manager2 = new KeyManager(
+    mockKeytar as KeytarAdapter,
+    'com.test.app',
+  );
   const key2 = await manager2.getOrCreateKey();
 
   assert.deepEqual(key1, key2);
@@ -69,7 +81,10 @@ test('KeyManager handles keychain read failure gracefully', async () => {
     },
   };
 
-  const manager = new KeyManager(failingKeytar as KeytarAdapter);
+  const manager = new KeyManager(
+    failingKeytar as KeytarAdapter,
+    'com.test.app',
+  );
 
   await assert.rejects(
     async () => await manager.getOrCreateKey(),
@@ -98,10 +113,12 @@ test('KeyManager prevents race condition on concurrent key creation', async () =
   // Clear keychain before test
   keychainStore.clear();
 
+  const SERVICE = 'com.test.app';
+
   // Create multiple managers (simulating ConfigStore and TokensStore)
-  const manager1 = new KeyManager(raceTestKeytar as KeytarAdapter);
-  const manager2 = new KeyManager(raceTestKeytar as KeytarAdapter);
-  const manager3 = new KeyManager(raceTestKeytar as KeytarAdapter);
+  const manager1 = new KeyManager(raceTestKeytar as KeytarAdapter, SERVICE);
+  const manager2 = new KeyManager(raceTestKeytar as KeytarAdapter, SERVICE);
+  const manager3 = new KeyManager(raceTestKeytar as KeytarAdapter, SERVICE);
 
   // Make concurrent calls to getOrCreateKey
   const [key1, key2, key3] = await Promise.all([
@@ -119,7 +136,7 @@ test('KeyManager prevents race condition on concurrent key creation', async () =
 
   // Verify the key in keychain matches what was returned
   const storedKey = await raceTestKeytar.getPassword(
-    'com.flowstate.app',
+    SERVICE,
     'encryption-key',
   );
   assert.ok(storedKey);
