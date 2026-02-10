@@ -1,3 +1,4 @@
+import './resource-path';
 import { app, ipcMain } from 'electron';
 import { electronApp, optimizer } from '@electron-toolkit/utils';
 import { initSentryMain, getLogger } from './sentry';

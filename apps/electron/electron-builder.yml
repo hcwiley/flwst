@@ -2,15 +2,26 @@ appId: com.crescrentwrenchstudio.flwst
 productName: flwst
 directories:
   buildResources: build
+  output: release
 files:
-  - '!**/.vscode/*'
-  - '!src/*'
-  - '!electron.vite.config.{js,ts,mjs,cjs}'
-  - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
-  - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
-  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+  # only ship what the app actually runs from
+  - out/**
+  - package.json
+
+  # never ship build artifacts / repo junk or node_modules (reduces collector work)
+  - '!release/**'
+  - '!dist/**'
+  - '!**/node_modules/**'
+  - '!**/.git/**'
+  - '!**/.vscode/**'
+  - '!src/**'
+  - '!**/*.{map,ts,tsx,md}'
+  - '!**/{test,tests,__tests__,docs,doc,example,examples,coverage,tmp,cache,.turbo,.next}/**'
+  - '!**/node_modules/.cache/**'
+# Native addons must be unpacked so require() can load them at runtime
 asarUnpack:
   - resources/**
+  - '**/node_modules/keytar/**'
 win:
   executableName: flwst
 nsis:
@@ -19,6 +30,9 @@ nsis:
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
 mac:
+  # Build zip only; DMG step fails when hdiutil temp file is missing (sandbox/temp dir)
+  target:
+    - zip
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
@@ -28,6 +42,8 @@ mac:
   notarize: false
 dmg:
   artifactName: ${name}-${version}.${ext}
+  # ULFO = uncompressed; avoids hdiutil convert to UDZO which often fails on arm64/sandbox
+  format: ULFO
 linux:
   target:
     - AppImage

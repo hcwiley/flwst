@@ -35,9 +35,16 @@ export default defineConfig(({ mode }) => {
       },
       build: {
         // electron-vite externalizes deps in main/preload by default.
-        // Excluding this workspace package forces it to be bundled instead of `require('@flwst/core')`.
+        // Excluding these forces them to be bundled so the packaged app needs only keytar in node_modules.
         externalizeDeps: {
-          exclude: ['@flwst/core', '@flwst/types', '@flwst/prompts'],
+          exclude: [
+            '@flwst/core',
+            '@flwst/types',
+            '@flwst/prompts',
+            '@electron-toolkit/utils',
+            '@notionhq/client',
+            '@sentry/electron',
+          ],
         },
       },
     },
@@ -58,7 +65,12 @@ export default defineConfig(({ mode }) => {
       },
       build: {
         externalizeDeps: {
-          exclude: ['@flwst/core', '@flwst/types', '@flwst/prompts'],
+          exclude: [
+            '@flwst/core',
+            '@flwst/types',
+            '@flwst/prompts',
+            '@electron-toolkit/preload',
+          ],
         },
       },
     },
