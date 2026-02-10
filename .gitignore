@@ -2,6 +2,9 @@
 # inbox: all your incoming tasks, voice notes, images, etc.
 /inbox/
 
+# AI settings
+.claude/
+
 # tmp files
 tmp/
 
