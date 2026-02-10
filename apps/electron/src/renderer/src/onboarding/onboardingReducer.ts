@@ -105,7 +105,11 @@ export function getResumeStep(state: OnboardingState): OnboardingStep {
     case 'ready':
       return 'Done';
     case 'resources_created':
-      return state.onboardingCompleted ? 'Done' : 'StatusConversion';
+      if (state.onboardingCompleted) {
+        return 'Done';
+      }
+      // Check if migration is actually needed based on detected schema
+      return needsStatusMigration ? 'StatusConversion' : 'Done';
     case 'parent_selected':
       return 'ConfirmCreate';
     case 'authed':

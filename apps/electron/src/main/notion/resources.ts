@@ -25,6 +25,8 @@ import {
 } from './dataSources';
 import { NotionError } from './errors';
 import { emitOnboardingStateChanged } from './onboardingEvents';
+import { detectStatusPropertyMigration } from './schemaValidation';
+import { fetchDataSourceSchemaEntries } from './dataSources';
 
 const logger = getLogger();
 
@@ -385,6 +387,7 @@ export async function persistIds(
   ids: CreateResourcesResult,
   parentPageId: string,
   onboardingState?: OnboardingState,
+  migrationStatus?: { needsMigration: boolean; hasBeenMigrated: boolean },
 ): Promise<void> {
   const tokensStore = getTokensStore();
   const currentTokens = await tokensStore.read();
@@ -404,6 +407,21 @@ export async function persistIds(
     featureRequests: [],
   };
 
+  // Determine migration status from detected schema or existing state
+  let needsMigration = true;
+  let hasBeenMigrated = false;
+
+  if (migrationStatus) {
+    // Use detected status from Notion schema (most accurate)
+    needsMigration = migrationStatus.needsMigration;
+    hasBeenMigrated = migrationStatus.hasBeenMigrated;
+  } else if (updatedOnboarding.notion.statusPropertyHasBeenMigrated === true) {
+    // Preserve existing migration status if already completed
+    needsMigration =
+      updatedOnboarding.notion.statusPropertyNeedsMigration ?? false;
+    hasBeenMigrated = true;
+  }
+
   await configStore.write({
     ...currentConfig,
     notion: {
@@ -416,14 +434,15 @@ export async function persistIds(
       ...updatedOnboarding,
       notion: {
         ...updatedOnboarding.notion,
-        status: 'resources_created',
+        // Set status to 'ready' if migration already complete, otherwise 'resources_created'
+        status: hasBeenMigrated ? 'ready' : 'resources_created',
         parentPageId,
         flowStatePageId: ids.flowStatePageId,
         dailyNotesDataSourceId: ids.dailyNotesDataSourceId,
         tasksDataSourceId: ids.tasksDataSourceId,
-        statusPropertyMigrated: false,
-        statusPropertyNeedsMigration: true,
-        statusPropertyHasBeenMigrated: false,
+        statusPropertyMigrated: hasBeenMigrated,
+        statusPropertyNeedsMigration: needsMigration,
+        statusPropertyHasBeenMigrated: hasBeenMigrated,
         updatedAt: now,
         createdAt: updatedOnboarding.notion.createdAt ?? now,
       },
@@ -486,8 +505,34 @@ export async function createResourcesInternal(
       dailyNotesDataSourceId: existing.dailyNotesDataSourceId,
       tasksDataSourceId: existing.tasksDataSourceId,
     });
+
+    // Detect Status property migration status from actual Notion schema
+    let migrationStatus;
+    try {
+      const tasksSchema = await fetchDataSourceSchemaEntries(
+        notion,
+        existing.tasksDataSourceId,
+        'tasks',
+      );
+      migrationStatus = detectStatusPropertyMigration(tasksSchema);
+      logger.info('Detected Status property migration status', {
+        needsMigration: migrationStatus.needsMigration,
+        hasBeenMigrated: migrationStatus.hasBeenMigrated,
+      });
+    } catch (error) {
+      logger.warn('Failed to detect Status property migration status', {
+        error,
+      });
+      // Fall back to default behavior if detection fails
+    }
+
     const existingFull = existing as CreateResourcesResult;
-    await persistIds(existingFull, parentPageId, onboardingState);
+    await persistIds(
+      existingFull,
+      parentPageId,
+      onboardingState,
+      migrationStatus,
+    );
     return existingFull;
   }
 
