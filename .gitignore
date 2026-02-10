@@ -80,12 +80,15 @@ servers/firebase/lib/
 **/lib/
 **/.next/
 **/build/
+!apps/electron/build/
+apps/electron/build/*
+!apps/electron/build/icon.png
+!apps/electron/build/icon.icns
+!apps/electron/build/icon.ico
+!apps/electron/build/entitlements.mac.plist
 **/out/
 
 # Electron
-apps/electron/out/
-apps/electron/dist/
-apps/electron/build/
 apps/electron/release/
 
 # Expo/Mobile
