@@ -147,7 +147,7 @@ Distributable builds are produced from `apps/electron` using electron-builder.
 - **Prerequisites:** Node.js 20+, pnpm 8+, dependencies installed at repo root.
 - **Build commands** (from repo root or `apps/electron`):
   - macOS: `pnpm --filter @flwst/electron build:mac` → DMG and zip in
-    `apps/electron/dist/`
+    `apps/electron/release/`
   - Windows: `pnpm --filter @flwst/electron build:win`
   - Linux: `pnpm --filter @flwst/electron build:linux`
 - **Config:** `apps/electron/electron-builder.yml` (app id, targets, notarization
