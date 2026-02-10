@@ -353,10 +353,7 @@ describe('resources helpers', () => {
       const result = await findExistingResources(mockNotion, PARENT_PAGE_ID);
 
       assert.equal(result.flowStatePageId, FLWST_PAGE_ID);
-      assert.equal(
-        result.dailyNotesDataSourceId,
-        'daily-notes-data-source-id',
-      );
+      assert.equal(result.dailyNotesDataSourceId, 'daily-notes-data-source-id');
       assert.equal(result.tasksDataSourceId, 'tasks-data-source-id');
     });
 
@@ -398,10 +395,7 @@ describe('resources helpers', () => {
       const result = await findExistingResources(mockNotion, PARENT_PAGE_ID);
 
       assert.equal(result.flowStatePageId, FLWST_PAGE_ID);
-      assert.equal(
-        result.dailyNotesDataSourceId,
-        'daily-notes-data-source-id',
-      );
+      assert.equal(result.dailyNotesDataSourceId, 'daily-notes-data-source-id');
       assert.equal(result.tasksDataSourceId, undefined);
     });
 
@@ -451,10 +445,7 @@ describe('resources helpers', () => {
       const result = await findExistingResources(mockNotion, PARENT_PAGE_ID);
 
       assert.equal(result.flowStatePageId, FLWST_PAGE_ID);
-      assert.equal(
-        result.dailyNotesDataSourceId,
-        'daily-notes-data-source-id',
-      );
+      assert.equal(result.dailyNotesDataSourceId, 'daily-notes-data-source-id');
       assert.equal(result.tasksDataSourceId, undefined);
     });
 
