@@ -9,6 +9,7 @@ import {
   createFlowStatePage,
   createDailyNotesDatabase,
   createTasksDatabase,
+  findExistingResources,
 } from './resources';
 import {
   FLOW_STATE_PAGE_TITLE,
@@ -246,6 +247,245 @@ describe('resources helpers', () => {
           message: 'Tasks database creation failed',
         },
       );
+    });
+  });
+
+  describe('findExistingResources', () => {
+    const PARENT_PAGE_ID = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+    const FLWST_PAGE_ID = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+    const DAILY_NOTES_DB_ID = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
+    const TASKS_DB_ID = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
+
+    it('returns empty result when flwst page not found', async () => {
+      const mockNotion = {
+        search: mock.fn(async () => ({
+          results: [],
+        })),
+      } as unknown as Client;
+
+      const result = await findExistingResources(mockNotion, PARENT_PAGE_ID);
+
+      assert.deepEqual(result, {});
+      assert.equal(mockNotion.search.mock.calls.length, 1);
+    });
+
+    it('returns only flowStatePageId when no databases exist', async () => {
+      const mockNotion = {
+        search: mock.fn(async () => ({
+          results: [
+            {
+              id: FLWST_PAGE_ID,
+              parent: {
+                type: 'page_id',
+                page_id: PARENT_PAGE_ID,
+              },
+            },
+          ],
+        })),
+        blocks: {
+          children: {
+            list: mock.fn(async () => ({
+              results: [],
+            })),
+          },
+        },
+      } as unknown as Client;
+
+      const result = await findExistingResources(mockNotion, PARENT_PAGE_ID);
+
+      assert.equal(result.flowStatePageId, FLWST_PAGE_ID);
+      assert.equal(result.dailyNotesDataSourceId, undefined);
+      assert.equal(result.tasksDataSourceId, undefined);
+    });
+
+    it('finds both databases when they exist', async () => {
+      const mockNotion = {
+        search: mock.fn(async () => ({
+          results: [
+            {
+              id: FLWST_PAGE_ID,
+              parent: {
+                type: 'page_id',
+                page_id: PARENT_PAGE_ID,
+              },
+            },
+          ],
+        })),
+        blocks: {
+          children: {
+            list: mock.fn(async () => ({
+              results: [
+                {
+                  type: 'child_database',
+                  id: DAILY_NOTES_DB_ID,
+                  child_database: {
+                    title: 'Daily Notes',
+                  },
+                },
+                {
+                  type: 'child_database',
+                  id: TASKS_DB_ID,
+                  child_database: {
+                    title: 'To-Dos',
+                  },
+                },
+              ],
+            })),
+          },
+        },
+        databases: {
+          retrieve: mock.fn(async (params: { database_id: string }) => {
+            if (params.database_id === DAILY_NOTES_DB_ID) {
+              return {
+                data_sources: [{ id: 'daily-notes-data-source-id' }],
+              };
+            }
+            if (params.database_id === TASKS_DB_ID) {
+              return {
+                data_sources: [{ id: 'tasks-data-source-id' }],
+              };
+            }
+            throw new Error('Unexpected database ID');
+          }),
+        },
+      } as unknown as Client;
+
+      const result = await findExistingResources(mockNotion, PARENT_PAGE_ID);
+
+      assert.equal(result.flowStatePageId, FLWST_PAGE_ID);
+      assert.equal(
+        result.dailyNotesDataSourceId,
+        'daily-notes-data-source-id',
+      );
+      assert.equal(result.tasksDataSourceId, 'tasks-data-source-id');
+    });
+
+    it('finds only Daily Notes when Tasks database is missing', async () => {
+      const mockNotion = {
+        search: mock.fn(async () => ({
+          results: [
+            {
+              id: FLWST_PAGE_ID,
+              parent: {
+                type: 'page_id',
+                page_id: PARENT_PAGE_ID,
+              },
+            },
+          ],
+        })),
+        blocks: {
+          children: {
+            list: mock.fn(async () => ({
+              results: [
+                {
+                  type: 'child_database',
+                  id: DAILY_NOTES_DB_ID,
+                  child_database: {
+                    title: 'Daily Notes',
+                  },
+                },
+              ],
+            })),
+          },
+        },
+        databases: {
+          retrieve: mock.fn(async () => ({
+            data_sources: [{ id: 'daily-notes-data-source-id' }],
+          })),
+        },
+      } as unknown as Client;
+
+      const result = await findExistingResources(mockNotion, PARENT_PAGE_ID);
+
+      assert.equal(result.flowStatePageId, FLWST_PAGE_ID);
+      assert.equal(
+        result.dailyNotesDataSourceId,
+        'daily-notes-data-source-id',
+      );
+      assert.equal(result.tasksDataSourceId, undefined);
+    });
+
+    it('ignores non-database blocks', async () => {
+      const mockNotion = {
+        search: mock.fn(async () => ({
+          results: [
+            {
+              id: FLWST_PAGE_ID,
+              parent: {
+                type: 'page_id',
+                page_id: PARENT_PAGE_ID,
+              },
+            },
+          ],
+        })),
+        blocks: {
+          children: {
+            list: mock.fn(async () => ({
+              results: [
+                {
+                  type: 'paragraph',
+                  id: 'paragraph-block-id',
+                },
+                {
+                  type: 'heading_1',
+                  id: 'heading-block-id',
+                },
+                {
+                  type: 'child_database',
+                  id: DAILY_NOTES_DB_ID,
+                  child_database: {
+                    title: 'Daily Notes',
+                  },
+                },
+              ],
+            })),
+          },
+        },
+        databases: {
+          retrieve: mock.fn(async () => ({
+            data_sources: [{ id: 'daily-notes-data-source-id' }],
+          })),
+        },
+      } as unknown as Client;
+
+      const result = await findExistingResources(mockNotion, PARENT_PAGE_ID);
+
+      assert.equal(result.flowStatePageId, FLWST_PAGE_ID);
+      assert.equal(
+        result.dailyNotesDataSourceId,
+        'daily-notes-data-source-id',
+      );
+      assert.equal(result.tasksDataSourceId, undefined);
+    });
+
+    it('handles errors gracefully when listing children fails', async () => {
+      const mockNotion = {
+        search: mock.fn(async () => ({
+          results: [
+            {
+              id: FLWST_PAGE_ID,
+              parent: {
+                type: 'page_id',
+                page_id: PARENT_PAGE_ID,
+              },
+            },
+          ],
+        })),
+        blocks: {
+          children: {
+            list: mock.fn(async () => {
+              throw new Error('API error');
+            }),
+          },
+        },
+      } as unknown as Client;
+
+      const result = await findExistingResources(mockNotion, PARENT_PAGE_ID);
+
+      // Should return only flowStatePageId and fall through gracefully
+      assert.equal(result.flowStatePageId, FLWST_PAGE_ID);
+      assert.equal(result.dailyNotesDataSourceId, undefined);
+      assert.equal(result.tasksDataSourceId, undefined);
     });
   });
 });

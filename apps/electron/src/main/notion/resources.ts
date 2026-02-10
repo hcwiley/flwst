@@ -120,7 +120,8 @@ async function logDatabaseSchemaByDataSourceId(
 }
 
 /**
- * Find existing Notion resources by searching for pages and databases.
+ * Find existing Notion resources by searching for pages and listing child databases.
+ * Uses direct child listing instead of search for databases (more reliable).
  */
 export async function findExistingResources(
   notion: Client,
@@ -128,6 +129,7 @@ export async function findExistingResources(
 ): Promise<Partial<CreateResourcesResult>> {
   const result: Partial<CreateResourcesResult> = {};
 
+  // Search for the flwst page under the parent (search works fine for pages)
   const pageSearch = await notion.search({
     query: FLOW_STATE_PAGE_TITLE,
     filter: { property: 'object', value: 'page' },
@@ -140,7 +142,7 @@ export async function findExistingResources(
     const parent = item.parent;
     if (
       parent.type === 'page_id' &&
-      normalizeNotionId(parent.page_id) === parentPageId
+      normalizeNotionId(parent.page_id) === normalizeNotionId(parentPageId)
     ) {
       result.flowStatePageId = item.id;
       break;
@@ -151,66 +153,50 @@ export async function findExistingResources(
     return result;
   }
 
-  let dbSearch;
+  // Instead of search, directly list children of the flwst page
+  // This is more reliable than search for finding databases
   try {
-    dbSearch = await notion.search({
-      query: DAILY_NOTES_DB_TITLE,
-      // Notion Search API now only accepts object filter values: "page" or "data_source".
-      filter: { property: 'object', value: 'data_source' },
+    const children = await notion.blocks.children.list({
+      block_id: normalizeNotionId(result.flowStatePageId),
+      page_size: 100,
     });
-  } catch (error) {
-    logger.error('Failed to search for daily notes database', { error });
-    throw error;
-  }
-  for (const item of dbSearch.results) {
-    if (!('parent' in item)) {
-      continue;
-    }
-    const parent = item.parent;
-    if (
-      parent.type === 'page_id' &&
-      normalizeNotionId(parent.page_id) ===
-        normalizeNotionId(result.flowStatePageId)
-    ) {
-      const dailyNotesDbId = item.id;
-      result.dailyNotesDataSourceId = await resolvePrimaryDataSourceId(
-        notion,
-        dailyNotesDbId,
-        'daily_notes',
-      );
-      break;
-    }
-  }
 
-  let tasksSearch;
-  try {
-    tasksSearch = await notion.search({
-      query: TASKS_DB_TITLE,
-      // Notion Search API now only accepts object filter values: "page" or "data_source".
-      filter: { property: 'object', value: 'data_source' },
-    });
+    for (const block of children.results) {
+      // Type guard for child_database blocks
+      if (!('type' in block) || block.type !== 'child_database') {
+        continue;
+      }
+      if (!('child_database' in block)) {
+        continue;
+      }
+
+      // Type assertion for the database block structure
+      const dbBlock = block as {
+        id: string;
+        type: 'child_database';
+        child_database: { title: string };
+      };
+      const title = dbBlock.child_database.title;
+
+      if (title === DAILY_NOTES_DB_TITLE && !result.dailyNotesDataSourceId) {
+        result.dailyNotesDataSourceId = await resolvePrimaryDataSourceId(
+          notion,
+          dbBlock.id,
+          'daily_notes',
+        );
+      }
+
+      if (title === TASKS_DB_TITLE && !result.tasksDataSourceId) {
+        result.tasksDataSourceId = await resolvePrimaryDataSourceId(
+          notion,
+          dbBlock.id,
+          'tasks',
+        );
+      }
+    }
   } catch (error) {
-    logger.error('Failed to search for tasks database', { error });
-    throw error;
-  }
-  for (const item of tasksSearch.results) {
-    if (!('parent' in item)) {
-      continue;
-    }
-    const parent = item.parent;
-    if (
-      parent.type === 'page_id' &&
-      normalizeNotionId(parent.page_id) ===
-        normalizeNotionId(result.flowStatePageId)
-    ) {
-      const tasksDbId = item.id;
-      result.tasksDataSourceId = await resolvePrimaryDataSourceId(
-        notion,
-        tasksDbId,
-        'tasks',
-      );
-      break;
-    }
+    logger.error('Failed to list children of flwst page', { error });
+    // Fall through - will attempt to create missing databases
   }
 
   return result;
