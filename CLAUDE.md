@@ -69,6 +69,7 @@ This is a pnpm + Turbo monorepo for FlowState, an AI workflow desktop app with N
 ### Data Flow
 
 The Electron app uses push-based IPC for onboarding. Main process manages:
+
 - Encrypted storage (tokens, config) via `keytar` + OS keychain
 - Notion OAuth flow and database schema validation
 - Inbox ingestion pipeline with local artifact persistence

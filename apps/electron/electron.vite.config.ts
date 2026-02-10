@@ -14,11 +14,22 @@ export default defineConfig(({ mode }) => {
   const amplitudeApiKey =
     rootEnv.AMPLITUDE_API_KEY ?? process.env.AMPLITUDE_API_KEY ?? '';
 
+  // Notion OAuth configuration (required for packaged app)
+  const notionClientId =
+    rootEnv.NOTION_CLIENT_ID ?? process.env.NOTION_CLIENT_ID ?? '';
+  const notionClientSecret =
+    rootEnv.NOTION_CLIENT_SECRET ?? process.env.NOTION_CLIENT_SECRET ?? '';
+  const notionRedirectUri =
+    rootEnv.NOTION_REDIRECT_URI ?? process.env.NOTION_REDIRECT_URI ?? '';
+
   return {
     main: {
       define: {
         'process.env.FLWST_API_URL': JSON.stringify(flwstApiUrl),
         'process.env.FLWST_REUSE_LLM_OUTPUT': JSON.stringify(reuseLlmOutput),
+        'process.env.NOTION_CLIENT_ID': JSON.stringify(notionClientId),
+        'process.env.NOTION_CLIENT_SECRET': JSON.stringify(notionClientSecret),
+        'process.env.NOTION_REDIRECT_URI': JSON.stringify(notionRedirectUri),
       },
       resolve: {
         alias: {

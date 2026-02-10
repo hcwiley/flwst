@@ -19,6 +19,7 @@ const require = createRequire(import.meta.url);
 const APP_ROOT = join(__dirname, '..');
 const STAGING_DIR = join(APP_ROOT, 'release', 'build-staging');
 
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 function main() {
   mkdirSync(STAGING_DIR, { recursive: true });
 

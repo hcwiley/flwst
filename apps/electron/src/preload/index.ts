@@ -12,8 +12,27 @@ interface InboxIngestRequest {
   content: string;
 }
 
+interface PreflightPermission {
+  id: string;
+  name: string;
+  description: string;
+  required: boolean;
+  status: 'pending' | 'granted' | 'denied' | 'not_applicable';
+}
+
 // Custom APIs for renderer
 const api = {
+  preflight: {
+    isCompleted: (): Promise<boolean> =>
+      ipcRenderer.invoke('preflight:isCompleted'),
+    getPermissions: (): Promise<PreflightPermission[]> =>
+      ipcRenderer.invoke('preflight:getPermissions'),
+    complete: (): Promise<{ success: boolean }> =>
+      ipcRenderer.invoke('preflight:complete'),
+    requestMicrophone: (): Promise<{
+      status: 'granted' | 'denied' | 'restricted';
+    }> => ipcRenderer.invoke('preflight:requestMicrophone'),
+  },
   onboarding: {
     getState: (): Promise<OnboardingState> =>
       ipcRenderer.invoke('onboarding:getState'),

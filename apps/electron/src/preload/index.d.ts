@@ -13,6 +13,23 @@ import type {
   RunId,
 } from '@flwst/types';
 
+export interface PreflightPermission {
+  id: string;
+  name: string;
+  description: string;
+  required: boolean;
+  status: 'pending' | 'granted' | 'denied' | 'not_applicable';
+}
+
+export interface PreflightAPI {
+  isCompleted: () => Promise<boolean>;
+  getPermissions: () => Promise<PreflightPermission[]>;
+  complete: () => Promise<{ success: boolean }>;
+  requestMicrophone: () => Promise<{
+    status: 'granted' | 'denied' | 'restricted';
+  }>;
+}
+
 export interface OnboardingAPI {
   getState: () => Promise<OnboardingState>;
   updateState: (partial: Partial<OnboardingState>) => Promise<void>;
@@ -99,6 +116,7 @@ export interface ArtifactsAPI {
 }
 
 export interface AppAPI {
+  preflight: PreflightAPI;
   onboarding: OnboardingAPI;
   config: ConfigAPI;
   inbox: InboxAPI;
