@@ -330,7 +330,7 @@ fast feedback, **and secure LLM access via a server-managed architecture**.
 
 # Development Plan
 
-**Current Phase:** Phase 7 ✅ complete; Phase 8 ✅ complete. Next: Phase 9 — Analytics, Polish, and Alpha Hardening.
+**Current Phase:** Phases 1–8 ✅ complete. Next: Phase 9 — Analytics, Polish, and Alpha Hardening.
 
 ## **Phase 0 — Prerequisites and Human Setup (Manual)**
 
@@ -569,7 +569,7 @@ Deliverable:
 
 **Goal:** Secure, server-mediated LLM calls.
 
-### Status: ⚠️ Needs env vars + redeploy
+### Status: ✅
 
 - ✅ Create Firebase Functions project
 - ✅ Implement FlowState API endpoint
@@ -583,10 +583,11 @@ Deliverable:
 - ✅ Ensure no raw content persistence
 - ✅ Deploy to Firebase Hosting
 - ✅ Configure app to call server endpoint
-- ✅ Set runtime env vars in Functions and redeploy:
-  - `GOOGLE_CLOUD_PROJECT`
-  - `GOOGLE_CLOUD_LOCATION=global`
-  - `GOOGLE_GENAI_USE_VERTEXAI=true`
+- ✅ Runtime env vars verified (2025-02-10):
+  - `GOOGLE_CLOUD_PROJECT` — auto-detected from `FIREBASE_CONFIG` at runtime
+  - `GOOGLE_CLOUD_LOCATION=global` — set in `functions/.env`
+  - `GOOGLE_GENAI_USE_VERTEXAI=true` — set in `functions/.env`
+- ✅ Function deployed: `generate` (v2, https, us-central1, nodejs22)
 
 Deliverable:
 
