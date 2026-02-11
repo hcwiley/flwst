@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { electronAPI } from '@electron-toolkit/preload';
-import type { OnboardingState, UserConfig } from '@flwst/types';
+import type { AppVersion, OnboardingState, UserConfig } from '@flwst/types';
 
 interface EffectivePrompts {
   dailyNote: string;
@@ -114,6 +114,10 @@ const api = {
       ipcRenderer.on('notion:syncComplete', handler);
       return () => ipcRenderer.removeListener('notion:syncComplete', handler);
     },
+  },
+  app: {
+    getVersion: (): Promise<AppVersion> =>
+      ipcRenderer.invoke('app:getVersion'),
   },
 };
 

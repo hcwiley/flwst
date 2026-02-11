@@ -20,16 +20,25 @@ import { registerInboxHandlers } from './inbox';
 import { registerLlmHandlers } from './llm';
 import { registerArtifactHandlers } from './artifacts';
 import { isPreflightCompleted, registerPreflightHandlers } from './preflight';
+import { registerVersionHandlers, getAppVersion } from './version';
+import { setupApplicationMenu } from './menu';
+import { initAutoUpdater } from './auto-update';
 
 // Initialize Sentry as early as possible in main process
 // In main process, process.env is available
 // DSN should be set via environment variable: SENTRY_DSN
 // Example: SENTRY_DSN=https://...@o4510755927687168.ingest.us.sentry.io/... pnpm dev:electron
+const appVersion = getAppVersion();
 logger.info('Initializing Sentry', {
   dsnConfigured: !!process.env.SENTRY_DSN,
   environment: process.env.NODE_ENV || 'development',
+  version: appVersion.formatted,
 });
-initSentryMain(process.env.SENTRY_DSN, process.env.NODE_ENV || 'development');
+initSentryMain(
+  process.env.SENTRY_DSN,
+  process.env.NODE_ENV || 'development',
+  appVersion.formatted,
+);
 
 // Enforce single instance - exit if another instance is running
 if (!enforceSingleInstance()) {
@@ -42,6 +51,9 @@ if (!enforceSingleInstance()) {
 app.whenReady().then(() => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron');
+
+  // Setup application menu (macOS only)
+  setupApplicationMenu();
 
   // Register preflight handlers first (before storage init)
   // This allows the renderer to check/complete preflight
@@ -60,6 +72,7 @@ app.whenReady().then(() => {
   registerLlmHandlers();
   registerArtifactHandlers();
   registerNotionHandlers();
+  registerVersionHandlers();
 
   // Only run startup checks if storage is initialized
   if (isPreflightCompleted()) {
@@ -80,6 +93,9 @@ app.whenReady().then(() => {
 
   // Create main window (tracking happens in createMainWindow)
   createMainWindow();
+
+  // Initialize auto-updater (production only)
+  initAutoUpdater();
 
   // Bootstrap Notion sync when notion.status === 'ready' (only if preflight done)
   if (isPreflightCompleted()) {

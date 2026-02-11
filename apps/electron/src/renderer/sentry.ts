@@ -58,10 +58,12 @@ function createSentryExternalLogger(
  *
  * @param dsn - Sentry DSN (optional, if not provided Sentry is disabled)
  * @param environment - Environment name (defaults to 'development')
+ * @param release - Release version (optional, e.g., "1.0.0 (abc123) - 2026-02-10")
  */
 export function initSentryRenderer(
   dsn?: string,
   environment: string = 'development',
+  release?: string,
 ): void {
   const logsEnabled =
     environment === 'production' || process.env.SENTRY_LOGS_ENABLED === 'true';
@@ -81,6 +83,7 @@ export function initSentryRenderer(
       sentry.init({
         dsn,
         environment,
+        release,
         enableLogs: logsEnabled,
         // Redact sensitive data per security guide
         beforeSend(event) {
@@ -108,6 +111,7 @@ export function initSentryRenderer(
         environment,
         dsnConfigured: !!dsn,
         logsEnabled,
+        release,
       });
     })
     .catch((err) => {

@@ -1,5 +1,6 @@
 import { ElectronAPI } from '@electron-toolkit/preload';
 import type {
+  AppVersion,
   GenerateRequest,
   GenerateResponse,
   NotionDailyNotePage,
@@ -115,6 +116,10 @@ export interface ArtifactsAPI {
   readTextFile: (filePath: string) => Promise<string>;
 }
 
+export interface ApplicationAPI {
+  getVersion: () => Promise<AppVersion>;
+}
+
 export interface AppAPI {
   preflight: PreflightAPI;
   onboarding: OnboardingAPI;
@@ -123,6 +128,7 @@ export interface AppAPI {
   llm: LlmAPI;
   artifacts: ArtifactsAPI;
   notion: NotionAPI;
+  app: ApplicationAPI;
 }
 
 declare global {

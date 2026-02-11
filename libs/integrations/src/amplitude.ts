@@ -19,6 +19,7 @@ type AmplitudeModule = {
 };
 let amplitudeModule: AmplitudeModule | null = null;
 let initialized = false;
+let appVersionCache: string | undefined;
 
 /**
  * Initialize the Amplitude SDK. No-ops if apiKey is missing.
@@ -29,6 +30,9 @@ export function initAmplitude(config: AmplitudeIntegrationConfig): void {
   if (!apiKey) {
     return;
   }
+
+  appVersionCache = config.appVersion;
+
   import('@amplitude/analytics-browser').then((mod: AmplitudeModule) => {
     amplitudeModule = mod;
     mod.init(apiKey, config.userId, {
@@ -50,5 +54,11 @@ export function track(
     return;
   }
   const safe = redactForTelemetry(properties ?? {});
+
+  // Auto-include app version in all events
+  if (appVersionCache) {
+    safe.appVersion = appVersionCache;
+  }
+
   amplitudeModule.track(eventName, safe as Record<string, unknown>);
 }
