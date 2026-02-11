@@ -56,3 +56,9 @@ test('redactForTelemetry returns a copy', () => {
   assert.notStrictEqual(out, input);
   assert.deepEqual(out, input);
 });
+
+test('redactForTelemetry keeps appVersion for version tracking', () => {
+  const input = { appVersion: '1.0.0', accessToken: 'secret' };
+  const out = redactForTelemetry(input);
+  assert.deepEqual(out, { appVersion: '1.0.0' });
+});

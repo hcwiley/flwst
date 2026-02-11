@@ -21,6 +21,7 @@ const TELEMETRY_ALLOWED_KEYS = new Set<string>([
   'teamSize',
   'urgency',
   'errorCategory',
+  'appVersion',
 ]);
 
 /**
