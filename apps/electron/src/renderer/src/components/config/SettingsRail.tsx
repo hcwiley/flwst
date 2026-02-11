@@ -76,7 +76,11 @@ export function SettingsRail({
       </Stack>
 
       {collapsed ? null : (
-        <Panel flex={1} overflow='hidden' padding='$3'>
+        <Panel
+          flex={1}
+          overflow='hidden'
+          padding='$3'
+        >
           <ScrollView flex={1}>
             <ConfigPane
               selectedPromptKey={selectedPromptKey}
@@ -96,7 +100,10 @@ export function SettingsRail({
             borderColor='$gray3'
             alignItems='center'
           >
-            <Text fontSize='$2' color='$gray9'>
+            <Text
+              fontSize='$2'
+              color='$gray9'
+            >
               {version || 'Loading version...'}
             </Text>
           </Stack>

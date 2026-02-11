@@ -16,18 +16,21 @@ const __dirname = dirname(__filename);
 const rootDir = join(__dirname, '..');
 
 // Read root version
-const rootPkg = JSON.parse(readFileSync(join(rootDir, 'package.json'), 'utf-8'));
+const rootPkg = JSON.parse(
+  readFileSync(join(rootDir, 'package.json'), 'utf-8'),
+);
 const version = rootPkg.version;
 
 console.log(`Syncing version ${version} to child packages...`);
 
 // Find all package.json files (excluding node_modules and root)
-const findCommand = 'find . -name "package.json" -not -path "*/node_modules/*" -not -path "./package.json"';
+const findCommand =
+  'find . -name "package.json" -not -path "*/node_modules/*" -not -path "./package.json"';
 const packageFiles = execSync(findCommand, { cwd: rootDir, encoding: 'utf-8' })
   .trim()
   .split('\n')
   .filter(Boolean)
-  .map(path => path.replace(/^\.\//, '')); // Remove leading './'
+  .map((path) => path.replace(/^\.\//, '')); // Remove leading './'
 
 let updated = 0;
 let skipped = 0;
@@ -50,4 +53,6 @@ for (const pkgPath of packageFiles) {
   }
 }
 
-console.log(`\nSynced ${updated} package(s) to version ${version} (${skipped} already up-to-date)`);
+console.log(
+  `\nSynced ${updated} package(s) to version ${version} (${skipped} already up-to-date)`,
+);

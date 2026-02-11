@@ -15,7 +15,9 @@ if (!version) {
 }
 
 // Get current git info
-const gitSha = execSync('git rev-parse --short=7 HEAD', { encoding: 'utf-8' }).trim();
+const gitSha = execSync('git rev-parse --short=7 HEAD', {
+  encoding: 'utf-8',
+}).trim();
 const buildTime = new Date().toISOString();
 
 // Write VERSION file

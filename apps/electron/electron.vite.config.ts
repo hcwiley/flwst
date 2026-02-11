@@ -27,14 +27,16 @@ function getVersionInfo(): {
     const lines = versionFileContent.split('\n');
 
     for (const line of lines) {
-      const [key, value] = line.split('=').map(s => s.trim());
+      const [key, value] = line.split('=').map((s) => s.trim());
       if (key === 'version') version = value;
       if (key === 'gitSha') gitSha = value;
       if (key === 'buildTime') buildTime = value;
     }
   } catch (err) {
     console.warn('Failed to read VERSION file:', err);
-    console.warn('Using defaults. Run post-commit hook or create VERSION file manually.');
+    console.warn(
+      'Using defaults. Run post-commit hook or create VERSION file manually.',
+    );
   }
 
   // Formatted display string
@@ -73,7 +75,9 @@ export default defineConfig(({ mode }) => {
         'process.env.APP_VERSION': JSON.stringify(versionInfo.version),
         'process.env.APP_GIT_SHA': JSON.stringify(versionInfo.gitSha),
         'process.env.APP_BUILD_TIME': JSON.stringify(versionInfo.buildTime),
-        'process.env.APP_VERSION_FORMATTED': JSON.stringify(versionInfo.formatted),
+        'process.env.APP_VERSION_FORMATTED': JSON.stringify(
+          versionInfo.formatted,
+        ),
       },
       resolve: {
         alias: {
@@ -166,7 +170,9 @@ export default defineConfig(({ mode }) => {
         'process.env.APP_VERSION': JSON.stringify(versionInfo.version),
         'process.env.APP_GIT_SHA': JSON.stringify(versionInfo.gitSha),
         'process.env.APP_BUILD_TIME': JSON.stringify(versionInfo.buildTime),
-        'process.env.APP_VERSION_FORMATTED': JSON.stringify(versionInfo.formatted),
+        'process.env.APP_VERSION_FORMATTED': JSON.stringify(
+          versionInfo.formatted,
+        ),
       },
       optimizeDeps: {
         // Exclude Sentry from dependency optimization (dynamic imports)

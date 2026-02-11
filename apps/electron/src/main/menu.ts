@@ -20,7 +20,7 @@ export function setupApplicationMenu(): void {
 
   const template: MenuItemConstructorOptions[] = [
     {
-      label: app.name,  // "flwst" (from package.json name)
+      label: app.name, // "flwst" (from package.json name)
       submenu: [
         {
           label: `About ${app.name}`,

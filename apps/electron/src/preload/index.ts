@@ -116,8 +116,7 @@ const api = {
     },
   },
   app: {
-    getVersion: (): Promise<AppVersion> =>
-      ipcRenderer.invoke('app:getVersion'),
+    getVersion: (): Promise<AppVersion> => ipcRenderer.invoke('app:getVersion'),
   },
 };
 
