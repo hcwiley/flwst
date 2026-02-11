@@ -5,8 +5,8 @@
 
 import type { JSX } from 'react';
 
-import { useCallback, useState } from 'react';
-import { Button, Stack } from 'tamagui';
+import { useCallback, useState, useEffect } from 'react';
+import { Button, Stack, Text, ScrollView } from 'tamagui';
 import { H2, Panel } from '@flwst/ui';
 import type { UserConfig } from '@flwst/types';
 import { ConfigPane } from './ConfigPane';
@@ -38,6 +38,12 @@ export function SettingsRail({
   const [selectedPromptKey, setSelectedPromptKey] = useState<PromptKey | null>(
     null,
   );
+  const [version, setVersion] = useState<string>('');
+
+  // Load version on mount
+  useEffect(() => {
+    window.api.app.getVersion().then((v) => setVersion(v.formatted));
+  }, []);
 
   const toggleCollapsed = useCallback(() => {
     setCollapsed((prev) => !prev);
@@ -75,15 +81,32 @@ export function SettingsRail({
           overflow='hidden'
           padding='$3'
         >
-          <ConfigPane
-            selectedPromptKey={selectedPromptKey}
-            config={config}
-            defaults={defaults}
-            effective={effective}
-            onConfigChange={onConfigChange}
-            onSelectPrompt={setSelectedPromptKey}
-            loadConfig={loadConfig}
-          />
+          <ScrollView flex={1}>
+            <ConfigPane
+              selectedPromptKey={selectedPromptKey}
+              config={config}
+              defaults={defaults}
+              effective={effective}
+              onConfigChange={onConfigChange}
+              onSelectPrompt={setSelectedPromptKey}
+              loadConfig={loadConfig}
+            />
+          </ScrollView>
+
+          {/* Version footer */}
+          <Stack
+            padding='$2'
+            borderTopWidth={1}
+            borderColor='$gray3'
+            alignItems='center'
+          >
+            <Text
+              fontSize='$2'
+              color='$gray9'
+            >
+              {version || 'Loading version...'}
+            </Text>
+          </Stack>
         </Panel>
       )}
     </Stack>

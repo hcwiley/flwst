@@ -14,9 +14,11 @@
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
     "nuke:node_modules": "rm -rf node_modules libs/*/node_modules apps/*/node_modules",
-    "dev:electron": "turbo run dev --filter=@flwst/electron",
-    "clear:storage": "pnpm --filter @flwst/electron clear:storage",
-    "dist:electron": "pnpm --filter @flwst/electron dist:mac"
+    "sync:version": "node scripts/sync-version.mjs",
+    "release": "semantic-release",
+    "dev:electron": "turbo run dev --filter=flwst",
+    "clear:storage": "pnpm --filter flwst clear:storage",
+    "dist:electron": "pnpm --filter flwst dist:mac"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
@@ -41,6 +43,10 @@
     "@commitlint/cli": "^20.1.0",
     "@commitlint/config-conventional": "^20.0.0",
     "@eslint/js": "^9.38.0",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/exec": "^7.1.0",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^12.0.5",
     "@types/node": "^24.9.2",
     "@typescript-eslint/eslint-plugin": "^8.46.2",
     "@typescript-eslint/parser": "^8.46.2",
@@ -53,6 +59,7 @@
     "lint-staged": "^16.2.6",
     "markdownlint-cli2": "^0.18.1",
     "prettier": "^3.6.2",
+    "semantic-release": "^25.0.3",
     "tsc": "^2.0.4",
     "tsx": "^4.20.6",
     "turbo": "^2.3.3",

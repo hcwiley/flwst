@@ -3,6 +3,7 @@
  * Keeps UI state local while delegating ingestion to main process via IPC.
  */
 
+import { track } from '@flwst/integrations';
 import { useCallback, useMemo, useState } from 'react';
 import { Button, Spinner, Stack, TextArea, YStack } from 'tamagui';
 import { H1, H2, MetaText, Panel } from '@flwst/ui';
@@ -67,6 +68,8 @@ export function InboxPane({
         const text = await file.text();
         setContent(text);
         setFilename(file.name);
+        const ext = file.name.toLowerCase().endsWith('.md') ? '.md' : '.txt';
+        track('File Dropped', { extension: ext });
         onStatusChange('idle');
       } catch (readError) {
         onStatusChange('error');
@@ -95,6 +98,7 @@ export function InboxPane({
       return;
     }
 
+    track('Ingest', { hasFilename: !!filename });
     setIsProcessing(true);
     onStatusChange('ingesting');
     onError(null);
@@ -105,6 +109,10 @@ export function InboxPane({
         content,
       });
       onRunComplete(result);
+      track('Run Completed', {
+        llmSuccess: result.llmSuccess,
+        llmDurationMs: result.llmDurationMs,
+      });
       onStatusChange(result.llmSuccess ? 'success' : 'error');
       if (!result.llmSuccess && result.llmError) {
         onError(result.llmError);

@@ -108,7 +108,7 @@ function buildDailyNoteBlocks(
   const lines = content.split(/\r?\n/);
   let buffer: string[] = [];
 
-  const flushParagraph = () => {
+  const flushParagraph = (): void => {
     const text = buffer.join(' ').trim();
     if (!text) {
       buffer = [];

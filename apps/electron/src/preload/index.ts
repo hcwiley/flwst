@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { electronAPI } from '@electron-toolkit/preload';
-import type { OnboardingState, UserConfig } from '@flwst/types';
+import type { AppVersion, OnboardingState, UserConfig } from '@flwst/types';
 
 interface EffectivePrompts {
   dailyNote: string;
@@ -12,8 +12,27 @@ interface InboxIngestRequest {
   content: string;
 }
 
+interface PreflightPermission {
+  id: string;
+  name: string;
+  description: string;
+  required: boolean;
+  status: 'pending' | 'granted' | 'denied' | 'not_applicable';
+}
+
 // Custom APIs for renderer
 const api = {
+  preflight: {
+    isCompleted: (): Promise<boolean> =>
+      ipcRenderer.invoke('preflight:isCompleted'),
+    getPermissions: (): Promise<PreflightPermission[]> =>
+      ipcRenderer.invoke('preflight:getPermissions'),
+    complete: (): Promise<{ success: boolean }> =>
+      ipcRenderer.invoke('preflight:complete'),
+    requestMicrophone: (): Promise<{
+      status: 'granted' | 'denied' | 'restricted';
+    }> => ipcRenderer.invoke('preflight:requestMicrophone'),
+  },
   onboarding: {
     getState: (): Promise<OnboardingState> =>
       ipcRenderer.invoke('onboarding:getState'),
@@ -91,10 +110,13 @@ const api = {
           notes?: unknown[];
           error?: string;
         },
-      ) => callback(payload);
+      ): void => callback(payload);
       ipcRenderer.on('notion:syncComplete', handler);
       return () => ipcRenderer.removeListener('notion:syncComplete', handler);
     },
+  },
+  app: {
+    getVersion: (): Promise<AppVersion> => ipcRenderer.invoke('app:getVersion'),
   },
 };
 

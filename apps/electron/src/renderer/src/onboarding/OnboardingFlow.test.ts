@@ -2,12 +2,13 @@
  * Unit tests for onboarding flow reducer and state machine logic.
  */
 
-import { describe, it } from 'node:test';
-import { strictEqual } from 'node:assert';
 import type { OnboardingState } from '@flwst/types';
 import { getDefaultOnboardingState } from '@flwst/types';
+import { strictEqual } from 'node:assert';
+import { describe, it } from 'node:test';
+
+import { onboardingReducer } from './onboardingReducer';
 import type { OnboardingFlowState, OnboardingFlowAction } from './types';
-import { onboardingReducer } from './OnboardingFlow';
 
 /**
  * Create initial flow state for testing.

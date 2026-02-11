@@ -1,5 +1,6 @@
 import { ElectronAPI } from '@electron-toolkit/preload';
 import type {
+  AppVersion,
   GenerateRequest,
   GenerateResponse,
   NotionDailyNotePage,
@@ -12,6 +13,23 @@ import type {
   UserConfig,
   RunId,
 } from '@flwst/types';
+
+export interface PreflightPermission {
+  id: string;
+  name: string;
+  description: string;
+  required: boolean;
+  status: 'pending' | 'granted' | 'denied' | 'not_applicable';
+}
+
+export interface PreflightAPI {
+  isCompleted: () => Promise<boolean>;
+  getPermissions: () => Promise<PreflightPermission[]>;
+  complete: () => Promise<{ success: boolean }>;
+  requestMicrophone: () => Promise<{
+    status: 'granted' | 'denied' | 'restricted';
+  }>;
+}
 
 export interface OnboardingAPI {
   getState: () => Promise<OnboardingState>;
@@ -98,13 +116,19 @@ export interface ArtifactsAPI {
   readTextFile: (filePath: string) => Promise<string>;
 }
 
+export interface ApplicationAPI {
+  getVersion: () => Promise<AppVersion>;
+}
+
 export interface AppAPI {
+  preflight: PreflightAPI;
   onboarding: OnboardingAPI;
   config: ConfigAPI;
   inbox: InboxAPI;
   llm: LlmAPI;
   artifacts: ArtifactsAPI;
   notion: NotionAPI;
+  app: ApplicationAPI;
 }
 
 declare global {

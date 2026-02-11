@@ -3,7 +3,6 @@
  * Phase 1: Placeholder slices; Phase 7: notionSync slice for Notion tasks/notes.
  */
 
-import { create } from 'zustand';
 import type {
   KanbanPrefs,
   NotionDailyNotePage,
@@ -11,6 +10,8 @@ import type {
   TaskStatus,
   UserConfig,
 } from '@flwst/types';
+import type { StoreApi, UseBoundStore } from 'zustand';
+import { create } from 'zustand';
 
 /** Sync error for UI display. */
 export type NotionSyncError = { message: string; at: string };
@@ -87,84 +88,94 @@ const defaultKanbanPrefs: KanbanPrefs = {
 /**
  * Create the application store.
  */
-export const useAppStore = create<AppStore>((set) => ({
-  inbox: {},
-  config: {
-    userConfig: null,
-  },
-  review: {},
-  kanban: {},
-  kanbanPrefs: defaultKanbanPrefs,
-  notionSync: initialNotionSync,
+export const useAppStore: UseBoundStore<StoreApi<AppStore>> = create<AppStore>(
+  (set) => ({
+    inbox: {},
+    config: {
+      userConfig: null,
+    },
+    review: {},
+    kanban: {},
+    kanbanPrefs: defaultKanbanPrefs,
+    notionSync: initialNotionSync,
 
-  startSync: () =>
-    set((state) => ({
-      notionSync: {
-        ...state.notionSync,
-        isSyncing: true,
-        lastError: null,
-      },
-    })),
-
-  completeSync: (tasks, notes) => {
-    const tasksById: Record<string, NotionTaskPage> = {};
-    for (const t of tasks) tasksById[t.id] = t;
-    const notesById: Record<string, NotionDailyNotePage> = {};
-    for (const n of notes) notesById[n.id] = n;
-    set((state) => ({
-      notionSync: {
-        ...state.notionSync,
-        isSyncing: false,
-        lastSyncAt: new Date().toISOString(),
-        lastError: null,
-        tasksById,
-        notesById,
-      },
-    }));
-  },
-
-  failSync: (error) =>
-    set((state) => ({
-      notionSync: {
-        ...state.notionSync,
-        isSyncing: false,
-        lastError: error,
-      },
-    })),
-
-  syncTasksOnly: (tasks) => {
-    const tasksById: Record<string, NotionTaskPage> = {};
-    for (const t of tasks) tasksById[t.id] = t;
-    set((state) => ({
-      notionSync: {
-        ...state.notionSync,
-        tasksById,
-        isSyncing: false,
-      },
-    }));
-  },
-
-  updateTaskStatus: (taskId, status) =>
-    set((state) => {
-      const existing = state.notionSync.tasksById[taskId];
-      if (!existing) return state;
-      return {
+    startSync: () =>
+      set((state) => ({
         notionSync: {
           ...state.notionSync,
-          tasksById: {
-            ...state.notionSync.tasksById,
-            [taskId]: {
-              ...existing,
-              status,
-              updatedAt: new Date().toISOString(),
+          isSyncing: true,
+          lastError: null,
+        },
+      })),
+
+    completeSync: (tasks, notes) => {
+      const tasksById: Record<string, NotionTaskPage> = {};
+      for (const t of tasks) {
+        tasksById[t.id] = t;
+      }
+      const notesById: Record<string, NotionDailyNotePage> = {};
+      for (const n of notes) {
+        notesById[n.id] = n;
+      }
+      set((state) => ({
+        notionSync: {
+          ...state.notionSync,
+          isSyncing: false,
+          lastSyncAt: new Date().toISOString(),
+          lastError: null,
+          tasksById,
+          notesById,
+        },
+      }));
+    },
+
+    failSync: (error) =>
+      set((state) => ({
+        notionSync: {
+          ...state.notionSync,
+          isSyncing: false,
+          lastError: error,
+        },
+      })),
+
+    syncTasksOnly: (tasks) => {
+      const tasksById: Record<string, NotionTaskPage> = {};
+      for (const t of tasks) {
+        tasksById[t.id] = t;
+      }
+      set((state) => ({
+        notionSync: {
+          ...state.notionSync,
+          tasksById,
+          isSyncing: false,
+        },
+      }));
+    },
+
+    updateTaskStatus: (taskId, status) =>
+      set((state) => {
+        const existing = state.notionSync.tasksById[taskId];
+        if (!existing) {
+          return state;
+        }
+        return {
+          notionSync: {
+            ...state.notionSync,
+            tasksById: {
+              ...state.notionSync.tasksById,
+              [taskId]: {
+                ...existing,
+                status,
+                updatedAt: new Date().toISOString(),
+              },
             },
           },
-        },
-      };
-    }),
+        };
+      }),
 
-  setKanbanPrefs: (prefs) =>
-    set(() => ({
-      kanbanPrefs: prefs,
-    })),
-}));
+    setKanbanPrefs: (prefs) =>
+      set(() => ({
+        kanbanPrefs: prefs,
+      })),
+  }),
+);

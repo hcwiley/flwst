@@ -7,6 +7,7 @@ import type { GeminiConfig } from '@flwst/types';
 /**
  * Gemini integration configuration interface.
  */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface GeminiIntegrationConfig extends GeminiConfig {
   // Future: additional Gemini-specific config
 }

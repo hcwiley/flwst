@@ -95,3 +95,13 @@ pnpm build:mac
 # For Linux
 pnpm build:linux
 ```
+
+### Building for distribution (e.g. DMG)
+
+To produce a distributable Mac build (DMG and zip):
+
+1. Set `NODE_ENV=production` if you want production optimizations (optional; electron-vite uses mode from the build command).
+2. From the repo root: `pnpm --filter @flwst/electron build:mac`, or from this directory: `pnpm build:mac`.
+3. The DMG and zip artifacts are written to `apps/electron/release/` (e.g. `flwst-1.0.0.dmg`). Install the app from the DMG on a target Mac for smoke testing.
+
+**Packaging memory:** The dist scripts set `NODE_OPTIONS=--max-old-space-size=16384` (16GB) so electron-builder’s node-module collector has enough heap in monorepos. If you still see “JavaScript heap out of memory”, raise it (e.g. `NODE_OPTIONS='--max-old-space-size=24576' pnpm build:mac`) or ensure no other heavy processes are running.

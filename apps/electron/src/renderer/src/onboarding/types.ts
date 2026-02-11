@@ -74,3 +74,11 @@ export type OnboardingFlowAction =
     }
   | { type: 'UPDATE_STATE'; payload: Partial<OnboardingState> }
   | { type: 'RESET' };
+
+/**
+ * OnboardingFlow component props.
+ */
+export interface OnboardingFlowProps {
+  initialState?: OnboardingState;
+  onComplete: () => void;
+}

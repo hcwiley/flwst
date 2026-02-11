@@ -45,7 +45,9 @@ export function MainLayout(): React.JSX.Element {
   }, []);
 
   useEffect(() => {
-    void loadConfig();
+    queueMicrotask(() => {
+      void loadConfig();
+    });
   }, [loadConfig]);
 
   useEffect(() => {
@@ -100,7 +102,10 @@ export function MainLayout(): React.JSX.Element {
               onError={setRunError}
             />
           </Stack>
-          <MainPane lastRun={lastRun} />
+          <MainPane
+            lastRun={lastRun}
+            onClearRun={() => setLastRun(null)}
+          />
           <SettingsRail
             title='Settings'
             config={config}

@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
+import { Stack, Spinner, Text } from 'tamagui';
+import { FlowStateTamaguiProvider } from '@flwst/ui';
 import { OnboardingLayout } from './onboarding/OnboardingLayout';
 import { MainLayout } from './layouts/MainLayout';
+import { PreflightScreen } from './preflight/PreflightScreen';
 import type { OnboardingState } from '@flwst/types';
 
 /**
@@ -25,24 +28,46 @@ function shouldShowOnboarding(state: OnboardingState): boolean {
 }
 
 function App(): React.JSX.Element {
+  const [preflightCompleted, setPreflightCompleted] = useState<boolean | null>(
+    null,
+  );
   const [showOnboarding, setShowOnboarding] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const checkOnboardingStatus = async (): Promise<void> => {
+    const checkStartupStatus = async (): Promise<void> => {
       try {
-        const state = await window.api.onboarding.getState();
-        setShowOnboarding(shouldShowOnboarding(state));
+        // First check if preflight is completed
+        const preflightDone = await window.api.preflight.isCompleted();
+        setPreflightCompleted(preflightDone);
+
+        if (preflightDone) {
+          // Only check onboarding if preflight is done (storage is initialized)
+          const state = await window.api.onboarding.getState();
+          setShowOnboarding(shouldShowOnboarding(state));
+        }
       } catch (error) {
-        console.error('Failed to check onboarding status:', error);
-        // Default to showing onboarding on error
-        setShowOnboarding(true);
+        console.error('Failed to check startup status:', error);
+        // If preflight check fails, assume it needs to be done
+        setPreflightCompleted(false);
       } finally {
         setIsLoading(false);
       }
     };
-    checkOnboardingStatus();
+    checkStartupStatus();
   }, []);
+
+  const handlePreflightComplete = async (): Promise<void> => {
+    // After preflight, check onboarding status
+    setPreflightCompleted(true);
+    try {
+      const state = await window.api.onboarding.getState();
+      setShowOnboarding(shouldShowOnboarding(state));
+    } catch (error) {
+      console.error('Failed to check onboarding status:', error);
+      setShowOnboarding(true);
+    }
+  };
 
   const handleOnboardingComplete = async (): Promise<void> => {
     // Update state to mark onboarding as complete
@@ -59,8 +84,36 @@ function App(): React.JSX.Element {
   };
 
   if (isLoading) {
-    // Show loading state while checking onboarding status
-    return <div>Loading...</div>;
+    return (
+      <FlowStateTamaguiProvider defaultTheme='light'>
+        <Stack
+          flex={1}
+          height='100vh'
+          width='100vw'
+          alignItems='center'
+          justifyContent='center'
+          backgroundColor='$background'
+          gap='$3'
+        >
+          <Spinner size='large' />
+          <Text
+            fontSize='$4'
+            color='$gray11'
+          >
+            Loading…
+          </Text>
+        </Stack>
+      </FlowStateTamaguiProvider>
+    );
+  }
+
+  // Show preflight screen if not completed
+  if (preflightCompleted === false) {
+    return (
+      <FlowStateTamaguiProvider defaultTheme='light'>
+        <PreflightScreen onComplete={handlePreflightComplete} />
+      </FlowStateTamaguiProvider>
+    );
   }
 
   if (showOnboarding) {

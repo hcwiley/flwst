@@ -18,9 +18,20 @@ export default [
       'archive/',
       'tmp/',
       '.pnpm-store/',
+      // build output (anywhere in repo, e.g. types/dist-firebase/)
+      '**/build/',
+      '**/out/',
+      '**/lib/',
+      '**/dist/',
+      '**/dist-*/',
       // Ignore private real configs; we lint only examples
       'config/notion.ts',
       'config/spelling.ts',
+      // Ignore Firebase since it's a different eslint version
+      'servers/firebase/**',
+      // ignore all .* files
+      '.genkit/',
+      '.turbo/',
     ],
   },
 
@@ -45,7 +56,8 @@ export default [
       'no-underscore-dangle': 'off',
       'no-plusplus': ['error', { allowForLoopAfterthoughts: true }],
       quotes: ['error', 'single'],
-
+      // disable react/no-unescaped-entities
+      'react/no-unescaped-entities': 'off',
       // Imports (Airbnb-ish)
       'import/newline-after-import': 'error',
       'import/no-mutable-exports': 'error',

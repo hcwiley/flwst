@@ -8,6 +8,7 @@ import type { SentryConfig } from '@flwst/types';
 /**
  * Sentry integration configuration interface.
  */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface SentryIntegrationConfig extends SentryConfig {
   // Future: additional Sentry-specific config
 }

@@ -1,3 +1,4 @@
+import './resource-path';
 import { app, ipcMain } from 'electron';
 import { electronApp, optimizer } from '@electron-toolkit/utils';
 import { initSentryMain, getLogger } from './sentry';
@@ -18,16 +19,26 @@ import { logger } from '@flwst/core';
 import { registerInboxHandlers } from './inbox';
 import { registerLlmHandlers } from './llm';
 import { registerArtifactHandlers } from './artifacts';
+import { isPreflightCompleted, registerPreflightHandlers } from './preflight';
+import { registerVersionHandlers, getAppVersion } from './version';
+import { setupApplicationMenu } from './menu';
+import { initAutoUpdater } from './auto-update';
 
 // Initialize Sentry as early as possible in main process
 // In main process, process.env is available
 // DSN should be set via environment variable: SENTRY_DSN
 // Example: SENTRY_DSN=https://...@o4510755927687168.ingest.us.sentry.io/... pnpm dev:electron
+const appVersion = getAppVersion();
 logger.info('Initializing Sentry', {
   dsnConfigured: !!process.env.SENTRY_DSN,
   environment: process.env.NODE_ENV || 'development',
+  version: appVersion.formatted,
 });
-initSentryMain(process.env.SENTRY_DSN, process.env.NODE_ENV || 'development');
+initSentryMain(
+  process.env.SENTRY_DSN,
+  process.env.NODE_ENV || 'development',
+  appVersion.formatted,
+);
 
 // Enforce single instance - exit if another instance is running
 if (!enforceSingleInstance()) {
@@ -41,20 +52,34 @@ app.whenReady().then(() => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron');
 
-  // Initialize encrypted storage
-  // Stores are now available via getConfigStore() and getTokensStore()
-  initializeStorage();
+  // Setup application menu (macOS only)
+  setupApplicationMenu();
 
-  // Register IPC handlers
+  // Register preflight handlers first (before storage init)
+  // This allows the renderer to check/complete preflight
+  registerPreflightHandlers();
+
+  // Initialize encrypted storage only if preflight already completed
+  // Otherwise, storage will be initialized when preflight:complete is called
+  if (isPreflightCompleted()) {
+    initializeStorage();
+  }
+
+  // Register IPC handlers (they guard against uninitialized storage)
   registerOnboardingHandlers();
   registerConfigHandlers();
   registerInboxHandlers();
   registerLlmHandlers();
   registerArtifactHandlers();
   registerNotionHandlers();
-  checkNotionSchemasOnStartup().catch((error) => {
-    getLogger().error('Notion schema check failed', { error });
-  });
+  registerVersionHandlers();
+
+  // Only run startup checks if storage is initialized
+  if (isPreflightCompleted()) {
+    checkNotionSchemasOnStartup().catch((error) => {
+      getLogger().error('Notion schema check failed', { error });
+    });
+  }
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
@@ -69,10 +94,15 @@ app.whenReady().then(() => {
   // Create main window (tracking happens in createMainWindow)
   createMainWindow();
 
-  // Bootstrap Notion sync when notion.status === 'ready'
-  runBootstrapSync().catch((err) =>
-    getLogger().error('Bootstrap sync failed', { err }),
-  );
+  // Initialize auto-updater (production only)
+  initAutoUpdater();
+
+  // Bootstrap Notion sync when notion.status === 'ready' (only if preflight done)
+  if (isPreflightCompleted()) {
+    runBootstrapSync().catch((err) =>
+      getLogger().error('Bootstrap sync failed', { err }),
+    );
+  }
 
   // Register lifecycle handlers
   registerAppLifecycleHandlers();

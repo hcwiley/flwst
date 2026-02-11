@@ -11,11 +11,7 @@
       ],
       "predeploy": [
         "cd ../.. && pnpm --filter ./types build:firebase",
-        "echo go into resource directory: \"$RESOURCE_DIR\"",
-        "rm -rf \"$RESOURCE_DIR\"/types/ \"$RESOURCE_DIR\"/lib/",
-        "mkdir -p \"$RESOURCE_DIR\"/types/",
-        "cp -r ../../types/*.json \"$RESOURCE_DIR\"/types/",
-        "cp -r ../../types/dist-firebase \"$RESOURCE_DIR\"/types/dist",
+        "bash firebase_types.bash",
         "cd \"$RESOURCE_DIR\" && npm install",
         "npm --prefix \"$RESOURCE_DIR\" run build"
       ],

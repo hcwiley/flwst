@@ -1,15 +1,15 @@
 {
-  "name": "@flwst/electron",
-  "version": "1.0.0",
+  "name": "flwst",
+  "version": "0.1.0",
   "description": "An Electron application with React and TypeScript",
   "main": "./out/main/index.js",
   "author": "example.com",
   "homepage": "https://electron-vite.org",
   "scripts": {
     "dist": "electron-builder",
-    "dist:mac": "electron-builder --mac",
-    "dist:win": "electron-builder --win",
-    "dist:linux": "electron-builder --linux",
+    "dist:mac": "rm -rf release && npm run build && node scripts/stage-for-builder.mjs && cd release/build-staging && ../../node_modules/.bin/electron-builder --mac",
+    "dist:win": "NODE_OPTIONS='--max-old-space-size=16384' electron-builder --win",
+    "dist:linux": "NODE_OPTIONS='--max-old-space-size=16384' electron-builder --linux",
     "format": "prettier --write .",
     "lint": "eslint --cache .",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
@@ -22,7 +22,7 @@
     "postinstall": "electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run build && electron-builder --win",
-    "build:mac": "electron-vite build && electron-builder --mac",
+    "build:mac": "electron-vite build && NODE_OPTIONS='--max-old-space-size=16384' electron-builder --mac",
     "build:linux": "electron-vite build && electron-builder --linux",
     "clear:storage": "node scripts/clear-storage.mjs"
   },
@@ -54,7 +54,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
     "electron": "^39.2.6",
-    "electron-builder": "^26.0.12",
+    "electron-builder": "~25.1.8",
     "electron-vite": "^5.0.0",
     "eslint": "^9.39.1",
     "eslint-plugin-react": "^7.37.5",
@@ -68,31 +68,6 @@
     "vite": "^7.2.6"
   },
   "build": {
-    "appId": "com.crescrentwrenchstudio.flwst",
-    "productName": "flwst",
-    "files": [
-      "dist/**"
-    ],
-    "directories": {
-      "buildResources": "build"
-    },
-    "mac": {
-      "target": [
-        "dmg",
-        "zip"
-      ],
-      "category": "public.app-category.productivity"
-    },
-    "win": {
-      "target": [
-        "nsis"
-      ]
-    },
-    "linux": {
-      "target": [
-        "AppImage",
-        "deb"
-      ]
-    }
+    "extends": "electron-builder.yml"
   }
 }

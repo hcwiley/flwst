@@ -110,9 +110,22 @@ export type SentryConfig = z.infer<typeof SentryConfigSchema>;
 export const AmplitudeConfigSchema = z.object({
   apiKey: z.string().optional(),
   userId: z.string().optional(),
+  appVersion: z.string().optional(),
 });
 
 export type AmplitudeConfig = z.infer<typeof AmplitudeConfigSchema>;
+
+/**
+ * Application version information.
+ */
+export const AppVersionSchema = z.object({
+  version: z.string(), // Semantic version (e.g., "1.0.0")
+  gitSha: z.string(), // Short git SHA (7 chars, e.g., "0ac33cb")
+  buildTime: z.string(), // ISO timestamp (e.g., "2026-02-10T12:34:56Z")
+  formatted: z.string(), // Display string (e.g., "1.0.0 (0ac33cb) - 2026-02-10")
+});
+
+export type AppVersion = z.infer<typeof AppVersionSchema>;
 
 /**
  * OAuth tokens and Notion IDs schema.

@@ -25,6 +25,8 @@ import {
 } from './dataSources';
 import { NotionError } from './errors';
 import { emitOnboardingStateChanged } from './onboardingEvents';
+import { detectStatusPropertyMigration } from './schemaValidation';
+import { fetchDataSourceSchemaEntries } from './dataSources';
 
 const logger = getLogger();
 
@@ -120,7 +122,8 @@ async function logDatabaseSchemaByDataSourceId(
 }
 
 /**
- * Find existing Notion resources by searching for pages and databases.
+ * Find existing Notion resources by searching for pages and listing child databases.
+ * Uses direct child listing instead of search for databases (more reliable).
  */
 export async function findExistingResources(
   notion: Client,
@@ -128,9 +131,10 @@ export async function findExistingResources(
 ): Promise<Partial<CreateResourcesResult>> {
   const result: Partial<CreateResourcesResult> = {};
 
+  // Search for the flwst page under the parent (search works fine for pages)
   const pageSearch = await notion.search({
     query: FLOW_STATE_PAGE_TITLE,
-    filter: { property: 'object', value: 'page' } as any,
+    filter: { property: 'object', value: 'page' },
   });
 
   for (const item of pageSearch.results) {
@@ -140,7 +144,7 @@ export async function findExistingResources(
     const parent = item.parent;
     if (
       parent.type === 'page_id' &&
-      normalizeNotionId(parent.page_id) === parentPageId
+      normalizeNotionId(parent.page_id) === normalizeNotionId(parentPageId)
     ) {
       result.flowStatePageId = item.id;
       break;
@@ -151,68 +155,50 @@ export async function findExistingResources(
     return result;
   }
 
-  let dbSearch;
+  // Instead of search, directly list children of the flwst page
+  // This is more reliable than search for finding databases
   try {
-    dbSearch = await notion.search({
-      query: DAILY_NOTES_DB_TITLE,
-      // Notion Search API now only accepts object filter values: "page" or "data_source".
-      // Databases are returned as "data_source".
-      filter: { property: 'object', value: 'data_source' } as any,
+    const children = await notion.blocks.children.list({
+      block_id: normalizeNotionId(result.flowStatePageId),
+      page_size: 100,
     });
-  } catch (error) {
-    logger.error('Failed to search for daily notes database', { error });
-    throw error;
-  }
-  for (const item of dbSearch.results) {
-    if (!('parent' in item)) {
-      continue;
-    }
-    const parent = item.parent;
-    if (
-      parent.type === 'page_id' &&
-      normalizeNotionId(parent.page_id) ===
-        normalizeNotionId(result.flowStatePageId)
-    ) {
-      const dailyNotesDbId = item.id;
-      result.dailyNotesDataSourceId = await resolvePrimaryDataSourceId(
-        notion,
-        dailyNotesDbId,
-        'daily_notes',
-      );
-      break;
-    }
-  }
 
-  let tasksSearch;
-  try {
-    tasksSearch = await notion.search({
-      query: TASKS_DB_TITLE,
-      // Notion Search API now only accepts object filter values: "page" or "data_source".
-      // Databases are returned as "data_source".
-      filter: { property: 'object', value: 'data_source' } as any,
-    });
+    for (const block of children.results) {
+      // Type guard for child_database blocks
+      if (!('type' in block) || block.type !== 'child_database') {
+        continue;
+      }
+      if (!('child_database' in block)) {
+        continue;
+      }
+
+      // Type assertion for the database block structure
+      const dbBlock = block as {
+        id: string;
+        type: 'child_database';
+        child_database: { title: string };
+      };
+      const title = dbBlock.child_database.title;
+
+      if (title === DAILY_NOTES_DB_TITLE && !result.dailyNotesDataSourceId) {
+        result.dailyNotesDataSourceId = await resolvePrimaryDataSourceId(
+          notion,
+          dbBlock.id,
+          'daily_notes',
+        );
+      }
+
+      if (title === TASKS_DB_TITLE && !result.tasksDataSourceId) {
+        result.tasksDataSourceId = await resolvePrimaryDataSourceId(
+          notion,
+          dbBlock.id,
+          'tasks',
+        );
+      }
+    }
   } catch (error) {
-    logger.error('Failed to search for tasks database', { error });
-    throw error;
-  }
-  for (const item of tasksSearch.results) {
-    if (!('parent' in item)) {
-      continue;
-    }
-    const parent = item.parent;
-    if (
-      parent.type === 'page_id' &&
-      normalizeNotionId(parent.page_id) ===
-        normalizeNotionId(result.flowStatePageId)
-    ) {
-      const tasksDbId = item.id;
-      result.tasksDataSourceId = await resolvePrimaryDataSourceId(
-        notion,
-        tasksDbId,
-        'tasks',
-      );
-      break;
-    }
+    logger.error('Failed to list children of flwst page', { error });
+    // Fall through - will attempt to create missing databases
   }
 
   return result;
@@ -248,10 +234,14 @@ async function createNotionDatabase(
   title: string,
   properties: NotionDatabaseProperties,
 ): Promise<string> {
-  const payload: any = {
+  const payload: {
+    parent: { type: 'page_id'; page_id: string };
+    title: Array<{ text: { content: string } }>;
+    properties: Record<string, unknown>;
+  } = {
     parent: { type: 'page_id', page_id: normalizeNotionId(parentPageId) },
     title: [{ text: { content: title } }],
-    properties: properties as any,
+    properties: properties as Record<string, unknown>,
   };
   const response = await notion.databases.create(payload);
   return response.id;
@@ -334,7 +324,7 @@ export async function addDatabaseProperties(
   _label: 'daily_notes' | 'tasks',
 ): Promise<void> {
   // Remove the Name property since it's already created by databases.create
-  const { Name, ...propsToAdd } = properties;
+  const { Name: _name, ...propsToAdd } = properties;
 
   if (Object.keys(propsToAdd).length === 0) {
     return;
@@ -360,7 +350,16 @@ export async function ensureDailyNotesRelation(
   dailyNotesDataSourceId: string,
   tasksDataSourceId: string,
 ): Promise<void> {
-  const properties: any = {
+  const properties: Record<
+    string,
+    {
+      relation: {
+        data_source_id: string;
+        type: 'single_property';
+        single_property: Record<string, never>;
+      };
+    }
+  > = {
     Tasks: {
       relation: {
         data_source_id: tasksDataSourceId,
@@ -388,6 +387,7 @@ export async function persistIds(
   ids: CreateResourcesResult,
   parentPageId: string,
   onboardingState?: OnboardingState,
+  migrationStatus?: { needsMigration: boolean; hasBeenMigrated: boolean },
 ): Promise<void> {
   const tokensStore = getTokensStore();
   const currentTokens = await tokensStore.read();
@@ -407,6 +407,21 @@ export async function persistIds(
     featureRequests: [],
   };
 
+  // Determine migration status from detected schema or existing state
+  let needsMigration = true;
+  let hasBeenMigrated = false;
+
+  if (migrationStatus) {
+    // Use detected status from Notion schema (most accurate)
+    needsMigration = migrationStatus.needsMigration;
+    hasBeenMigrated = migrationStatus.hasBeenMigrated;
+  } else if (updatedOnboarding.notion.statusPropertyHasBeenMigrated === true) {
+    // Preserve existing migration status if already completed
+    needsMigration =
+      updatedOnboarding.notion.statusPropertyNeedsMigration ?? false;
+    hasBeenMigrated = true;
+  }
+
   await configStore.write({
     ...currentConfig,
     notion: {
@@ -419,14 +434,15 @@ export async function persistIds(
       ...updatedOnboarding,
       notion: {
         ...updatedOnboarding.notion,
-        status: 'resources_created',
+        // Set status to 'ready' if migration already complete, otherwise 'resources_created'
+        status: hasBeenMigrated ? 'ready' : 'resources_created',
         parentPageId,
         flowStatePageId: ids.flowStatePageId,
         dailyNotesDataSourceId: ids.dailyNotesDataSourceId,
         tasksDataSourceId: ids.tasksDataSourceId,
-        statusPropertyMigrated: false,
-        statusPropertyNeedsMigration: true,
-        statusPropertyHasBeenMigrated: false,
+        statusPropertyMigrated: hasBeenMigrated,
+        statusPropertyNeedsMigration: needsMigration,
+        statusPropertyHasBeenMigrated: hasBeenMigrated,
         updatedAt: now,
         createdAt: updatedOnboarding.notion.createdAt ?? now,
       },
@@ -489,8 +505,34 @@ export async function createResourcesInternal(
       dailyNotesDataSourceId: existing.dailyNotesDataSourceId,
       tasksDataSourceId: existing.tasksDataSourceId,
     });
+
+    // Detect Status property migration status from actual Notion schema
+    let migrationStatus;
+    try {
+      const tasksSchema = await fetchDataSourceSchemaEntries(
+        notion,
+        existing.tasksDataSourceId,
+        'tasks',
+      );
+      migrationStatus = detectStatusPropertyMigration(tasksSchema);
+      logger.info('Detected Status property migration status', {
+        needsMigration: migrationStatus.needsMigration,
+        hasBeenMigrated: migrationStatus.hasBeenMigrated,
+      });
+    } catch (error) {
+      logger.warn('Failed to detect Status property migration status', {
+        error,
+      });
+      // Fall back to default behavior if detection fails
+    }
+
     const existingFull = existing as CreateResourcesResult;
-    await persistIds(existingFull, parentPageId, onboardingState);
+    await persistIds(
+      existingFull,
+      parentPageId,
+      onboardingState,
+      migrationStatus,
+    );
     return existingFull;
   }
 

@@ -45,7 +45,6 @@ export function createMainWindow(
     width: opts.width,
     height: opts.height,
     show: opts.show,
-    autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: opts.preloadPath,

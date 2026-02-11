@@ -29,4 +29,4 @@ Never include:
 - OAuth tokens
 - Notion IDs
 
-Telemetry must be metadata-only.
+Telemetry must be metadata-only. Use `redactForTelemetry()` from `@flwst/core` before sending any metadata to Sentry, Amplitude, or other external sinks. The logger and Amplitude track() use this internally.

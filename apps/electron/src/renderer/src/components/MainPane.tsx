@@ -4,15 +4,9 @@
  * Display-level dedup: ingest tasks whose title matches a Notion task are omitted (Notion is canonical).
  */
 
+import { track } from '@flwst/integrations';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Button,
-  Spinner,
-  Stack,
-  Text,
-  XStack,
-  YStack,
-} from 'tamagui';
+import { Button, Spinner, Stack, Text, XStack, YStack } from 'tamagui';
 import { useAppStore } from '@flwst/state';
 import type {
   DailyNoteProps,
@@ -28,9 +22,14 @@ import { MainPaneHeader } from './main/MainPaneHeader';
 
 interface MainPaneProps {
   lastRun: InboxIngestResult | null;
+  /** When provided, run-failed state shows a "Try again" button that clears the run so the user can re-run from Inbox. */
+  onClearRun?: () => void;
 }
 
-export function MainPane({ lastRun }: MainPaneProps): React.JSX.Element {
+export function MainPane({
+  lastRun,
+  onClearRun,
+}: MainPaneProps): React.JSX.Element {
   const [markdown, setMarkdown] = useState('');
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -41,9 +40,9 @@ export function MainPane({ lastRun }: MainPaneProps): React.JSX.Element {
   const [dailyNoteProps, setDailyNoteProps] = useState<DailyNoteProps | null>(
     null,
   );
-  const [_dailyNotePropsError, setDailyNotePropsError] = useState<string | null>(
-    null,
-  );
+  const [_dailyNotePropsError, setDailyNotePropsError] = useState<
+    string | null
+  >(null);
   const [publishResult, setPublishResult] = useState<PublishResult | null>(
     null,
   );
@@ -87,6 +86,7 @@ export function MainPane({ lastRun }: MainPaneProps): React.JSX.Element {
     if (isSyncing) return;
     if (Object.keys(notionTasksById).length > 0) return;
     initialSyncRequested.current = true;
+    track('Sync from Notion', { source: 'initial' });
     startSync();
     window.api.notion.sync().catch(() => {
       // Errors are surfaced through the syncComplete event.
@@ -201,6 +201,10 @@ export function MainPane({ lastRun }: MainPaneProps): React.JSX.Element {
           : undefined,
       });
       setPublishResult(result);
+      track('Publish to Notion', {
+        taskCount: taskProps.length,
+        hadDailyNote: !!dailyNoteProps,
+      });
     } catch (error) {
       setPublishError(
         error instanceof Error ? error.message : 'Publish to Notion failed',
@@ -208,7 +212,14 @@ export function MainPane({ lastRun }: MainPaneProps): React.JSX.Element {
     } finally {
       setIsPublishing(false);
     }
-  }, [taskProps, isPublishing, lastRun?.runId, dailyNoteProps, hasPublishable]);
+  }, [
+    taskProps,
+    isPublishing,
+    lastRun?.runId,
+    dailyNoteProps,
+    hasPublishable,
+    markdown,
+  ]);
 
   const handleMoveTask = useCallback(
     async (taskId: string, status: TaskStatus) => {
@@ -225,6 +236,10 @@ export function MainPane({ lastRun }: MainPaneProps): React.JSX.Element {
         if (!result.ok) {
           throw new Error(result.error);
         }
+        track('Task Status Updated', {
+          fromStatus: existing.status,
+          toStatus: status,
+        });
       } catch (error) {
         updateTaskStatus(taskId, existing.status);
         setTaskMoveError(
@@ -302,9 +317,16 @@ export function MainPane({ lastRun }: MainPaneProps): React.JSX.Element {
             flex={1}
             alignItems='center'
             justifyContent='center'
+            padding='$4'
+            maxWidth={400}
           >
-            <Text opacity={0.7}>
-              This area will host the review and task board panes.
+            <Text
+              textAlign='center'
+              opacity={0.85}
+              lineHeight='$2'
+            >
+              No run yet — drop a transcript in the Inbox and run ingest to see
+              your daily note and tasks here.
             </Text>
           </Stack>
         )}
@@ -315,10 +337,24 @@ export function MainPane({ lastRun }: MainPaneProps): React.JSX.Element {
             alignItems='center'
             justifyContent='center'
             padding='$3'
+            gap='$3'
           >
-            <Text color='$red10'>
-              {loadError ?? 'LLM output not available for this run.'}
+            <Text
+              color='$red10'
+              textAlign='center'
+            >
+              {loadError ??
+                'Run failed. LLM output is not available for this run.'}
             </Text>
+            {onClearRun && (
+              <Button
+                size='$3'
+                theme='active'
+                onPress={onClearRun}
+              >
+                Try again
+              </Button>
+            )}
           </Stack>
         )}
 
